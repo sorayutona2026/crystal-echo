@@ -13,3 +13,7 @@
 
 ## 確認
 `python3 build.py && node test/play.js`(`PW_PATH`/`CHROME` で Playwright・Chromium の場所を指定できる)
+
+## 使っている無料のもの
+- **Tone.js**(MIT)… 音楽の再生に使用。`vendor/Tone.js` を `build.py` が1ファイルに同梱する(ライセンスは `vendor/LICENSE.md`)。`src/music_tone.js` が曲データ `TRACKS` を Tone.js の音で鳴らす。読み込めない/音が出せないときは `audio.js` の元のチップチューンに戻る。
+- 曲の確認: `node test/render.js` で曲を書き出して無音・音割れを検算し、`test-out/music/*.wav` に保存(聞ける)。`node test/audio_live.js` でゲーム内の切り替え・ミュートを確認。
