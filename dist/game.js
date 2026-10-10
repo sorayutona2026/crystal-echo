@@ -2386,7 +2386,8 @@ function buildMapCache(m) {
   }
   gx.globalAlpha = m.set === 'world' || m.set === 'town' ? 0.26 : 0.34; gx.drawImage(sh, 0, 0, W, H); gx.globalAlpha = 1;
   // 7) upper layer: tall objects, row by row so lower rows overlap upper ones
-  tall.sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+  const late = k => k === 'caveIcon' ? 1 : 0; // the cave mouth is drawn over the mountains in front of it, so it never gets lost
+  tall.sort((a, b) => late(a[0]) - late(b[0]) || a[2] - b[2] || a[1] - b[1]);
   for (const [key, x, y] of tall) {
     const sx = x * T, sy = y * T;
     if (TALL_SPR[key]) { const S = TALL_SPR[key]; const imgs = m.hd && HD.tall[key] ? HD.tall[key] : S.imgs; const im = imgs[(((x * 92837111) ^ (y * 689287499)) >>> 0) % imgs.length]; const iw = im.lw || im.width, ih = im.lh || im.height;
@@ -2394,6 +2395,7 @@ function buildMapCache(m) {
       if (m.hd && key === 'mountain') { // a range, not a grid: big peaks at the back, small foothills in front, each shifted a little
         const front = base(x, y + 1) !== 'mountain' && base(x, y + 1) !== 'caveIcon', back = base(x, y - 1) !== 'mountain';
         k = (front ? 0.72 : back ? 1.05 : 0.9) + thash(x, y, 31) * (front ? 0.3 : 0.62); jx = Math.round((thash(x, y, 37) - 0.5) * 9); jy = Math.round((thash(x, y, 41) - 0.5) * 4);
+      } else if (m.hd && key === 'caveIcon') { k = 1.35;
       } else if (m.hd && key === 'forest') { k = 0.9 + thash(x, y, 31) * 0.3; jx = Math.round((thash(x, y, 37) - 0.5) * 4); }
       ux.drawImage(im, sx + Math.round((16 - iw * k) / 2) + jx, sy + 16 - ih * k + jy, iw * k, ih * k); continue; }
     if (m.hd && key === 'tree') { const im = HD.tall.tree[(x + y) % 2]; ux.drawImage(im, sx - 4, sy + 16 - 28, 24, 33); continue; }
@@ -2415,6 +2417,7 @@ function buildMapCache(m) {
     else if (key === 'crystal') lights.push([cx, cy, 120, '#7fe6ff', 0.95, 'pulse']);
     else if (key === 'savept') lights.push([cx, cy, 56, '#8ae8ff', 0.8, 'pulse']);
     else if (key === 'caveExit' || key === 'towerExit') lights.push([cx, cy, 80, '#fff2d0', 0.9, 'static']);
+    else if (key === 'caveIcon') lights.push([cx, cy + 2, 40, '#ffb060', 0.9, 'flicker']);
     else if (key === 'towerIcon') lights.push([cx, cy - 18, 26, '#7fe6ff', 0.9, 'pulse']);
     else if (key === 'shrineIcon') lights.push([cx, cy - 2, 26, '#8affd8', 0.8, 'pulse']);
     else if (key === 'townIcon' || key === 'townIcon2') lights.push([cx, cy, 22, '#ffd38a', 0.5, 'static']);
