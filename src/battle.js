@@ -61,7 +61,7 @@ const BattleTrans = {
 
 function mkEnemy(id, idx) {
   const d = ENEMIES[id]; const img = ENEMY_IMG[d.img];
-  return { side: 'e', id, d, name: d.name, hp: d.hp, maxhp: d.hp, atb: rnd() * 50, img: d.img, w: img.width, h: img.height, x: 0, y: 0,
+  return { side: 'e', id, d, name: d.name, hp: d.hp, maxhp: d.hp, atb: rnd() * 50, img: d.img, w: img.lw || img.width, h: img.lh || img.height, x: 0, y: 0,
     hitT: 0, dying: 0, alive: true, poison: false, stolen: false, turn: 0, phase2: false, buff: 1, i: idx, kb: 0 };
 }
 function layoutEnemies(es) {
@@ -463,15 +463,16 @@ const Battle = {
       ctx.fillStyle = 'rgba(8,4,16,.38)'; ctx.beginPath(); ctx.ellipse(e.x - slide * 180 + lunge + e.w / 2 + 3, e.y + e.h - 1, e.w / (A && A.float ? 2.8 : 2.2), 3.5, 0, 0, Math.PI * 2); ctx.fill();
       if (!e.alive) { // dissolve from the bottom up, rows drifting apart
         const k = e.dying / 40;
-        for (let r = 0; r < img.height; r += 2) {
-          const rk = clamp(k * 1.9 - (r / img.height) * 0.9, 0, 1); if (rk >= 1) continue;
+        const D = img.width / e.w; // art density (hero-style enemies are drawn at 2x)
+        for (let r = 0; r < e.h; r += 2) {
+          const rk = clamp(k * 1.9 - (r / e.h) * 0.9, 0, 1); if (rk >= 1) continue;
           const off = Math.sin(r * 1.7 + e.i) * rk * 10;
-          ctx.globalAlpha = 1 - rk; ctx.drawImage(img, 0, r, img.width, 2, ex + off, ey + r - rk * 4, img.width, 2);
-          const dz = A ? A.dz[fi] : fl; ctx.globalAlpha = (1 - rk) * Math.min(1, rk * 3) * 0.75; ctx.drawImage(dz, 0, r, img.width, 2, ex + off, ey + r - rk * 4, img.width, 2);
+          ctx.globalAlpha = 1 - rk; ctx.drawImage(img, 0, r * D, img.width, 2 * D, ex + off, ey + r - rk * 4, e.w, 2);
+          const dz = A ? A.dz[fi] : fl; ctx.globalAlpha = (1 - rk) * Math.min(1, rk * 3) * 0.75; ctx.drawImage(dz, 0, r * D, img.width, 2 * D, ex + off, ey + r - rk * 4, e.w, 2);
         }
         ctx.globalAlpha = 1; continue;
       }
-      ctx.drawImage((e.hitT % 4 > 1 || e.blink) ? fl : img, ex + (e.hitT ? (e.hitT % 2 ? 2 : -2) : 0), ey);
+      ctx.drawImage((e.hitT % 4 > 1 || e.blink) ? fl : img, ex + (e.hitT ? (e.hitT % 2 ? 2 : -2) : 0), ey, e.w, e.h);
     }
     G.party.forEach((m, i) => {
       const p = PARTY_POS(i); const pb = B.pb[i]; const hb = SPR[m.id].hb;

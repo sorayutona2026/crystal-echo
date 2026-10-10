@@ -303,11 +303,23 @@ function buildEnemyArt() {
     armor: [p => ENEMY_ART2.armor(p), 0, 14], gking: [p => ENEMY_ART2.gking(p), 0, 14], guardian: [p => ENEMY_ART2.guardian(p), 1, 12], garva: [p => ENEMY_ART2.garva(p), 0, 13],
   };
   const FACE_PARTY = new Set(['wolf', 'hellhound']); // drawn facing left; the party stands on the right
-  const flip = c => { const o = mkCanvas(c.width, c.height), x = o.getContext('2d'); x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(c, 0, 0); return o; };
+  const flip = c => { const o = mkCanvas(c.width, c.height), x = o.getContext('2d'); x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(c, 0, 0); o.lw = c.lw; o.lh = c.lh; return o; };
+  // hero-style art (hd_enemies*.js): drawn at 2x density, so every canvas carries its logical size in lw/lh (battle code divides by it)
+  const HDE = typeof HD_ENEMY !== 'undefined' ? {
+    slime: p => HD_ENEMY.slime(p), bat: p => HD_ENEMY.bat(p), goblin: p => HD_ENEMY.goblin(p), gmage: p => HD_ENEMY.goblin(p, true), wolf: p => HD_ENEMY.wolf(p), bee: p => HD_ENEMY.bee(p),
+    skeleton: p => HD_ENEMY.skeleton(p), golem: p => HD_ENEMY.golem(p), specter: p => HD_ENEMY.specter(p), darkmage: p => HD_ENEMY.darkmage(p), armor: p => HD_ENEMY.armor(p), gking: p => HD_ENEMY.gking(p),
+    guardian: p => HD_ENEMY.guardian(p), tempest: p => HD_ENEMY.tempest(p), garva: p => HD_ENEMY.garva(p),
+    redslime: p => HD_ENEMY.slime(p, { lt: '#ffd0c0', main: '#f06050', dk: '#a02430', deep: '#6a1420', out: '#3a0c10', fire: true }),
+    windslime: p => HD_ENEMY.slime(p, { lt: '#e0fff6', main: '#62e2cc', dk: '#248a8a', deep: '#145a62', out: '#082c30', fire: false }),
+    hellhound: p => recolor(HD_ENEMY.wolf(p), (h, s2, l) => l > 0.82 ? [h, s2, l] : [0.99 + (h - 0.6) * 0.15, s2 * 1.6 + 0.4, l * 0.82]),
+    boneknight: p => recolor(HD_ENEMY.skeleton(p), (h, s2, l) => (s2 > 0.45 && l > 0.35) ? [0.0, 0.9, l] : [0.62, 0.22 + s2 * 0.3, l * 0.74]),
+  } : {};
+  const tag = (c, w, h) => { c.lw = w; c.lh = h; return c; };
   for (const k in defs) {
-    const [fn, float, period] = defs[k];
-    const frames = [0, 1, 2, 3].map(i => fn(i / 4 * Math.PI * 2)).map(c => FACE_PARTY.has(k) ? flip(c) : c);
-    ENEMY_ANIM[k] = { frames, flash: frames.map(f => silhouette(f)), dz: frames.map(f => silhouette(f, '#a050e8')), float: !!float, period };
+    const [fn0, float, period] = defs[k];
+    const fn = HDE[k] || fn0, hd = !!HDE[k];
+    const frames = [0, 1, 2, 3].map(i => fn(i / 4 * Math.PI * 2)).map(c => FACE_PARTY.has(k) ? flip(c) : c).map(c => hd ? tag(c, c.width / 2, c.height / 2) : c);
+    ENEMY_ANIM[k] = { frames, flash: frames.map(f => tag(silhouette(f), f.lw || f.width, f.lh || f.height)), dz: frames.map(f => tag(silhouette(f, '#a050e8'), f.lw || f.width, f.lh || f.height)), float: !!float, period };
     ENEMY_IMG[k] = frames[0]; ENEMY_IMG[k + ':flash'] = ENEMY_ANIM[k].flash[0];
   }
 }

@@ -160,7 +160,7 @@ function drawPortrait(k, x, y) {
   else if (HERO_STYLE[k]) { // vector bust (fallback when there is no painted image)
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(animeOf(k, happy), 0, 0, 192, 192, x + 3, y + 5, 48, 48); ctx.imageSmoothingEnabled = false;
   }
-  else if (k === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest; ctx.drawImage(A.frames[(G.frame >> 4) % 4], 22, 0, 42, 34, x + 2, y + 6, 48, 39); }
+  else if (k === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest, tf = A.frames[(G.frame >> 4) % 4], D = tf.width / (tf.lw || tf.width); ctx.drawImage(tf, 22 * D, 0, 42 * D, 34 * D, x + 2, y + 6, 48, 39); }
   else if (k === 'spirit') { drawSpirit(x + 26, y + 30, 2); }
   else if (SPR[k]) { // the front-facing field sprite, cropped to head and shoulders
     const bob = (G.frame >> 5) % 2; ctx.drawImage(SPR[k].down[0], 1, 0, 14, 13, x + 5, y + 8 + bob, 42, 39);

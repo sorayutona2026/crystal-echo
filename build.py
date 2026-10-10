@@ -1,7 +1,7 @@
 import pathlib
 root = pathlib.Path(__file__).parent
 src = root / 'src'
-js = '\n'.join((src / f).read_text() for f in ['engine.js', 'audio.js', 'art.js', 'hd_art.js', 'hd_world.js', 'hd_heroes.js', 'hd_front.js', 'hd_anime.js', 'hd_enemies.js', 'enemies_art.js', 'post.js', 'render_map.js', 'data.js', 'game.js', 'battle.js', 'menu.js', 'main.js'])
+js = '\n'.join((src / f).read_text() for f in ['engine.js', 'audio.js', 'art.js', 'hd_art.js', 'hd_world.js', 'hd_heroes.js', 'hd_front.js', 'hd_anime.js', 'hd_enemies.js', 'hd_enemies2.js', 'enemies_art.js', 'post.js', 'render_map.js', 'data.js', 'game.js', 'battle.js', 'menu.js', 'main.js'])
 import base64
 # painted portraits (assets/portrait_<id>.jpg) are embedded as data URIs; the game falls back to the vector busts if one is missing
 imgs = {f.stem.replace('portrait_', ''): 'data:image/jpeg;base64,' + base64.b64encode(f.read_bytes()).decode() for f in sorted((root / 'assets').glob('portrait_*.jpg'))}
