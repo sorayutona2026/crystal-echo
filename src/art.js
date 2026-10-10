@@ -230,7 +230,7 @@ const LEGS = {
 };
 const PALS = {
   allen: { H: '#8a5226', S: '#f6cfa2', E: '#1a1a2a', C: '#2f62d6', A: '#e8b830', P: '#34385a', B: '#5a3418' },
-  lina: { H: '#f6f2ea', S: '#f6d2b0', E: '#3a2a1a', C: '#f6f2ea', A: '#d8303e', P: '#ebe4d8', B: '#a86a3a' },
+  lina: { H: '#e8b832', S: '#f6d2b0', E: '#3a2a1a', C: '#f6f2ea', A: '#d8303e', P: '#ebe4d8', B: '#a86a3a' },
   kai: { H: '#2e9a44', S: '#e8b888', E: '#1a1a2a', C: '#7a5230', A: '#d8b040', P: '#3a4a3a', B: '#4a2c14' },
   zek: { H: '#cfd6ee', S: '#f2d0b8', E: '#5a2a9a', C: '#6a2ea4', A: '#e8c440', P: '#4e1e78', B: '#2a1440' },
   elder: { H: '#ececec', S: '#e8c09a', E: '#1a1a2a', C: '#7a5a3a', A: '#c8a040', P: '#6a4a2a', B: '#3a2414', beard: '#ffffff' },

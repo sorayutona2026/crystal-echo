@@ -157,10 +157,47 @@ function hdPixelize(c, extra) {
   }
   img.data.set(out); x.putImageData(img, 0, 0); return c;
 }
+// Battle sprites: 'dots' reuses the field walking sprites (16x16, side view facing the enemies) at 4x with a pixel weapon; 'chibi' is the painted chibi above.
+const BATTLE_STYLE = 'dots';
+function buildHeroDots(id) {
+  const F = SPR[id], S = {}, K = 4, SH = 2; // K: scale-up, SH: sprite shift right in dots so weapons have room on the left
+  const px = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  const weapon = (g, pose) => {
+    const wp = HERO_STYLE[id].weapon, ox = SH;
+    if (wp === 'staff') { // pole along the hand, jewel on top
+      const gem = HERO_STYLE[id].gem; const top = pose === 'cast' ? 0 : 2, x0 = ox + 2;
+      px(g, '#5a3414', x0, top + 1, 1, 14 - top); px(g, '#b07a3a', x0 - 0, top + 2, 1, 4); px(g, '#e8c040', x0 - 1, top, 3, 1); px(g, gem, x0, top - 0, 1, 1); px(g, '#fff', x0, top - 1 < 0 ? 0 : top - 1, 1, 1);
+      if (pose === 'strike') { g.clearRect(x0 - 1, 0, 4, 16); px(g, '#5a3414', ox - 3, 9, 9, 1); px(g, '#e8c040', ox - 4, 8, 1, 3); px(g, gem, ox - 4, 9, 1, 1); }
+    } else {
+      const len = wp === 'sword' ? 7 : 4;
+      if (pose === 'strike') { px(g, '#dfe6f5', ox - len + 3, 9, len, 1); px(g, '#8a94b0', ox - len + 3, 10, len, 1); px(g, '#e8b830', ox + 3, 8, 1, 3); }
+      else if (pose === 'up') { px(g, '#dfe6f5', ox + 1, 9 - len, 1, len); px(g, '#8a94b0', ox + 2, 9 - len, 1, len); px(g, '#e8b830', ox, 9, 3, 1); }
+      else { px(g, '#dfe6f5', ox + 1, 9, 1, len); px(g, '#8a94b0', ox + 2, 9, 1, len); px(g, '#e8b830', ox, 8, 3, 1); }
+    }
+  };
+  const mk = (frame, o = {}) => {
+    const t = mkCanvas(16, 20), g = t.getContext('2d'); g.imageSmoothingEnabled = false;
+    const sy = 4 + (o.dy || 0);
+    if (o.squash) { g.drawImage(frame, SH + (o.dx || 0), sy + 16 * (1 - o.squash), 16, 16 * o.squash); } else g.drawImage(frame, SH + (o.dx || 0), sy);
+    if (o.weapon) weapon(g, o.weapon);
+    if (o.tint) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = o.tint; g.fillRect(0, 0, 16, 20); g.globalCompositeOperation = 'source-over'; }
+    const c = mkCanvas(HW, HH), x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(t, 0, 0, 16 * K, 20 * K); return c;
+  };
+  S.idle = mk(F.left[0], { weapon: 'down' });
+  S.walk = mk(F.left[1], { weapon: 'up' });
+  S.strike = mk(F.left[1], { weapon: 'strike', dx: 1 });
+  S.cast = mk(F.left[0], { weapon: HERO_STYLE[id].weapon === 'staff' ? 'cast' : 'up', dy: -1 });
+  S.hurt = mk(F.left[0], { dx: 1, tint: 'rgba(255,60,60,.35)' });
+  S.win = mk(F.down[0], { weapon: 'up', dy: -1 });
+  S.kneel = mk(F.left[0], { squash: 0.8, weapon: 'down' });
+  return S;
+}
 function buildHeroBattle() {
   for (const id in HERO_STYLE) {
-    const S = {}; for (const p of ['idle', 'walk', 'strike', 'cast', 'hurt', 'win', 'kneel']) S[p] = hdHero(id, p);
-    const ko = mkCanvas(HH, HW); { const k = ko.getContext('2d'); k.translate(0, HW); k.rotate(-Math.PI / 2); k.drawImage(S.hurt, 0, 0); }
+    const S = {};
+    if (BATTLE_STYLE === 'dots' && SPR[id] && SPR[id].left) Object.assign(S, buildHeroDots(id));
+    else for (const p of ['idle', 'walk', 'strike', 'cast', 'hurt', 'win', 'kneel']) S[p] = hdHero(id, p);
+    const ko = mkCanvas(HH, HW); { const k = ko.getContext('2d'); k.imageSmoothingEnabled = false; k.translate(0, HW); k.rotate(-Math.PI / 2); k.drawImage(S.hurt, 0, 0); }
     S.ko = ko; S.flash = {}; for (const p in S) if (p !== 'flash') S.flash[p] = silhouette(S[p]);
     SPR[id].hb = S;
   }
