@@ -102,8 +102,8 @@ function mapKey(m, x, y) {
 // HD tile for a map that opted in (m.hd), or null to fall back to the 16px art
 function hdTile(m, key, x, y) {
   if (!m.hd) return null;
-  const v = (((x * 73856093) ^ (y * 19349663)) >>> 0) % 4;
-  if (key === 'grass') return HD.grass[v]; if (key === 'path') return HD.path[v]; if (key === 'water') return HD.water[0];
+  const hh = ((x * 73856093) ^ (y * 19349663)) >>> 0, v = hh % 4;
+  if (key === 'grass') return HD.grass[(Math.imul(hh ^ (hh >>> 15), 0x2c1b3c6d) >>> 16) % HD.grass.length]; if (key === 'path') return HD.path[v]; if (key === 'water') return HD.water[0];
   return HD.tile[key] || null;
 }
 function buildMapCache(m) {
@@ -121,6 +121,7 @@ function buildMapCache(m) {
     const key = mapKey(m, x, y); if (!key) continue; const sx = x * T, sy = y * T;
     if (DYN_GROUND.has(key) || DYN_TALL.has(key)) { dyn.push([key, x, y]); if (DYN_TALL.has(key)) { /* floor under fire/crystal is in its image */ } continue; }
     if (TALL_SPR[key]) { gx.drawImage(groundImg(TALL_SPR[key].base, x, y), sx, sy, T, T); tall.push([key, x, y]); continue; }
+    if (m.hd && key === 'tree') { gx.drawImage(groundImg('grass', x, y), sx, sy, T, T); tall.push([key, x, y]); continue; }
     if (TALL_RECT.has(key) || TALL_ROUND.has(key)) { tall.push([key, x, y]); continue; }
     gx.drawImage(groundImg(key, x, y), sx, sy, T, T);
     if (FRINGED.has(key)) for (const [d, dx, dy] of [['N', 0, -1], ['S', 0, 1], ['W', -1, 0], ['E', 1, 0]]) { if (GRASSY.has(base(x + dx, y + dy)) || base(x + dx, y + dy) === 'mountain' || base(x + dx, y + dy) === 'forest') gx.drawImage(m.hd ? HD.fringe[d] : TILE_IMG.fringe[d], sx, sy, T, T); }
@@ -197,6 +198,7 @@ function buildMapCache(m) {
   for (const [key, x, y] of tall) {
     const sx = x * T, sy = y * T;
     if (TALL_SPR[key]) { const S = TALL_SPR[key]; const imgs = m.hd && HD.tall[key] ? HD.tall[key] : S.imgs; const im = imgs[(((x * 92837111) ^ (y * 689287499)) >>> 0) % imgs.length]; const iw = im.lw || im.width, ih = im.lh || im.height; ux.drawImage(im, sx + Math.round((16 - iw) / 2), sy + 16 - ih, iw, ih); continue; }
+    if (m.hd && key === 'tree') { const im = HD.tall.tree[(x + y) % 2]; ux.drawImage(im, sx - 4, sy + 16 - 28, 24, 33); continue; }
     ux.drawImage(hdTile(m, key, x, y) || TILE_IMG[key][0], sx, sy, T, T);
     if (key.endsWith('Top')) { const fam = key.slice(0, -3); ux.fillStyle = 'rgba(0,0,0,.45)'; if (base(x - 1, y) !== fam) ux.fillRect(sx, sy, 1, 16); if (base(x + 1, y) !== fam) ux.fillRect(sx + 15, sy, 1, 16); if (base(x, y - 1) !== fam) { ux.fillStyle = 'rgba(255,255,255,.12)'; ux.fillRect(sx, sy, 16, 1); } }
     if (key === 'roof' || key === 'roofB') {

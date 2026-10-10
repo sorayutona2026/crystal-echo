@@ -930,19 +930,22 @@ function hdGrass(seed, flowers = 0) {
   const [c, x] = hdc(); const r = mulberry(seed * 977 + 13);
   fillNoise(x, '#417d2e', '#74b348', seed);
   for (let i = 0; i < 7; i++) patch(x, r() * HS, r() * HS, 5 + r() * 8, r() < 0.55 ? 'rgba(20,56,18,.30)' : 'rgba(190,235,110,.26)');
-  grassBlades(x, r, 150, 2, 6);
+  if (seed % 2) patch(x, r() * HS, r() * HS, 9, 'rgba(200,190,90,.22)'); else patch(x, r() * HS, r() * HS, 9, 'rgba(30,110,90,.18)');
+  grassBlades(x, r, 120, 2, 6);
   // darker tuft clusters: a few overlapping blades with a shadow beneath give the lawn depth
   for (let i = 0; i < 6; i++) { const bx = r() * HS, by = 6 + r() * 24; wrap9((dx, dy) => { if (bx + dx > -5 && bx + dx < HS + 5 && by + dy > 0 && by + dy < HS + 6) { x.fillStyle = 'rgba(12,40,12,.28)'; x.beginPath(); x.ellipse(bx + dx, by + dy + 0.5, 3.2, 1.1, 0, 0, 7); x.fill(); for (let k = -2; k <= 2; k++) blade(x, bx + dx + k * 1.1, by + dy, 4.5 - Math.abs(k) * 0.7, k * 0.9, GRASS_COLS[1 + (k + 2) % 4], 1.1); } }); }
   for (let i = 0; i < 18; i++) { x.fillStyle = 'rgba(220,255,150,.5)'; x.fillRect(Math.floor(r() * HS), Math.floor(r() * HS), 1, 1); }
-  if (r() < 0.22) { const px_ = 4 + r() * 24, py_ = 4 + r() * 24; x.fillStyle = 'rgba(0,0,0,.22)'; x.beginPath(); x.ellipse(px_ + 0.6, py_ + 1.4, 2.4, 1.4, 0, 0, 7); x.fill(); x.fillStyle = '#8f8e86'; x.beginPath(); x.ellipse(px_, py_, 2.2, 1.5, 0, 0, 7); x.fill(); x.fillStyle = '#c2c0b6'; x.beginPath(); x.ellipse(px_ - 0.6, py_ - 0.5, 1.1, 0.7, 0, 0, 7); x.fill(); }
-  const nf = flowers || (r() < 0.3 ? 2 : 0);
-  for (let i = 0; i < nf; i++) hdFlower(x, 3 + r() * 26, 5 + r() * 24, ['#fff0b8', '#ffa8c4', '#ffffff', '#b8a4ff', '#ffe060'][Math.floor(r() * 5)]);
+  if (seed % 4 === 1 || seed === 6) { const px_ = 5 + r() * 22, py_ = 6 + r() * 22, s2 = 1 + r() * 0.8; x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); x.ellipse(px_ + 0.8, py_ + 1.8 * s2, 3.2 * s2, 1.8 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#85847c'; x.beginPath(); x.ellipse(px_, py_, 3 * s2, 2.1 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#b8b6aa'; x.beginPath(); x.ellipse(px_ - 0.8, py_ - 0.7, 1.6 * s2, 1 * s2, 0, 0, 7); x.fill(); x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(px_ - 1.4, py_ - 1.2, 1.2, 0.7); }
+  const nf = flowers || (seed % 4 === 2 ? 3 : seed % 4 === 0 ? 1 : 0);
+  for (let i = 0; i < nf; i++) hdFlower(x, 3 + r() * 26, 5 + r() * 24, ['#fff0b8', '#ffa8c4', '#ffffff', '#b8a4ff', '#ffe060', '#ff9a7a'][Math.floor(r() * 6)]);
   return c;
 }
 function hdFlower(x, fx, fy, col) {
-  blade(x, fx, fy + 3, 3.5, 0.6, '#3a742b');
-  x.fillStyle = col; for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; x.beginPath(); x.arc(fx + Math.cos(a) * 1.5, fy + Math.sin(a) * 1.5 - 0.5, 1.15, 0, 7); x.fill(); }
-  x.fillStyle = '#f0b830'; x.beginPath(); x.arc(fx, fy - 0.5, 0.9, 0, 7); x.fill();
+  x.fillStyle = 'rgba(10,40,10,.3)'; x.beginPath(); x.ellipse(fx + 0.5, fy + 3.4, 2.4, 0.9, 0, 0, 7); x.fill();
+  blade(x, fx, fy + 3.5, 4, 0.6, '#2f6a26', 1.2); blade(x, fx - 1.4, fy + 3.5, 2.6, -1, '#4a8a36'); blade(x, fx + 1.5, fy + 3.5, 2.6, 1, '#4a8a36');
+  x.fillStyle = col; for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2 - 0.6; x.beginPath(); x.arc(fx + Math.cos(a) * 1.9, fy + Math.sin(a) * 1.9 - 0.5, 1.5, 0, 7); x.fill(); }
+  x.fillStyle = 'rgba(255,255,255,.4)'; x.beginPath(); x.arc(fx - 1.2, fy - 1.7, 0.7, 0, 7); x.fill();
+  x.fillStyle = '#f0b830'; x.beginPath(); x.arc(fx, fy - 0.5, 1.2, 0, 7); x.fill(); x.fillStyle = '#b87a10'; x.fillRect(fx, fy - 0.2, 0.9, 0.9);
 }
 function hdPath(seed) {
   const [c, x] = hdc(); const r = mulberry(seed * 631 + 5);
@@ -981,6 +984,10 @@ function hdFringe() {
 }
 function hdRoof(col) {
   const [c, x] = hdc(); const [d0, d1, l0, l1] = col; // base, dark, light, mid
+  const finish = () => { // soft light from the upper left across the whole slope, plus moss/aging flecks
+    const g = x.createLinearGradient(0, 0, HS, HS); g.addColorStop(0, 'rgba(255,230,200,.16)'); g.addColorStop(0.55, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(20,0,10,.22)'); x.fillStyle = g; x.fillRect(0, 0, HS, HS);
+    const r = mulberry(11); for (let i = 0; i < 14; i++) { x.fillStyle = r() < 0.5 ? 'rgba(70,90,40,.28)' : 'rgba(255,220,190,.2)'; x.fillRect(Math.floor(r() * 30), Math.floor(r() * 30), 2, 1); }
+  };
   x.fillStyle = d1; x.fillRect(0, 0, HS, HS);
   for (let row = 0; row < 4; row++) {
     const y = row * 8, off = row % 2 ? 4 : 0;
@@ -992,6 +999,7 @@ function hdRoof(col) {
     }
     x.fillStyle = 'rgba(40,10,5,.35)'; x.fillRect(0, y + 7.2, HS, 1.2);
   }
+  finish();
   return c;
 }
 function hdWallBase(x) {
@@ -999,6 +1007,9 @@ function hdWallBase(x) {
   const r = mulberry(404); for (let i = 0; i < 24; i++) { x.fillStyle = 'rgba(150,120,80,.10)'; x.fillRect(r() * 28, r() * 28, 3 + r() * 5, 1); }
   const beam = (a, b, w, h) => { const g = x.createLinearGradient(a, b, a + w, b + h); g.addColorStop(0, '#8a5a30'); g.addColorStop(1, '#5a3418'); x.fillStyle = g; x.fillRect(a, b, w, h); x.fillStyle = 'rgba(255,220,170,.25)'; x.fillRect(a, b, w > h ? w : 1, w > h ? 1 : h); };
   beam(0, 0, HS, 4); beam(0, 28, HS, 4); beam(0, 0, 4, HS); beam(28, 0, 4, HS);
+  // stone footing along the bottom with irregular blocks
+  const fr = mulberry(21); let fx = 0; while (fx < HS) { const w = 5 + Math.floor(fr() * 5); const g = x.createLinearGradient(0, 24, 0, 28); g.addColorStop(0, '#a8a49a'); g.addColorStop(1, '#77736a'); x.fillStyle = g; x.fillRect(fx + 0.5, 24, w - 1, 4); x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(fx + 0.5, 24, w - 1, 0.9); fx += w; }
+  x.strokeStyle = 'rgba(110,84,52,.35)'; x.lineWidth = 0.7; x.beginPath(); x.moveTo(11, 8); x.lineTo(13.5, 13); x.lineTo(12, 18); x.stroke();
   const sh = x.createLinearGradient(0, 4, 0, 12); sh.addColorStop(0, 'rgba(60,40,20,.28)'); sh.addColorStop(1, 'rgba(60,40,20,0)'); x.fillStyle = sh; x.fillRect(4, 4, 24, 8);
 }
 function hdWall() { const [c, x] = hdc(); hdWallBase(x); return c; }
@@ -1068,7 +1079,7 @@ function hdTree(v) {
   x.beginPath(); x.moveTo(12.5, 40); x.quadraticCurveTo(13.5, 33, 13.6, 26); x.lineTo(19.2, 26); x.quadraticCurveTo(19.4, 33, 20.8, 40); x.quadraticCurveTo(16.5, 42, 12.5, 40); x.fill();
   x.strokeStyle = 'rgba(30,16,6,.5)'; x.lineWidth = 0.7; for (const a of [14.8, 16.6, 18.2]) { x.beginPath(); x.moveTo(a, 28); x.lineTo(a + (r() - 0.5), 39); x.stroke(); }
   const clumps = [];
-  const R0 = 12.5 - (v % 2); for (let i = 0; i < 26; i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * R0 * 0.78; clumps.push([16 + Math.cos(a) * d, 17 + Math.sin(a) * d * 0.9, 4.2 + r() * 3.4]); }
+  const R0 = 14.5 - (v % 2); for (let i = 0; i < 38; i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * R0 * 0.8; clumps.push([16 + Math.cos(a) * d, 17 + Math.sin(a) * d * 0.88, 4.6 + r() * 3.8]); }
   const pass = (col, dx, dy, k) => { x.fillStyle = col; for (const [cx, cy, rr] of clumps) { x.beginPath(); x.arc(cx + dx, cy + dy, rr * k, 0, 7); x.fill(); } };
   pass('#173c1e', 0.8, 1.2, 1.05); pass('#245a2a', 0, 0.4, 1); pass('#2f7434', -0.9, -0.6, 0.82); pass('#4a9a44', -1.7, -1.6, 0.58); pass('#78c25a', -2.4, -2.4, 0.3);
   for (let i = 0; i < 16; i++) { const [cx, cy, rr] = clumps[i % clumps.length]; x.fillStyle = 'rgba(210,255,150,.55)'; x.fillRect(cx - 2.4 + (r() - 0.5) * 3, cy - 2.4 + (r() - 0.5) * 3, 1.2, 1.2); }
@@ -1087,7 +1098,8 @@ function epx2(src) {
   ox.putImageData(oi, 0, 0); out.lw = w; out.lh = h; return out;
 }
 function buildHD() {
-  for (let v = 0; v < 4; v++) { HD.grass.push(hdGrass(v + 1)); HD.path.push(hdPath(v + 1)); }
+  for (let v = 0; v < 12; v++) HD.grass.push(hdGrass(v + 1));   // 12 variants so the lawn never shows a visible pattern
+  for (let v = 0; v < 4; v++) HD.path.push(hdPath(v + 1));
   HD.water = [hdWater(0), hdWater(1)];
   const f = hdFringe(); HD.fringe = {};
   for (const [d, rot] of [['N', 0], ['E', Math.PI / 2], ['S', Math.PI], ['W', -Math.PI / 2]]) { const [c, x] = hdc(); x.translate(16, 16); x.rotate(rot); x.drawImage(f, -16, -16); HD.fringe[d] = c; }
@@ -1838,8 +1850,8 @@ function mapKey(m, x, y) {
 // HD tile for a map that opted in (m.hd), or null to fall back to the 16px art
 function hdTile(m, key, x, y) {
   if (!m.hd) return null;
-  const v = (((x * 73856093) ^ (y * 19349663)) >>> 0) % 4;
-  if (key === 'grass') return HD.grass[v]; if (key === 'path') return HD.path[v]; if (key === 'water') return HD.water[0];
+  const hh = ((x * 73856093) ^ (y * 19349663)) >>> 0, v = hh % 4;
+  if (key === 'grass') return HD.grass[(Math.imul(hh ^ (hh >>> 15), 0x2c1b3c6d) >>> 16) % HD.grass.length]; if (key === 'path') return HD.path[v]; if (key === 'water') return HD.water[0];
   return HD.tile[key] || null;
 }
 function buildMapCache(m) {
@@ -1857,6 +1869,7 @@ function buildMapCache(m) {
     const key = mapKey(m, x, y); if (!key) continue; const sx = x * T, sy = y * T;
     if (DYN_GROUND.has(key) || DYN_TALL.has(key)) { dyn.push([key, x, y]); if (DYN_TALL.has(key)) { /* floor under fire/crystal is in its image */ } continue; }
     if (TALL_SPR[key]) { gx.drawImage(groundImg(TALL_SPR[key].base, x, y), sx, sy, T, T); tall.push([key, x, y]); continue; }
+    if (m.hd && key === 'tree') { gx.drawImage(groundImg('grass', x, y), sx, sy, T, T); tall.push([key, x, y]); continue; }
     if (TALL_RECT.has(key) || TALL_ROUND.has(key)) { tall.push([key, x, y]); continue; }
     gx.drawImage(groundImg(key, x, y), sx, sy, T, T);
     if (FRINGED.has(key)) for (const [d, dx, dy] of [['N', 0, -1], ['S', 0, 1], ['W', -1, 0], ['E', 1, 0]]) { if (GRASSY.has(base(x + dx, y + dy)) || base(x + dx, y + dy) === 'mountain' || base(x + dx, y + dy) === 'forest') gx.drawImage(m.hd ? HD.fringe[d] : TILE_IMG.fringe[d], sx, sy, T, T); }
@@ -1933,6 +1946,7 @@ function buildMapCache(m) {
   for (const [key, x, y] of tall) {
     const sx = x * T, sy = y * T;
     if (TALL_SPR[key]) { const S = TALL_SPR[key]; const imgs = m.hd && HD.tall[key] ? HD.tall[key] : S.imgs; const im = imgs[(((x * 92837111) ^ (y * 689287499)) >>> 0) % imgs.length]; const iw = im.lw || im.width, ih = im.lh || im.height; ux.drawImage(im, sx + Math.round((16 - iw) / 2), sy + 16 - ih, iw, ih); continue; }
+    if (m.hd && key === 'tree') { const im = HD.tall.tree[(x + y) % 2]; ux.drawImage(im, sx - 4, sy + 16 - 28, 24, 33); continue; }
     ux.drawImage(hdTile(m, key, x, y) || TILE_IMG[key][0], sx, sy, T, T);
     if (key.endsWith('Top')) { const fam = key.slice(0, -3); ux.fillStyle = 'rgba(0,0,0,.45)'; if (base(x - 1, y) !== fam) ux.fillRect(sx, sy, 1, 16); if (base(x + 1, y) !== fam) ux.fillRect(sx + 15, sy, 1, 16); if (base(x, y - 1) !== fam) { ux.fillStyle = 'rgba(255,255,255,.12)'; ux.fillRect(sx, sy, 16, 1); } }
     if (key === 'roof' || key === 'roofB') {
