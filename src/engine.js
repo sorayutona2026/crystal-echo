@@ -120,6 +120,37 @@ bindBtn('btnA', 'a'); bindBtn('btnB', 'b'); bindBtn('menuBtn', 'menu');
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 })();
 
+// ---- swipe on the game screen: a floating joystick wherever the finger lands; a quick tap is the A button ----
+const Swipe = { id: null, ox: 0, oy: 0, x: 0, y: 0, t0: 0, moved: false, dir: null };
+(function swipe() {
+  const setDir = d => { if (Swipe.dir === d) return; for (const k of ['up', 'down', 'left', 'right']) Input.set(k, k === d); Swipe.dir = d; };
+  const at = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * SW / r.width, (e.clientY - r.top) * SH / r.height]; };
+  cv.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || Swipe.id !== null) return; e.preventDefault(); Audio8.unlock();
+    Swipe.id = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch (_) { }
+    [Swipe.ox, Swipe.oy] = at(e); Swipe.x = Swipe.ox; Swipe.y = Swipe.oy; Swipe.t0 = performance.now(); Swipe.moved = false;
+  });
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerId !== Swipe.id) return; e.preventDefault();
+    const [x, y] = at(e); Swipe.x = x; Swipe.y = y; const dx = x - Swipe.ox, dy = y - Swipe.oy, d = Math.hypot(dx, dy);
+    if (d > 6) Swipe.moved = true;
+    if (d > 24) { Swipe.ox = x - dx / d * 24; Swipe.oy = y - dy / d * 24; } // the anchor follows the finger, so turning is easy
+    setDir(d < 6 ? null : Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  });
+  const end = e => {
+    if (e.pointerId !== Swipe.id) return; Swipe.id = null; setDir(null);
+    if (!Swipe.moved && performance.now() - Swipe.t0 < 300) { Input.set('a', true); setTimeout(() => Input.set('a', false), 70); }
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+})();
+function drawSwipe() {
+  if (Swipe.id === null || !Swipe.moved) return;
+  const dx = Swipe.x - Swipe.ox, dy = Swipe.y - Swipe.oy, d = Math.hypot(dx, dy), k = d > 14 ? 14 / d : 1;
+  ctx.save(); ctx.globalAlpha = 0.45; ctx.strokeStyle = '#f0cf86'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(Swipe.ox, Swipe.oy, 16, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = 0.6; ctx.fillStyle = '#f0cf86'; ctx.beginPath(); ctx.arc(Swipe.ox + dx * k, Swipe.oy + dy * k, 6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+
 // ---- layout fit ----
 function fit() {
   const pad = document.getElementById('pad'), keys = document.getElementById('keys'), bar = document.getElementById('bar');

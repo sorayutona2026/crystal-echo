@@ -25,6 +25,17 @@ const path = require('path'); const OUT = 'test-out/shots';
   await page.waitForTimeout(300);
   const after = await page.evaluate(() => ({ ...__rpg.G.p }));
   console.log('dpad move:', before.x, before.y, before.script, '->', after.x, after.y);
+  // swipe on the game screen with a real touch: drag right and hold, the hero walks right
+  const cdp = await ctx.newCDPSession(page); const scr = await page.locator('#screen').boundingBox();
+  const sx = scr.x + scr.width / 2, sy = scr.y + scr.height / 2;
+  const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
+  const sw0 = await page.evaluate(() => ({ ...__rpg.G.p }));
+  await touch('touchStart', sx, sy); for (let k = 1; k <= 6; k++) { await touch('touchMove', sx + k * 8, sy); await page.waitForTimeout(16); }
+  await page.waitForTimeout(600); const sw1 = await page.evaluate(() => ({ ...__rpg.G.p, joy: __rpg.Input.down.right }));
+  await touch('touchEnd'); await page.waitForTimeout(300);
+  console.log('swipe move:', sw0.x, sw0.y, '->', sw1.x, sw1.y, 'held right', sw1.joy, sw1.x > sw0.x ? 'OK' : 'FAILED');
+  // a quick tap on the screen acts as A: tap the menu open via button, then tap screen does not break anything
+  await page.touchscreen.tap(sx, sy); await page.waitForTimeout(200);
   await tapBtn('#menuBtn'); await page.waitForTimeout(200);
   console.log('menu open via button:', await page.evaluate(() => !!__rpg.G.menu));
   await tapBtn('#btnB'); await page.waitForTimeout(200);

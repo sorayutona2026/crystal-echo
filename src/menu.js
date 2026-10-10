@@ -365,7 +365,7 @@ const Title = {
     const opts = ['はじめから', 'つづきから'];
     opts.forEach((o, i) => text(o, 114, 104 + i * 15, i === 1 && !hasSave() ? UI.dim : this.i === i ? UI.gold : UI.ink, 8.5, 'left', 't'));
     cursor(100, 105 + this.i * 15);
-    text('A / Z で決定　　音が出ます', 128, 210, 'rgba(230,220,200,.55)', 6.5, 'center');
+    text(TOUCH ? 'スワイプで移動・タップで決定　音が出ます' : 'A / Z で決定　　音が出ます', 128, 210, 'rgba(230,220,200,.55)', 6.5, 'center');
   },
 };
 const GameOver = {

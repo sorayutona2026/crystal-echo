@@ -10,7 +10,7 @@ function step() {
 }
 function render() {
   resetT();
-  G.scene.draw();
+  G.scene.draw(); resetT(); drawSwipe();
   if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, G.flash / 20)})`; ctx.fillRect(0, 0, SW, SH); }
   if (G.fadeLevel > 0) {
     if (G.scene === Field && Field.ps && !G.narr && G.fadeLevel < 1) { // iris wipe centred on the player

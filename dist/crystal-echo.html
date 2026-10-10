@@ -60,7 +60,7 @@ body{background:var(--void);color:var(--ink);font-family:var(--font);overflow:hi
 </div>
 
 <script>
-const GLYPHS = '×π—…→▲▶▼◀◆♪\u3000、。々「」』〜あいぅうえおかがきぎくぐけげこごさざしじすずせぜそぞただちっつづてでとどなにぬねのはばひびふぶへべぺほぼぽまみむめもゃやゆょよらりるれろわをんァアィイウエオカガキギクグケゲコゴサザシジスズセゼソタダチッテデトドナニネハバヒビピフブプヘベペホボポマミムメモャュョラリルレロワンヴ・ー一丈三上下不世丘並中主乗乾二亡亭人今仕付代仲休会似体何余作使供個倒値側備傷僕元兄先光入全六共兵具内再冒冶出刃分切刻前剣力加助効動勘包北十南印去取受口古叩叫右合同名君吟吸吹味呼命和員商器四回図地場塔墓増壁壇士声売変夕外夜夢大天夫失奥女妹始嫌子学守定宝宮家宿封専導小届屋嵐川左巨帆帰年広店度引弟弱張強当影彼待後御復必志忘快怖思急恐息悪想意慢慣懐戦戻所手技抜押拒拾持捕掛探接描撃攻放故救教散敵文斬新方旅旋日早明映時晩暗書替最服朝本村杖束来東果枯染案森棲楽様横樫次止武死残母毎毒気水氷永求決沈治泊法波泣洗洞活派流海消減渡港渾満滅激濯灯炎点無照爪父牙物猫獲王理生用由町界番疲疾痛白盗目直眠短石研砕破示祀祠祭私秘究空突窓窟立笑答箱粒精約素経絵絹続編縫置羽翼老考者耳聖聞育背胸能腕膨自航船花若英茶荒葉血行術衛裂装製西要見覚親解言詩話詳誇誰議賢起越足跡身車輝輪辺込近迷追逃通速連進遊道遠遭遺郷酒金針鉄鉤銅鍛鎖鎧鎮長開間闇闘防阻険隕雄離雷震霊静音頼顔風飛食飯騎験骸高魔鳥鳴黒！）？～';
+const GLYPHS = '×π—…→▲▶▼◀◆♪\u3000、。々「」』〜あいぅうえおかがきぎくぐけげこごさざしじすずせぜそぞただちっつづてでとどなにぬねのはばひびふぶへべぺほぼぽまみむめもゃやゆょよらりるれろわをんァアィイウエオカガキギクグケゲコゴサザシジスズセゼソタダチッテデトドナニネハバヒビピフブプヘベペホボポマミムメモャュョラリルレロワンヴ・ー一丈三上下不世丘並中主乗乾二亡亭人今仕付代仲休会似体何余作使供個倒値側備傷僕元兄先光入全六共兵具内再冒冶出刃分切刻前剣力加助効動勘包北十南印去取受口古叩叫右合同名君吟吸吹味呼命和員商器四回図地場塔墓増壁壇士声売変夕外夜夢大天夫失奥女妹始嫌子学守定宝宮家宿封専導小届屋嵐川左巨帆帰年広店度引弟弱張強当影彼待後御復必志忘快怖思急恐息悪想意慢慣懐戦戻所手技抜押拒拾持捕掛探接描撃攻放故救教散敵文斬新方旅旋日早明映時晩暗書替最服朝本村杖束来東果枯染案森棲楽様横樫次止武死残母毎毒気水氷永求決沈治泊法波泣洗洞活派流海消減渡港渾満滅激濯灯炎点無照爪父牙物猫獲王理生用由町界番疲疾痛白盗目直眠短石研砕破示祀祠祭私秘移究空突窓窟立笑答箱粒精約素経絵絹続編縫置羽翼老考者耳聖聞育背胸能腕膨自航船花若英茶荒葉血行術衛裂装製西要見覚親解言詩話詳誇誰議賢起越足跡身車輝輪辺込近迷追逃通速連進遊道遠遭遺郷酒金針鉄鉤銅鍛鎖鎧鎮長開間闇闘防阻険隕雄離雷震霊静音頼顔風飛食飯騎験骸高魔鳥鳴黒！）？～';
 'use strict';
 // ===================== ENGINE =====================
 const SW = 256, SH = 224, SCALE = 3;
@@ -182,6 +182,37 @@ bindBtn('btnA', 'a'); bindBtn('btnB', 'b'); bindBtn('menuBtn', 'menu');
   const end = e => { if (e.pointerId === pid) { pid = null; setDir(null); } };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 })();
+
+// ---- swipe on the game screen: a floating joystick wherever the finger lands; a quick tap is the A button ----
+const Swipe = { id: null, ox: 0, oy: 0, x: 0, y: 0, t0: 0, moved: false, dir: null };
+(function swipe() {
+  const setDir = d => { if (Swipe.dir === d) return; for (const k of ['up', 'down', 'left', 'right']) Input.set(k, k === d); Swipe.dir = d; };
+  const at = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * SW / r.width, (e.clientY - r.top) * SH / r.height]; };
+  cv.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || Swipe.id !== null) return; e.preventDefault(); Audio8.unlock();
+    Swipe.id = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch (_) { }
+    [Swipe.ox, Swipe.oy] = at(e); Swipe.x = Swipe.ox; Swipe.y = Swipe.oy; Swipe.t0 = performance.now(); Swipe.moved = false;
+  });
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerId !== Swipe.id) return; e.preventDefault();
+    const [x, y] = at(e); Swipe.x = x; Swipe.y = y; const dx = x - Swipe.ox, dy = y - Swipe.oy, d = Math.hypot(dx, dy);
+    if (d > 6) Swipe.moved = true;
+    if (d > 24) { Swipe.ox = x - dx / d * 24; Swipe.oy = y - dy / d * 24; } // the anchor follows the finger, so turning is easy
+    setDir(d < 6 ? null : Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  });
+  const end = e => {
+    if (e.pointerId !== Swipe.id) return; Swipe.id = null; setDir(null);
+    if (!Swipe.moved && performance.now() - Swipe.t0 < 300) { Input.set('a', true); setTimeout(() => Input.set('a', false), 70); }
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+})();
+function drawSwipe() {
+  if (Swipe.id === null || !Swipe.moved) return;
+  const dx = Swipe.x - Swipe.ox, dy = Swipe.y - Swipe.oy, d = Math.hypot(dx, dy), k = d > 14 ? 14 / d : 1;
+  ctx.save(); ctx.globalAlpha = 0.45; ctx.strokeStyle = '#f0cf86'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(Swipe.ox, Swipe.oy, 16, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = 0.6; ctx.fillStyle = '#f0cf86'; ctx.beginPath(); ctx.arc(Swipe.ox + dx * k, Swipe.oy + dy * k, 6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 
 // ---- layout fit ----
 function fit() {
@@ -4288,7 +4319,7 @@ const Title = {
     const opts = ['はじめから', 'つづきから'];
     opts.forEach((o, i) => text(o, 114, 104 + i * 15, i === 1 && !hasSave() ? UI.dim : this.i === i ? UI.gold : UI.ink, 8.5, 'left', 't'));
     cursor(100, 105 + this.i * 15);
-    text('A / Z で決定　　音が出ます', 128, 210, 'rgba(230,220,200,.55)', 6.5, 'center');
+    text(TOUCH ? 'スワイプで移動・タップで決定　音が出ます' : 'A / Z で決定　　音が出ます', 128, 210, 'rgba(230,220,200,.55)', 6.5, 'center');
   },
 };
 const GameOver = {
@@ -4349,7 +4380,7 @@ function step() {
 }
 function render() {
   resetT();
-  G.scene.draw();
+  G.scene.draw(); resetT(); drawSwipe();
   if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, G.flash / 20)})`; ctx.fillRect(0, 0, SW, SH); }
   if (G.fadeLevel > 0) {
     if (G.scene === Field && Field.ps && !G.narr && G.fadeLevel < 1) { // iris wipe centred on the player
