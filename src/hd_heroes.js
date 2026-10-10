@@ -73,10 +73,11 @@ function hdHero(id, poseName) {
     else { shape(mkp([cx - 4, tt, cx + 4, tt, cx, tt + 10]), L.trim, { lw: 0.8 }); ell(cx, tt + 8.5, 2, 2, '#ffe8a0', { lw: 0.6 }); }
   }
   if (L.scarf) shape(mkc([[cx - 10, tt + 1], [cx, tt + 6, cx + 10, tt + 1, cx + 11, tt + 4], [cx + 3, tt + 10, cx - 8, tt + 8, cx - 10, tt + 1]]), L.scarf, { gx0: cx - 10, gx1: cx + 11, lw: 0.9 });
+  if (id === 'allen' || id === 'kai') ell(hx + 11, hy - 1, 9, 12, L.hair, { gx0: hx + 2, gx1: hx + 20, lt: shd(L.hair, 1.1) });
   // ---- head: big and round ----
   ell(hx, hy + 1, 15.5, 14, L.skin, { lt: shd(L.skin, 1.05), dk: shd(L.skin, 0.84), line: shd(L.skin, 0.4) });
-  for (const k of [-1, 1]) { x.fillStyle = 'rgba(255,120,120,.4)'; x.beginPath(); x.ellipse(hx + k * 9.4, hy + 8.2, 3, 1.7, 0, 0, 7); x.fill(); }
-  const eyeAt = (ex, ey) => {
+  for (const bx of [-12.6, 6]) { x.fillStyle = 'rgba(255,120,120,.4)'; x.beginPath(); x.ellipse(hx + bx, hy + 8.2, 3, 1.7, 0, 0, 7); x.fill(); }
+  const eyeDraw = (ex, ey) => {
     if (P.face === 'hurt') { line(ex - 3, ey - 3, ex + 3, ey + 3, '#2a1a1a', 1.5); line(ex - 3, ey + 3, ex + 3, ey - 3, '#2a1a1a', 1.5); return; }
     if (P.face === 'happy') { x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.6; x.beginPath(); x.arc(ex, ey + 2.2, 3.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); return; }
     x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 4.6, 6.2, 0, 0, 7); x.fill();
@@ -85,11 +86,13 @@ function hdHero(id, poseName) {
     x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 1.7, ey - 2, 1.5, 1.8, 0, 0, 7); x.fill(); x.fillRect(ex + 1.2, ey + 2.4, 1, 1);
     x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(ex - 4.8, ey - 2.2); x.quadraticCurveTo(ex, ey - 6.6, ex + 4.8, ey - 2.2); x.stroke();
   };
-  const ey0 = hy + 3; eyeAt(hx - 6.6, ey0); eyeAt(hx + 6.6, ey0);
-  if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx, hy + 11.2, 2.4, 1.9, 0, 0, 7); x.fill(); }
-  else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx, hy + 9.6, 2.6, 0, Math.PI); x.fill(); }
-  else if (P.face === 'hurt') line(hx - 2.4, hy + 11, hx + 2.4, hy + 11, '#8a3a3a', 1.2);
-  else line(hx - 1.8, hy + 10.6, hx + 1.8, hy + 10.6, '#8a3a3a', 1.1);
+  // three-quarter view facing left: the near eye is wide, the far eye narrower, and the face sits toward the left edge
+  const eyeAt = (ex, ey, k) => { x.save(); x.translate(ex, ey); x.scale(k, 1); x.translate(-ex, -ey); eyeDraw(ex, ey); x.restore(); };
+  const ey0 = hy + 3; eyeAt(hx - 9, ey0, 1); eyeAt(hx + 3.2, ey0, 0.7);
+  if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 5, hy + 11.2, 2.4, 1.9, 0, 0, 7); x.fill(); }
+  else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx - 5, hy + 9.6, 2.6, 0, Math.PI); x.fill(); }
+  else if (P.face === 'hurt') line(hx - 7.4, hy + 11, hx - 2.6, hy + 11, '#8a3a3a', 1.2);
+  else line(hx - 6.8, hy + 10.6, hx - 3.2, hy + 10.6, '#8a3a3a', 1.1);
   // ---- hair and head gear ----
   const cap = (top, side, col, o = {}) => shape(mkc([[hx - side, hy + 2], [hx - side - 1, hy - top * 0.7, hx - side * 0.5, hy - top, hx, hy - top], [hx + side * 0.5, hy - top, hx + side + 1, hy - top * 0.7, hx + side, hy + 2], [hx + side - 3, hy - 4, hx + 7, hy - 7, hx + 2, hy - 5.4], [hx - 3, hy - 8.4, hx - 8, hy - 6, hx - side + 3, hy - 3.6]]), col, { gx0: hx - side, gx1: hx + side, ...o });
   const band = (col, dk) => { shape(mkc([[hx - 16, hy - 5], [hx - 8, hy - 11, hx + 8, hy - 11, hx + 16, hy - 5], [hx + 16, hy - 1.4, hx + 15, hy - 1, hx + 14, hy - 1.6], [hx + 7, hy - 6.6, hx - 7, hy - 6.6, hx - 14, hy - 1.6], [hx - 15, hy - 1, hx - 16, hy - 1.4, hx - 16, hy - 5]]), col, { lw: 0.9 }); shape(mkp([hx + 14, hy - 8, hx + 22, hy - 7, hx + 27, hy - 2, hx + 20, hy - 3.6, hx + 15, hy - 4.6]), col, { lw: 0.7 }); shape(mkp([hx + 15, hy - 5.6, hx + 23, hy - 0.6, hx + 24, hy + 5, hx + 19, hy + 0.6, hx + 14, hy - 2.4]), dk, { lw: 0.7 }); };
@@ -158,7 +161,7 @@ function hdPixelize(c, extra) {
   img.data.set(out); x.putImageData(img, 0, 0); return c;
 }
 // Battle sprites: 'dots' reuses the field walking sprites (16x16, side view facing the enemies) at 4x with a pixel weapon; 'chibi' is the painted chibi above.
-const BATTLE_STYLE = 'dots';
+const BATTLE_STYLE = 'chibi';
 function buildHeroDots(id) {
   const F = SPR[id], S = {}, K = 4, SH = 2; // K: scale-up, SH: sprite shift right in dots so weapons have room on the left
   const px = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
