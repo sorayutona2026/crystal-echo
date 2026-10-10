@@ -16,6 +16,12 @@ FF4〜6風のATBバトルRPG。外部素材なしで、絵(ドット絵)・音�
   - `npm run shots` … 各場面のスクリーンショットを `test-out/` に保存
 - 変更後は必ず `python3 build.py` → `node test/full.js` で通しプレイが COMPLETE になることを確認する
 
+## Godot 版(試作)
+`godot/` に無料エンジン Godot 4.3 への移植の試作がある(村とワールドマップを歩く、会話、ATB戦闘、オート、セーブ、スワイプ操作)。
+JS 版の絵とデータは `node tools/export_assets.js` で `godot/assets/` に書き出して共有する。詳しくは `godot/README.md`。
+テストは `godot/` で `godot --headless --fixed-fps 60 --script res://tests/smoke.gd`。音楽・ストーリーイベント・ボス演出はまだ移していない。
+Web 書き出しは wasm が約35MBあり、claude.ai の Artifact(1ファイル15MBまで)には載せられない。
+
 ## ソース構成(src/、build.py がこの順に連結する)
 | ファイル | 役割 |
 |---|---|
