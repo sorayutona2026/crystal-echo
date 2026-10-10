@@ -137,7 +137,7 @@ const Menu = {
       const yy = y + 8 + i * 52; const s = stats(m); const h = HEROES[m.id];
       if (sel != null) Touch.add(x, yy - 3, w, 50, () => { G.menu.who = i; Input.tapA(); });
       if (sel === i) { ctx.fillStyle = 'rgba(240,207,134,.12)'; ctx.fillRect(x + 4, yy - 3, w - 8, 50); }
-      if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 18, yy + 2); else ctx.drawImage(SPR[m.id].hb.ko, x + 12, yy + 12);
+      if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 18, yy + 2, HB_W, HB_H); else ctx.drawImage(SPR[m.id].hb.ko, x + 12, yy + 12, HB_H, HB_W);
       text(h.name, x + 58, yy, m.hp <= 0 ? '#ff7080' : UI.ink, 8.5, 'left', 't'); text(h.job, x + 102, yy, UI.muted, 7);
       text('Lv ' + m.lv, x + 58, yy + 12, UI.gold);
       text('HP', x + 58, yy + 23, UI.label, 7); text(`${m.hp}/${s.maxhp}`, x + 72, yy + 22);
@@ -194,7 +194,7 @@ const Menu = {
     }
     if (M.mode === 'status') {
       const m = G.party[M.who]; const s = stats(m); const h = HEROES[m.id];
-      win(0, 0, 256, 224); ctx.drawImage(SPR[m.id].hb.win, 30, 22);
+      win(0, 0, 256, 224); ctx.drawImage(SPR[m.id].hb.win, 30, 22, HB_W, HB_H);
       text(h.name, 76, 12, UI.ink, 11, 'left', 't'); text(h.job, 76, 28, UI.muted); text('Lv ' + m.lv, 180, 12, UI.gold, 10);
       text(`HP ${m.hp}/${s.maxhp}`, 76, 44); text(`MP ${m.mp}/${s.maxmp}`, 160, 44);
       [['ちから', s.str], ['こうげき', s.atk], ['ぼうぎょ', s.def], ['まりょく', s.mag], ['まほうぼうぎょ', s.mdf], ['すばやさ', s.spd]].forEach(([lb, v], j) => { text(lb, 20, 72 + j * 15, UI.label); text(String(v), 120, 72 + j * 15, UI.ink, 8, 'right'); });

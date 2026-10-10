@@ -498,11 +498,11 @@ const Battle = {
         ctx.restore(); addLight(cx, cy - 6, 50, HEROES[m.id].cmd === '白魔法' ? '#a0ffc8' : '#c8a0ff', 0.7 * k);
       }
       ctx.fillStyle = 'rgba(8,4,16,.38)'; ctx.beginPath(); ctx.ellipse(x + 17, p.y + 31, 10, 2.6, 0, 0, Math.PI * 2); ctx.fill();
-      for (let k = pb.trail.length - 1; k >= 1; k--) { ctx.globalAlpha = 0.35 * (1 - k / pb.trail.length); ctx.drawImage(hb.walk || hb.idle, p.x + Math.round(pb.trail[k]), y - 8); }
+      for (let k = pb.trail.length - 1; k >= 1; k--) { ctx.globalAlpha = 0.35 * (1 - k / pb.trail.length); ctx.drawImage(hb.walk || hb.idle, p.x + Math.round(pb.trail[k]), y - 8, HB_W, HB_H); }
       ctx.globalAlpha = 1;
-      if (pb.haste && m.hp > 0 && !pb.dashing && (B.t >> 2) % 3 === 0) { ctx.globalAlpha = 0.25; ctx.drawImage(img, x + 3, y - 8); ctx.globalAlpha = 1; }
+      if (pb.haste && m.hp > 0 && !pb.dashing && (B.t >> 2) % 3 === 0) { ctx.globalAlpha = 0.25; ctx.drawImage(img, x + 3, y - 8, HB_W, HB_H); ctx.globalAlpha = 1; }
       const sh = pb.hitT ? (pb.hitT % 2 ? 2 : -2) : 0;
-      if (pose === 'ko') ctx.drawImage(img, x - 4 + sh, p.y);
+      if (pose === 'ko') ctx.drawImage(img, x - 4 + sh, p.y, HB_H, HB_W);
       else { ctx.drawImage(img, x + sh, y - 8 + breathe, HB_W, HB_H - breathe); }
       if (active) addLight(x + 16, y + 16, 60, '#ffe2a0', 0.6);
     });
