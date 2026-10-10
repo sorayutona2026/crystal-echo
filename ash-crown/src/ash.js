@@ -187,3 +187,33 @@ function newGame() {
 }
 ENDING_LINES.length = 0;
 ENDING_LINES.push('', '燈火は、まだ消えていない。', '', 'けれど、空はまだ灰色のまま。', '', 'カインとセレネの旅は', 'ここから始まる。', '', 'つづく');
+
+// ---- 音楽(暗い曲) ----
+// 1小節=8分音符8個。chords は1小節に1つ。'-' は伸ばし、'.' は休み。
+const ASH_BARS = (...bars) => bars.join(' ');
+Object.assign(TRACKS, {
+  // 燈火の街:低くゆっくりした短調。灯りの下の静けさと諦め
+  town: { pad: 1, harm: 1, bpm: 72, chords: 'Dm Bb Gm A Dm Bb A A Dm F Gm Bb Gm A Dm Dm', bass: 'long', arp: 'up', mel: ASH_BARS(
+    'D5 - F5 - A5 - - -', 'G5 - F5 - D5 - - -', 'Bb4 - D5 - G5 - F5 -', 'E5 - - - C#5 - - -',
+    'D5 - F5 - A5 - C6 -', 'Bb5 - A5 - G5 - - -', 'A5 - G5 - E5 - C#5 -', 'E5 - - - . . . .',
+    'F5 - A5 - D6 - - -', 'C6 - A5 - F5 - - -', 'G5 - Bb5 - D6 - C6 -', 'Bb5 - - - A5 - G5 -',
+    'G5 - F5 - D5 - Bb4 -', 'C#5 - E5 - A5 - G5 -', 'F5 - E5 - D5 - - -', 'D5 - - - - - . .') },
+  // 灰の回廊:ほとんど動かない低い旋律、下がっていく和音
+  dungeon: { pad: 1, bpm: 66, chords: 'Cm Cm Ab G Cm Fm Ab G Cm Cm Db Bb Fm G Cm G', bass: 'long', arp: 'down', mel: ASH_BARS(
+    'C5 - - - Eb5 - - -', 'G5 - - - F5 - Eb5 -', 'Eb5 - - - C5 - - -', 'D5 - B4 - G4 - - -',
+    'C5 - Eb5 - G5 - - -', 'Ab5 - - - G5 - F5 -', 'Eb5 - C5 - Ab4 - - -', 'B4 - - - D5 - - -',
+    'Eb5 - - - G5 - Bb5 -', 'C6 - - - Bb5 - - -', 'Ab5 - - - F5 - - -', 'F5 - D5 - Bb4 - - -',
+    'F5 - Ab5 - C6 - - -', 'B5 - - - G5 - D5 -', 'Eb5 - D5 - C5 - - -', 'B4 - - - . . . .') },
+  // ボス:速いロック調の短調。半音のきしみ
+  boss: { harm: 1, bpm: 156, chords: 'Am Am F G Am Am Dm E F G E Am Dm F E E', bass: 'octave', arp: 'up', drums: 'rock', mel: ASH_BARS(
+    'A5 - . A5 C6 - B5 A5', 'E5 - A5 - G#5 - E5 -', 'F5 - . F5 A5 - G5 F5', 'D5 - G5 - B5 - A5 G5',
+    'A5 - . A5 C6 - E6 -', 'D6 - C6 - B5 - A5 -', 'D5 - F5 - A5 - D6 -', 'E6 - . D#6 E6 - B5 -',
+    'C6 - A5 - F5 - A5 C6', 'B5 - G5 - D5 - G5 B5', 'G#5 - B5 - E6 - D6 -', 'C6 - B5 - A5 - - -',
+    'F5 - A5 - D6 - C6 -', 'A5 - C6 - F6 - E6 -', 'D6 - B5 - G#5 - B5 -', 'E5 G#5 B5 E6 G#6 - - -') },
+  // タイトル:ゆっくりしたイ短調。遠くで鳴る鐘のような高い音
+  title: { pad: 1, harm: 1, bpm: 60, chords: 'Am Am F G Am Dm E Am F F C G Dm E Am Am', bass: 'long', arp: 'up', mel: ASH_BARS(
+    'E5 - - - A5 - - -', 'C6 - - - B5 - A5 -', 'A5 - - - F5 - - -', 'D5 - - - G5 - B5 -',
+    'A5 - C6 - E6 - - -', 'D6 - - - F5 - A5 -', 'G#5 - B5 - E6 - - -', 'C6 - - - A5 - - -',
+    'F5 - A5 - C6 - - -', 'A5 - - - F5 - - -', 'G5 - C6 - E6 - - -', 'D6 - - - B5 - G5 -',
+    'F5 - A5 - D6 - - -', 'G#5 - B5 - D6 - E6 -', 'C6 - B5 - A5 - - -', 'A5 - - - - - . .') },
+});
