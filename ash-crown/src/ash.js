@@ -32,7 +32,9 @@ Object.assign(ENV.battleCave, { grade: ['#7a3030', 0.16] });
 Object.assign(ENV.title, { grade: ['#a04040', 0.16], thr: 120 });
 
 // ---- 会話の顔 ----
-Object.assign(SPEAKERS, { 'カイン': 'allen', 'セレネ': 'lina', 'ミレイ': 'kai', 'ノクス': 'zek' });
+// 脇役は専用の顔IDを持つ(assets/portrait_keeper.jpg などを置くと自動で使われる。無いときはドット絵の顔)
+PALS.keeper = { ...PALS.elder }; PALS.captain = { ...PALS.soldier };
+Object.assign(SPEAKERS, { 'カイン': 'allen', 'セレネ': 'lina', '少女': 'lina', 'ミレイ': 'kai', 'ノクス': 'zek', '火守長': 'keeper', '衛兵長': 'captain' });
 
 // ---- タイトル ----
 function drawLogo(y, a = 1) {
@@ -64,7 +66,7 @@ function buildLamp() {
     warps: { '5,5': { map: 'hall', x: 5, y: 6, dir: 'up' }, '11,17': { map: 'ruins', x: 2, y: 2, dir: 'down', script: 'ruinsGate' }, '12,17': { map: 'ruins', x: 2, y: 2, dir: 'down', script: 'ruinsGate' } },
     signs: { '17,15': '燈火の街\n「ひとつの火は、ひとりの命」' },
     npcs: [
-      { id: 'captain', x: 12, y: 15, pal: 'soldier', dir: 'up', talk: 'captain' },
+      { id: 'captain', x: 12, y: 15, pal: 'captain', dir: 'up', talk: 'captain' },
       { id: 'lampWoman', x: 8, y: 11, pal: 'woman', wander: true, talk: 'lampWoman' },
       { id: 'lampOld', x: 14, y: 11, pal: 'elder', wander: true, talk: 'lampOld' },
       { id: 'lampChild', x: 9, y: 7, pal: 'child', wander: true, talk: 'lampChild' },
@@ -108,7 +110,7 @@ function buildMaps() {
   MAPS = {
     lamp: buildLamp(), ruins: buildRuins(),
     hall: room('hall', '火守の詰所', ['##########', '#kk.f..kk#', '#........#', '#.t...B..#', '#........#', '#.p....p.#', '#........#', '####e#####'],
-      { map: 'lamp', x: 5, y: 6, dir: 'down' }, [{ id: 'keeper', x: 6, y: 2, pal: 'elder', talk: 'keeper' }]),
+      { map: 'lamp', x: 5, y: 6, dir: 'down' }, [{ id: 'keeper', x: 6, y: 2, pal: 'keeper', talk: 'keeper' }]),
   };
 }
 
