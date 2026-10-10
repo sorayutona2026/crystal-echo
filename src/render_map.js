@@ -99,10 +99,19 @@ function mapKey(m, x, y) {
   if (WALLS.has(k)) { const b = base(x, y + 1); return k + ((b && b !== k) ? 'Face' : 'Top'); }
   return k;
 }
+// HD tile for a map that opted in (m.hd), or null to fall back to the 16px art
+function hdTile(m, key, x, y) {
+  if (!m.hd) return null;
+  const v = (((x * 73856093) ^ (y * 19349663)) >>> 0) % 4;
+  if (key === 'grass') return HD.grass[v]; if (key === 'path') return HD.path[v]; if (key === 'water') return HD.water[0];
+  return HD.tile[key] || null;
+}
 function buildMapCache(m) {
-  const set = TILESETS[m.set]; const W = m.w * T, H = m.h * T;
-  const ground = mkCanvas(W, H), gx = ground.getContext('2d', { willReadFrequently: true });
-  const upper = mkCanvas(W, H), ux = upper.getContext('2d');
+  const set = TILESETS[m.set]; const W = m.w * T, H = m.h * T, D = PX;
+  // the caches are stored at density D; everything below keeps drawing in 16px-per-tile coordinates through the scale transform
+  const ground = mkCanvas(W * D, H * D), gx = ground.getContext('2d', { willReadFrequently: true }); gx.scale(D, D); gx.imageSmoothingEnabled = false;
+  const upper = mkCanvas(W * D, H * D), ux = upper.getContext('2d'); ux.scale(D, D); ux.imageSmoothingEnabled = false;
+  const groundImg = (key, x, y) => hdTile(m, key, x, y) || (TILE_VAR[key] ? TILE_VAR[key][(((x * 73856093) ^ (y * 19349663)) >>> 0) % 4] : TILE_IMG[key][0]);
   const base = (x, y) => { if (y < 0 || x < 0 || y >= m.h || x >= m.w) return null; const d = set[m.g[y][x]]; return d ? d[0] : null; };
   const isW = (x, y) => { const b = base(x, y); return b == null ? m.set === 'world' : WATERY.has(b); };
   const lights = [], dyn = [], tall = [], smoke = [], flowers = [];
@@ -111,11 +120,10 @@ function buildMapCache(m) {
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
     const key = mapKey(m, x, y); if (!key) continue; const sx = x * T, sy = y * T;
     if (DYN_GROUND.has(key) || DYN_TALL.has(key)) { dyn.push([key, x, y]); if (DYN_TALL.has(key)) { /* floor under fire/crystal is in its image */ } continue; }
-    if (TALL_SPR[key]) { const vb = TILE_VAR[TALL_SPR[key].base]; gx.drawImage(vb ? vb[(((x * 73856093) ^ (y * 19349663)) >>> 0) % 4] : TILE_IMG[TALL_SPR[key].base][0], sx, sy); tall.push([key, x, y]); continue; }
+    if (TALL_SPR[key]) { gx.drawImage(groundImg(TALL_SPR[key].base, x, y), sx, sy, T, T); tall.push([key, x, y]); continue; }
     if (TALL_RECT.has(key) || TALL_ROUND.has(key)) { tall.push([key, x, y]); continue; }
-    const vars = TILE_VAR[key];
-    gx.drawImage(vars ? vars[(((x * 73856093) ^ (y * 19349663)) >>> 0) % 4] : TILE_IMG[key][0], sx, sy);
-    if (FRINGED.has(key)) for (const [d, dx, dy] of [['N', 0, -1], ['S', 0, 1], ['W', -1, 0], ['E', 1, 0]]) { if (GRASSY.has(base(x + dx, y + dy)) || base(x + dx, y + dy) === 'mountain' || base(x + dx, y + dy) === 'forest') gx.drawImage(TILE_IMG.fringe[d], sx, sy); }
+    gx.drawImage(groundImg(key, x, y), sx, sy, T, T);
+    if (FRINGED.has(key)) for (const [d, dx, dy] of [['N', 0, -1], ['S', 0, 1], ['W', -1, 0], ['E', 1, 0]]) { if (GRASSY.has(base(x + dx, y + dy)) || base(x + dx, y + dy) === 'mountain' || base(x + dx, y + dy) === 'forest') gx.drawImage(m.hd ? HD.fringe[d] : TILE_IMG.fringe[d], sx, sy, T, T); }
   }
   // 2) shores: rounded banks drawn over the edges of water tiles
   const bank = m.set === 'world' ? ['#e4cc8a', '#c8ac6a'] : m.set === 'cave' ? ['#4a3c3a', '#2e2428'] : ['#4e8934', '#3a6a28'];
@@ -139,7 +147,7 @@ function buildMapCache(m) {
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
     const b = base(x, y); const sx = x * T, sy = y * T; const h = thash(x, y, 7), h2 = thash(x, y, 11);
     const P = (c, a, bb, w = 1, hh = 1) => { gx.fillStyle = c; gx.fillRect(sx + a, sy + bb, w, hh); };
-    if (b === 'grass' && (m.set === 'world' || m.set === 'town')) {
+    if (b === 'grass' && (m.set === 'world' || m.set === 'town') && !m.hd) {
       const ax = Math.floor(h2 * 11) + 2, ay = Math.floor(thash(x, y, 13) * 10) + 3;
       if (h < 0.1) { P('#6b6a64', ax, ay, 3, 2); P('#a8a6a0', ax, ay, 2, 1); P('#3e5a2a', ax, ay + 2, 3, 1); }            // rock
       else if (h < 0.24) { for (let i = 0; i < 3; i++) { const c = ['#ffe680', '#ff9ab8', '#ffffff', '#b8a0ff'][Math.floor(h2 * 4 + i) % 4]; P(c, ax + i * 2 - 2, ay + (i % 2), 1, 1); P('#3e7a2e', ax + i * 2 - 2, ay + 1 + (i % 2), 1, 1); } } // flowers
@@ -157,11 +165,11 @@ function buildMapCache(m) {
   // 4) large-scale colour variation (organic, breaks up the tile grid)
   if (m.set !== 'inside') {
     const nz = vnoise(m.w * 17 + m.h), nz2 = vnoise(m.h * 29 + 5);
-    const img = gx.getImageData(0, 0, W, H), d = img.data;
+    const WD = W * D, HH = H * D, img = gx.getImageData(0, 0, WD, HH), d = img.data;
     const amp = m.set === 'world' || m.set === 'town' ? 0.16 : 0.12;
-    for (let py = 0; py < H; py++) for (let pxx = 0; pxx < W; pxx++) {
-      const i = (py * W + pxx) * 4; if (!d[i + 3]) continue;
-      const n = nz(pxx / 56, py / 56) * 0.7 + nz2(pxx / 17, py / 17) * 0.3; const f = 1 + (n - 0.5) * amp * 2;
+    for (let py = 0; py < HH; py++) for (let pxx = 0; pxx < WD; pxx++) {
+      const i = (py * WD + pxx) * 4; if (!d[i + 3]) continue;
+      const n = nz(pxx / (56 * D), py / (56 * D)) * 0.7 + nz2(pxx / (17 * D), py / (17 * D)) * 0.3; const f = 1 + (n - 0.5) * amp * 2;
       const warm = (n - 0.5) * 18;
       d[i] = clamp(d[i] * f + warm, 0, 255); d[i + 1] = clamp(d[i + 1] * f + warm * 0.5, 0, 255); d[i + 2] = clamp(d[i + 2] * f - warm * 0.4, 0, 255);
     }
@@ -176,20 +184,20 @@ function buildMapCache(m) {
     }
   }
   // 6) cast shadows (light from upper-left)
-  const sh = mkCanvas(W, H), sx2 = sh.getContext('2d'); sx2.fillStyle = '#000';
+  const sh = mkCanvas(W * D, H * D), sx2 = sh.getContext('2d'); sx2.scale(D, D); sx2.fillStyle = '#000';
   for (const [key, x, y] of tall) {
     const sx = x * T, sy = y * T;
     if (TALL_SPR[key]) { sx2.beginPath(); sx2.ellipse(sx + 11, sy + 13, key === 'forest' ? 9 : 7, key === 'mountain' ? 5 : 4, 0, 0, Math.PI * 2); sx2.fill(); }
     else if (TALL_RECT.has(key)) sx2.fillRect(sx + 4, sy + 4, 16, 16);
     else { sx2.beginPath(); sx2.ellipse(sx + 11, sy + 14, 7, 3.5, 0, 0, Math.PI * 2); sx2.fill(); }
   }
-  gx.globalAlpha = m.set === 'world' || m.set === 'town' ? 0.26 : 0.34; gx.drawImage(sh, 0, 0); gx.globalAlpha = 1;
+  gx.globalAlpha = m.set === 'world' || m.set === 'town' ? 0.26 : 0.34; gx.drawImage(sh, 0, 0, W, H); gx.globalAlpha = 1;
   // 7) upper layer: tall objects, row by row so lower rows overlap upper ones
   tall.sort((a, b) => a[2] - b[2] || a[1] - b[1]);
   for (const [key, x, y] of tall) {
     const sx = x * T, sy = y * T;
-    if (TALL_SPR[key]) { const S = TALL_SPR[key]; const im = S.imgs[(((x * 92837111) ^ (y * 689287499)) >>> 0) % S.imgs.length]; ux.drawImage(im, sx + Math.round((16 - im.width) / 2), sy + 16 - im.height); continue; }
-    ux.drawImage(TILE_IMG[key][0], sx, sy);
+    if (TALL_SPR[key]) { const S = TALL_SPR[key]; const imgs = m.hd && HD.tall[key] ? HD.tall[key] : S.imgs; const im = imgs[(((x * 92837111) ^ (y * 689287499)) >>> 0) % imgs.length]; const iw = im.lw || im.width, ih = im.lh || im.height; ux.drawImage(im, sx + Math.round((16 - iw) / 2), sy + 16 - ih, iw, ih); continue; }
+    ux.drawImage(hdTile(m, key, x, y) || TILE_IMG[key][0], sx, sy, T, T);
     if (key.endsWith('Top')) { const fam = key.slice(0, -3); ux.fillStyle = 'rgba(0,0,0,.45)'; if (base(x - 1, y) !== fam) ux.fillRect(sx, sy, 1, 16); if (base(x + 1, y) !== fam) ux.fillRect(sx + 15, sy, 1, 16); if (base(x, y - 1) !== fam) { ux.fillStyle = 'rgba(255,255,255,.12)'; ux.fillRect(sx, sy, 16, 1); } }
     if (key === 'roof' || key === 'roofB') {
       const up = base(x, y - 1), dn = base(x, y + 1);
@@ -197,7 +205,7 @@ function buildMapCache(m) {
       if (dn !== key) { ux.fillStyle = 'rgba(30,10,10,.45)'; ux.fillRect(sx, sy + 14, 16, 2); }
     }
     if ((key === 'wall' || key === 'window' || key === 'door') && (base(x, y - 1) === 'roof' || base(x, y - 1) === 'roofB')) { ux.fillStyle = 'rgba(20,10,10,.35)'; ux.fillRect(sx, sy, 16, 3); }
-    if (key === 'window') { ux.fillStyle = '#6a4424'; ux.fillRect(sx + 4, sy + 11, 8, 2); ux.fillStyle = ['#ff7a9a', '#ffe060', '#ffffff'][(x + y) % 3]; ux.fillRect(sx + 5, sy + 10, 1, 1); ux.fillRect(sx + 8, sy + 10, 1, 1); ux.fillRect(sx + 10, sy + 10, 1, 1); ux.fillStyle = '#4e8934'; ux.fillRect(sx + 6, sy + 10, 2, 1); ux.fillRect(sx + 9, sy + 10, 1, 1); }
+    if (key === 'window' && !m.hd) { ux.fillStyle = '#6a4424'; ux.fillRect(sx + 4, sy + 11, 8, 2); ux.fillStyle = ['#ff7a9a', '#ffe060', '#ffffff'][(x + y) % 3]; ux.fillRect(sx + 5, sy + 10, 1, 1); ux.fillRect(sx + 8, sy + 10, 1, 1); ux.fillRect(sx + 10, sy + 10, 1, 1); ux.fillStyle = '#4e8934'; ux.fillRect(sx + 6, sy + 10, 2, 1); ux.fillRect(sx + 9, sy + 10, 1, 1); }
   }
   // 8) static lights
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
@@ -223,7 +231,7 @@ function drawMapLayers(m, cx, cy) {
   for (let y = y0; y <= y0 + 15; y++) for (let x = x0; x <= x0 + 17; x++) {
     if (y < 0 || x < 0 || y >= m.h || x >= m.w) continue;
     const d = set[m.g[y][x]]; if (!d || !WATERY.has(d[0])) continue;
-    const sx = x * T - cx, sy = y * T - cy; ctx.drawImage(TILE_IMG.water[f], sx, sy);
+    const sx = x * T - cx, sy = y * T - cy; ctx.drawImage(m.hd ? HD.water[f] : TILE_IMG.water[f], sx, sy, T, T);
     const h = ((x * 31 + y * 17 + (t >> 3)) * 2654435761) >>> 0;
     if (h % 19 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(sx + (h >> 5) % 14, sy + (h >> 9) % 14, 2, 1); }
   }
@@ -247,8 +255,8 @@ function drawMapLayers(m, cx, cy) {
 
 // copy the visible window of a cached layer, clipping by hand (some browsers mishandle out-of-range source rects)
 function blitRegion(img, cx, cy) {
-  const sx = Math.max(0, cx), sy = Math.max(0, cy);
-  const ex = Math.min(img.width, cx + SW), ey = Math.min(img.height, cy + SH);
+  const D = PX, sx = Math.max(0, cx), sy = Math.max(0, cy);
+  const ex = Math.min(img.width / D, cx + SW), ey = Math.min(img.height / D, cy + SH);
   if (ex <= sx || ey <= sy) return;
-  ctx.drawImage(img, sx, sy, ex - sx, ey - sy, sx - cx, sy - cy, ex - sx, ey - sy);
+  ctx.drawImage(img, sx * D, sy * D, (ex - sx) * D, (ey - sy) * D, sx - cx, sy - cy, ex - sx, ey - sy);
 }

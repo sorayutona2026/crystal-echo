@@ -1,6 +1,7 @@
 'use strict';
 // ===================== ENGINE =====================
 const SW = 256, SH = 224;
+const PX = 2; // the world layer is drawn at 2x density: old 16px art is simply doubled, HD art uses the extra detail
 // crisp integer render scale: 3x normally, 4x on big desktop windows (the canvas is then shown up to 1024px wide)
 const SCALE = (window.matchMedia && matchMedia('(pointer: fine)').matches && Math.min(innerWidth, innerHeight * SW / SH) >= 900) ? 4 : 3;
 const cv = document.getElementById('screen');

@@ -38,7 +38,7 @@ function loop(ts) {
 let perfAvg = 8, perfN = 0;
 function boot(saved) {
   if (booted) return; booted = true;
-  buildTiles(); buildTallSprites(); buildChars(); buildHeroBattle(); buildEnemyArt(); buildMaps(); loadOverrides();
+  buildTiles(); buildTallSprites(); buildChars(); buildHD(); buildHeroBattle(); buildEnemyArt(); buildMaps(); loadOverrides();
   fit(); G.auto = Store.get('crystal-echo-auto') === '1';
   if (saved && saved.party) { try { applySnapshot(saved); } catch (e) { Title.start(); } } else Title.start();
   requestAnimationFrame(loop);

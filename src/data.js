@@ -185,7 +185,7 @@ function buildElm() {
   g[13][16] = 'w'; fillRect(g, 20, 12, 4, 3, '~'); fillRect(g, 16, 16, 4, 2, 'f'); fillRect(g, 10, 4, 2, 2, 'f');
   g[17][14] = 'S'; fillRect(g, 15, 17, 3, 1, 'F'); fillRect(g, 8, 17, 3, 1, 'F');
   g[2][12] = 'T'; g[2][13] = 'T'; g[16][2] = 'T'; g[17][3] = 'T';
-  return { id: 'elm', name: 'エルムの村', set: 'town', music: 'town', w: W, h: H, g, exit: { map: 'world', x: 9, y: 7, gate: 'elmGate' },
+  return { id: 'elm', hd: true, name: 'エルムの村', set: 'town', music: 'town', w: W, h: H, g, exit: { map: 'world', x: 9, y: 7, gate: 'elmGate' },
     warps: { '5,5': { map: 'elder', x: 4, y: 6, dir: 'up' }, '19,5': { map: 'innElm', x: 5, y: 6, dir: 'up' }, '5,13': { map: 'shopElm', x: 4, y: 6, dir: 'up' } },
     signs: { '14,17': 'エルムの村\n「風の吹く丘の村」' },
     npcs: [

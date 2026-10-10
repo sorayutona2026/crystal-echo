@@ -358,7 +358,8 @@ const Field = {
     }
     const s = SPR[pal]; if (!s) return;
     ctx.fillStyle = 'rgba(10,6,20,.32)'; ctx.beginPath(); ctx.ellipse(x + 9, y + 15, 6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.drawImage(s[dir][frame], x, y - 2);
+    const hs = G.map.hd && HD.spr[pal];
+    if (hs) ctx.drawImage(hs[dir][frame], x, y - 2, 16, 16); else ctx.drawImage(s[dir][frame], x, y - 2);
   },
 };
 
