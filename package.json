@@ -5,7 +5,7 @@
   "description": "FF風 HD-2D ドット絵RPG(ブラウザ/単一HTML)",
   "scripts": {
     "build": "python3 build.py",
-    "test": "python3 build.py && node test/smoke.js && node test/full.js && node test/shrine.js",
+    "test": "python3 build.py && node test/smoke.js && node test/auto.js && node test/full.js && node test/shrine.js",
     "test:shrine": "node test/shrine.js",
     "test:full": "node test/full.js",
     "test:balance": "node test/balance.js",

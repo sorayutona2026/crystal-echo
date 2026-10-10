@@ -136,7 +136,7 @@ const Menu = {
     G.party.forEach((m, i) => {
       const yy = y + 8 + i * 52; const s = stats(m); const h = HEROES[m.id];
       if (sel === i) { ctx.fillStyle = 'rgba(240,207,134,.12)'; ctx.fillRect(x + 4, yy - 3, w - 8, 50); }
-      if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 22, yy + 4); else ctx.drawImage(SPR[m.id].hb.ko, x + 18, yy + 14);
+      if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 18, yy + 2); else ctx.drawImage(SPR[m.id].hb.ko, x + 12, yy + 12);
       text(h.name, x + 58, yy, m.hp <= 0 ? '#ff7080' : UI.ink, 8.5, 'left', 't'); text(h.job, x + 102, yy, UI.muted, 7);
       text('Lv ' + m.lv, x + 58, yy + 12, UI.gold);
       text('HP', x + 58, yy + 23, UI.label, 7); text(`${m.hp}/${s.maxhp}`, x + 72, yy + 22);
@@ -176,7 +176,7 @@ const Menu = {
     }
     if (M.mode === 'equip' || M.mode === 'equipPick') {
       const m = G.party[M.who]; const s = stats(m);
-      win(0, 0, 256, 70); ctx.drawImage(SPR[m.id].hb.idle, 14, 8);
+      win(0, 0, 256, 70); ctx.drawImage(SPR[m.id].hb.idle, 4, 16, 32, 40);
       text(`${HEROES[m.id].name}  Lv${m.lv}`, 50, 8, UI.ink); text('◀ ▶ でキャラ切替', 248, 8, UI.muted, 7, 'right');
       text('武器', 50, 26, UI.label, 7); text(ITEMS[m.weapon].name, 80, 25); text('防具', 50, 42, UI.label, 7); text(ITEMS[m.armor].name, 80, 41);
       if (M.mode === 'equip') cursor(36, 26 + M.slot * 16);
@@ -387,9 +387,11 @@ const GameOver = {
 };
 const ENDING_LINES = [
   '', '風のクリスタルは輝きを取り戻し', '世界に再び、やさしい風が吹いた。', '',
-  'アレンとリナはエルムの村へ帰り', '畑には麦の穂が揺れている。', '',
-  'カイは新たな宝の地図を手に', '港から旅立っていった。', '',
-  'ゼクは塔に残り', '兄弟子の遺した研究を', '光のために役立てるという。', '',
+  'アレンは父の剣を壁に掛け', 'その横に、自分の剣を並べた。', '「行ってきます」と言える場所を', '守るために。', '',
+  'リナは村の教会で', 'クリスタルの声に耳をすませている。', 'ときどき、懐かしい声もまじるという。', '',
+  'カイは親方の地図を新しく書き直し', '港から次の宝を探しに旅立った。', '', 
+  'ゼクは塔に残り', '兄弟子の遺した研究を', '光をもう一度灯すために使っている。', '',
+  '止まっていた風車が回り', '港の帆が、いっせいにふくらむ。', '', 
   'そして風は', '今日も大地をめぐる——', '', '',
   '— CRYSTAL ECHO —', '', 'シナリオ・プログラム・ドット絵・音楽', 'Claude', '', 'Special Thanks', 'あなた', '', '', '',
 ];

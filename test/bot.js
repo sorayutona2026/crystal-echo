@@ -8,52 +8,8 @@
   const stats = { battles: 0, wins: 0, escapes: 0, cheatHeals: 0, frames: 0 };
 
   function sk(id) { return R.SKILLS[id]; }
-  function decide() {
-    const B = R.B, M = B.menu, m = G.party[M.who];
-    const me = m.id, S = R.stats(m);
-    const alive = G.party.map((p, i) => i).filter(i => G.party[i].hp > 0);
-    const dead = G.party.map((p, i) => i).filter(i => G.party[i].hp <= 0);
-    const ratio = i => G.party[i].hp / R.stats(G.party[i]).maxhp;
-    const low = alive.filter(i => ratio(i) < 0.45).sort((a, b) => ratio(a) - ratio(b));
-    const ens = B.enemies.filter(e => e.alive);
-    const boss = ens.some(e => e.d.boss);
-    const known = R.HEROES[me].skills.filter(s => m.lv >= s[1]).map(s => s[0]);
-    const can = id => known.includes(id) && m.mp >= sk(id).mp;
-    const tgtE = () => { const e = ens.slice().sort((a, b) => a.hp - b.hp)[0]; return { side: 'e', i: e.i }; };
-    const act = a => R.BMenu.close(a);
-    if (me === 'lina') {
-      if (dead.length && can('revive')) return act({ kind: 'skill', id: 'revive', target: { side: 'p', i: dead[0] } });
-      if (low.length >= 2 && can('healall')) return act({ kind: 'skill', id: 'healall' });
-      if (low.length && can('heal')) return act({ kind: 'skill', id: 'heal', target: { side: 'p', i: low[0] } });
-      if (G.party.some(p => p.poison && p.hp > 0) && can('cure')) return act({ kind: 'skill', id: 'cure', target: { side: 'p', i: G.party.findIndex(p => p.poison && p.hp > 0) } });
-      if (boss && can('protect') && alive.some(i => !B.pb[i].prot)) return act({ kind: 'skill', id: 'protect' });
-      const fast = ['allen', 'zek'].map(id => G.party.findIndex(p => p.id === id)).find(i => i >= 0 && G.party[i].hp > 0 && !B.pb[i].haste);
-      if (boss && can('haste') && fast !== undefined && low.length === 0) return act({ kind: 'skill', id: 'haste', target: { side: 'p', i: fast } });
-      if (m.mp < 6 && G.inv.ether && boss) return act({ kind: 'item', id: 'ether', target: { side: 'p', i: M.who } });
-      if (boss && can('holy') && m.mp > 30) return act({ kind: 'skill', id: 'holy', target: tgtE() });
-    }
-    const linaUp = G.party.some(p => p.id === 'lina' && p.hp > 0 && p.mp >= 3);
-    if (dead.length && G.inv.phoenix) return act({ kind: 'item', id: 'phoenix', target: { side: 'p', i: dead[0] } });
-    if (low.length && ratio(low[0]) < 0.3 && (!linaUp || boss)) { const pot = G.inv.hipotion ? 'hipotion' : G.inv.potion ? 'potion' : null; if (pot) return act({ kind: 'item', id: pot, target: { side: 'p', i: low[0] } }); }
-    if (me === 'zek') {
-      if (ens.length >= 2 && can('meteor') && boss === false && ens.length >= 3) return act({ kind: 'skill', id: 'meteor' });
-      if (boss && can('meteor')) return act({ kind: 'skill', id: 'meteor' });
-      if (ens.length >= 2 && can('blaze') && !ens.some(e => (e.d.absorb || []).includes('fire'))) return act({ kind: 'skill', id: 'blaze' });
-      const t = tgtE(); const e = B.enemies[t.i]; const weak = (e.d.weak || []).find(w => ['fire', 'ice', 'bolt'].includes(w));
-      const sp = weak ? { fire: 'fire', ice: 'frost', bolt: 'bolt' }[weak] : (e.d.absorb || []).includes('fire') ? 'frost' : 'fire';
-      if (can(sp)) return act({ kind: 'skill', id: sp, target: t });
-    }
-    if (me === 'allen') {
-      if (ens.length >= 3 && can('whirl')) return act({ kind: 'skill', id: 'whirl' });
-      if (boss && can('braver')) return act({ kind: 'skill', id: 'braver', target: tgtE() });
-      if (boss && can('power')) return act({ kind: 'skill', id: 'power', target: tgtE() });
-    }
-    if (me === 'kai') {
-      if (ens.length >= 3 && can('shadow')) return act({ kind: 'skill', id: 'shadow' });
-      if (boss && can('double')) return act({ kind: 'skill', id: 'double', target: tgtE() });
-    }
-    return act({ kind: 'skill', id: 'attack', target: tgtE() });
-  }
+  // the game's own auto-battle AI picks every command
+  function decide() { const M = R.B.menu; R.BMenu.close(R.Battle.autoAction(M.who)); }
   const inBattle = () => G.scene === R.BattleTrans || G.scene === R.Battle;
   function battleLoop() {
     let guard = 0;

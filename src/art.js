@@ -217,7 +217,7 @@ function stylize(c, opt = {}) {
 // ---------- character sprites (16x16 templates) ----------
 // ---------- character sprites (16x16 templates) ----------
 const BODY = {
-  down: ['................', '.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OHSSSSSSHO...', '...OSSESSESSO...', '...OSSSSSSSSO...', '....OOSSSSOO....', '...OCCCCCCCCO...', '..OSOCCAACCOSO..', '..OSOCCCCCCOSO..', '...OOAAAAAAOO...'],
+  down: ['................', '.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OHSSSSSSHO...', '...OSSESSESSO...', '...OSSESSESSO...', '....OOSSSSOO....', '...OCCCCCCCCO...', '..OSOCCAACCOSO..', '..OSOCCCCCCOSO..', '...OOAAAAAAOO...'],
   up: ['................', '.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OSHHHHHHSO...', '....OOHHHHOO....', '...OCCCCCCCCO...', '..OSOCCCCCCOSO..', '..OSOCCCCCCOSO..', '...OOAAAAAAOO...'],
   left: ['................', '.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OSSSHHHHHO...', '...OSESSHHHHO...', '..OSSSSSSHHO....', '...OOSSSSOO.....', '....OCCCCCCO....', '....OCSCCCCO....', '....OCSCCCCO....', '....OAAAAAAO....'],
 };
@@ -244,15 +244,38 @@ const PALS = {
   sailor: { H: '#f6f6f6', S: '#d8a070', E: '#1a1a2a', C: '#2a4a9a', A: '#f6f6f6', P: '#f6f6f6', B: '#2a2a3a' },
   gking: { H: '#e8c030', S: '#5aa040', E: '#ff3030', C: '#8a3a1a', A: '#c83030', P: '#5a2a10', B: '#2a1408' },
   garva: { H: '#1e1e2e', S: '#3a3a4e', E: '#ff3040', C: '#2a2a3c', A: '#a02040', P: '#1e1e2e', B: '#101018' },
+  leon: { H: '#6a3a1a', S: '#f0c49a', E: '#1a1a2a', C: '#9aa6bc', A: '#d8b040', P: '#3a3a58', B: '#3a2414' },
   bard: { H: '#7a2a9a', S: '#f2c8a0', E: '#1a1a2a', C: '#2e8a64', A: '#e8c040', P: '#4a3a2a', B: '#3a2414' },
   guardian: { H: '#7fe0ff', S: '#bff0ff', E: '#ff40a0', C: '#4aa0e0', A: '#ffffff', P: '#2a70b0', B: '#1a4a80' },
+};
+// hero heads (rows 0-8) with their own silhouettes: spiky hair, hood, bandana, long hair with circlet
+const HERO_HEADS = {
+  allen: {
+    down: ['......O..O......', '...O.OHOOHO.O...', '...OHOHHHHOHO...', '..OHHHHHHHHHHO..', '...OHHHHHHHHO...', '...OHSHSSHSHO...', '...OSSESSESSO...', '...OSSESSESSO...', '....OOSSSSOO....'],
+    up: ['......O..O......', '...O.OHOOHO.O...', '...OHOHHHHOHO...', '..OHHHHHHHHHHO..', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OSHHHHHHSO...', '....OOHHHHOO....'],
+    left: ['.....O.O.O......', '....OHOHOHO.O...', '...OHHHHHHHOHO..', '..OHHHHHHHHHHO..', '...OHHHHHHHHO...', '...OSSHHHHHHO...', '...OSESSHHHHO...', '..OSSESSSHHO....', '...OOSSSSOO.....'],
+  },
+  lina: {
+    down: ['.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '..OHHAAAAAAHHO..', '..OHABBBBBBAHO..', '..OHASSSSSSAHO..', '..OHSSESSESSHO..', '..OHSSESSESSHO..', '...OOOSSSSOOO...'],
+    up: ['.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..', '...OOOHHHHOOO...'],
+    left: ['.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '..OAAAHHHHHHHO..', '..OBBAHHHHHHHO..', '..OSSAHHHHHHHO..', '..OSESAHHHHHO...', '.OSSESAHHHHHO...', '..OOSSAOOOOO....'],
+  },
+  kai: {
+    down: ['....OOOOOOO.....', '...OHHHHHHHO....', '..OHHHHHHHHHO...', '..OHHHHHHHHHHO..', '...OBBBBBBBBOHO.', '...OBSSSSSSBO.O.', '...OSSESSESSO...', '...OSSESSESSO...', '....OOSSSSOO....'],
+    up: ['....OOOOOOO.....', '...OHHHHHHHO....', '..OHHHHHHHHHO...', '..OHHHHHHHHHHO..', '...OBBBBBBBBOHO.', '...OBBBBBBBBO.O.', '...OBBBBBBBBO...', '...OSBBBBBBSO...', '....OOBBBBOO....'],
+    left: ['.....OOOOOOO....', '....OHHHHHHHO...', '...OHHHHHHHHHO..', '...OHHHHHHHHHHO.', '...OBBBBBBBOHHO.', '...OSSBBBBBO.HO.', '...OSESSBBBO..O.', '..OSSESSSBBO....', '...OOSSSSOO.....'],
+  },
+  zek: {
+    down: ['.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '...OAAAAAAAAO...', '..OHHHHHHHHHHO..', '..OHHSSSSSSHHO..', '..OHSSESSESSHO..', '..OHSSESSESSHO..', '..OHHOSSSSOHHO..'],
+    up: ['.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '...OAAAAAAAAO...', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..', '..OHHHHHHHHHHO..'],
+    left: ['.....OOOOOO.....', '....OHHHHHHO....', '...OHHHHHHHHO...', '...OAAAAHHHHHO..', '...OHHHHHHHHHO..', '...OSSSHHHHHHO..', '...OSESSHHHHHO..', '..OSSESSHHHHHO..', '...OOSSSOHHHO...'],
+  },
 };
 // small identifying details layered on the 16x16 field sprites
 const FEATURES = {
   allen: { down: [['#d8343e', 4, 4, 8, 1], ['#d8343e', 4, 9, 8, 1]], up: [['#d8343e', 4, 4, 8, 1], ['#d8343e', 4, 9, 8, 1]], left: [['#d8343e', 7, 4, 5, 1], ['#d8343e', 5, 9, 6, 1], ['#b82430', 11, 9, 2, 1], ['#b82430', 12, 10, 2, 1]] },
-  kai: { down: [['#1e6a2e', 12, 5, 1, 2]], up: [['#1e6a2e', 7, 6, 2, 1], ['#2e9a44', 7, 7, 1, 2], ['#2e9a44', 9, 7, 1, 1]], left: [['#2e9a44', 12, 4, 2, 1], ['#1e6a2e', 13, 5, 2, 1], ['#2e9a44', 14, 6, 1, 1]] },
-  zek: { down: [['#e8c440', 4, 3, 8, 1], ['#ff70c0', 7, 3, 2, 1], ['#cfd6ee', 3, 8, 1, 3], ['#cfd6ee', 12, 8, 1, 3]], up: [['#cfd6ee', 5, 8, 6, 3]], left: [['#e8c440', 4, 3, 7, 1], ['#ff70c0', 4, 3, 1, 1], ['#cfd6ee', 10, 8, 2, 3]] },
-  lina: { down: [['#d8303e', 4, 4, 1, 4], ['#d8303e', 11, 4, 1, 4], ['#d8303e', 5, 3, 6, 1]], up: [['#d8303e', 4, 2, 8, 1]], left: [['#d8303e', 7, 5, 1, 3], ['#d8303e', 5, 4, 3, 1]] },
+  zek: { down: [['#ff70c0', 7, 3, 2, 1], ['#cfd6ee', 3, 9, 1, 2], ['#cfd6ee', 12, 9, 1, 2]], up: [['#cfd6ee', 4, 9, 8, 2]], left: [['#ff70c0', 4, 3, 1, 1], ['#cfd6ee', 10, 9, 2, 2]] },
+  lina: { down: [['#d8303e', 5, 9, 6, 1]], up: [['#d8303e', 4, 1, 8, 1]], left: [['#d8303e', 5, 9, 4, 1]] },
 };
 function renderChar(pal, body, legs, flip, name, dir) {
   const c = mkCanvas(16, 16), x = c.getContext('2d');
@@ -260,6 +283,7 @@ function renderChar(pal, body, legs, flip, name, dir) {
   for (let y = 0; y < 16; y++) for (let i = 0; i < 16; i++) {
     const ch = rows[y][i]; if (ch === '.') continue;
     let col = ch === 'O' ? '#1a1020' : pal[ch];
+    if (ch === 'E' && hex(col).reduce((t, v) => t + v, 0) < 120) col = '#283058'; // keep eyes out of the outline pass so they stay dark blue
     if (pal.beard && (y === 7 || y === 8) && ch === 'S' && body !== BODY.up) col = pal.beard;
     if (pal.beard && y === 9 && ch === 'C' && i > 5 && i < 10 && body === BODY.down) col = pal.beard;
     px(x, col, flip ? 15 - i : i, y);
@@ -272,10 +296,11 @@ const SPR = {}; // name -> {down:[4], up:[4], left:[4], right:[4]}
 function buildChars() {
   for (const n in PALS) {
     const p = PALS[n]; const s = {};
-    s.down = ['A', 'B', 'A', 'C'].map(l => renderChar(p, BODY.down, LEGS[l], false, n, 'down'));
-    s.up = ['A', 'C', 'A', 'B'].map(l => renderChar(p, BODY.up, LEGS[l], false, n, 'up'));
-    s.left = ['SA', 'SB', 'SA', 'SB'].map(l => renderChar(p, BODY.left, LEGS[l], false, n, 'left'));
-    s.right = ['SA', 'SB', 'SA', 'SB'].map(l => renderChar(p, BODY.left, LEGS[l], true, n, 'left'));
+    const hh = HERO_HEADS[n], body = d => hh ? hh[d].concat(BODY[d].slice(9)) : BODY[d];
+    s.down = ['A', 'B', 'A', 'C'].map(l => renderChar(p, body('down'), LEGS[l], false, n, 'down'));
+    s.up = ['A', 'C', 'A', 'B'].map(l => renderChar(p, body('up'), LEGS[l], false, n, 'up'));
+    s.left = ['SA', 'SB', 'SA', 'SB'].map(l => renderChar(p, body('left'), LEGS[l], false, n, 'left'));
+    s.right = ['SA', 'SB', 'SA', 'SB'].map(l => renderChar(p, body('left'), LEGS[l], true, n, 'left'));
     SPR[n] = s;
   }
 }

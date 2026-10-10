@@ -1,7 +1,9 @@
 // ===================== MAIN LOOP =====================
 function step() {
   Input.update(); G.frame++;
+  if (G.scene === Battle && B && Input.pressed.menu) { G.auto = !G.auto; Store.set('crystal-echo-auto', G.auto ? '1' : ''); Audio8.sfx(G.auto ? 'ok' : 'cancel'); }
   if (!transitionCb) G.scene.update(); else if (G.scene === Battle) Battle.update();
+  if (G.scene === Battle && G.auto && B && !transitionCb && !B.waitKey && !B.menu) Battle.update(); // auto battles run at double speed
   updateFade();
   if (G.flash > 0) G.flash--;
   if (G.shake > 0) G.shake--;
@@ -35,7 +37,7 @@ let perfAvg = 8, perfN = 0;
 function boot(saved) {
   if (booted) return; booted = true;
   buildTiles(); buildTallSprites(); buildChars(); buildHeroBattle(); buildEnemyArt(); buildMaps(); loadOverrides();
-  fit();
+  fit(); G.auto = Store.get('crystal-echo-auto') === '1';
   if (saved && saved.party) { try { applySnapshot(saved); } catch (e) { Title.start(); } } else Title.start();
   requestAnimationFrame(loop);
 }

@@ -402,10 +402,24 @@ const SCRIPTS = {
   *intro() {
     G.fadeLevel = 1;
     yield* narrate('世界を照らす四つのクリスタル。\n大地、水、炎、そして風。');
-    yield* narrate('人々はその光に守られ\n長い平和の時を過ごしてきた。');
-    yield* narrate('だがある夜、南の塔に眠る\n風のクリスタルが…\n闇に呑まれ始めた。');
+    yield* narrate('十年前、大地のクリスタルが砕け\nひとつの村が、地図から消えた。');
+    yield* narrate('同じ年、風の塔を守った騎士レオンは\n命と引きかえに塔を封じ\n二度と帰らなかった。');
+    // prologue: the dark knight at the top of the tower
+    G.hideParty = true; Field.enter('tower3', 9, 6, 'up', true); G.banner = null; Audio8.play('dungeon');
     yield { t: 'fadein' };
-    yield* say('アレン、長老様がお呼びよ。\n村の左上にある長老様の家に行きましょう。\n…なんだか、胸騒ぎがするの。', 'リナ');
+    yield { t: 'wait', n: 40 };
+    yield* say('…十年。ようやく、あの騎士の封印も\nほころびたか。', 'ガルヴァ');
+    yield* say('クリスタルの光は、いつか必ず消える。\n消えゆく痛みを、もう誰にも\n味わわせはしない。', 'ガルヴァ');
+    yield* say('眠れ、風よ。\n永遠の静けさの中で——', 'ガルヴァ');
+    Audio8.sfx('dark'); G.shake = 30; G.flash = 20; yield { t: 'wait', n: 60 };
+    yield { t: 'fadeout' };
+    G.hideParty = false; Field.enter('elm', 12, 12, 'up', true); G.banner = null;
+    yield* narrate('——エルムの村。\n風が、止まった朝。');
+    yield { t: 'fadein' };
+    yield* say('アレン! よかった、起きてたのね。', 'リナ');
+    yield* say('…また、あの声が聞こえたの。\n「たすけて」って。\nクリスタルの声…だと思う。', 'リナ');
+    yield* say('風車も止まってる…\n塔で何かあったのか?', 'アレン');
+    yield* say('長老様がお呼びよ。\n村の左上にある長老様の家に行きましょう。', 'リナ');
     G.flags.intro = 1;
   },
   *elmGate() {
@@ -416,16 +430,21 @@ const SCRIPTS = {
   *elder() {
     if (!G.flags.quest) {
       yield* say('おお、来たか。アレン、リナ。', '長老');
-      yield* say('南の塔に眠る「風のクリスタル」の光が\n日に日に弱まっておる。\n風が止めば、作物は枯れ、海は荒れる…', '長老');
-      yield* say('塔は今、闇の騎士ガルヴァという男に\n占拠されているそうじゃ。', '長老');
-      yield* say('塔には強い封印がかけられておる。\n港町ローザで、封印を解ける魔導士を\n探すのじゃ。', '長老');
+      yield* say('今朝、南の塔に眠る「風のクリスタル」の\n光が急に弱まった。\n風が止めば、作物は枯れ、海は荒れる…', '長老');
+      yield* say('塔には十年前、お前の父レオンが\n命をかけて張った封印があった。\n…それが、破られたのじゃ。', '長老');
+      yield* say('父さんの…封印が…', 'アレン');
+      yield* say('塔に入りこんだのは、闇の騎士ガルヴァ。\nかつて王宮に仕えた魔導士じゃという。', '長老');
+      yield* say('リナ。お前に聞こえる声は\nクリスタルが助けを求める声…\n古い言葉で「エコー」と呼ぶものじゃ。', '長老');
+      yield* say('わたしに…クリスタルの声が?', 'リナ');
+      yield* say('塔の入口には外側の封印も残っておる。\n港町ローザで、封印に詳しい魔導士を\n探すのじゃ。', '長老');
       yield* say('ローザへは、村の東にある\n北の洞窟を抜けねばならん。\nこれを持っていきなさい。', '長老');
       addItem('potion', 3); addItem('phoenix', 1); G.gil += 200; G.flags.quest = 1;
       Audio8.sfx('chest');
       yield* say('ポーション×3、不死鳥の羽、200ギルを\n受け取った!');
-      yield* say('アレンは剣士として腕を上げた。\nリナの白魔法もある。…頼んだぞ。', '長老');
+      yield* say('レオンは最後までこの村を守った。\nアレン、お前の剣にもその血が流れておる。\n…頼んだぞ。', '長老');
+      yield* say('…行こう、リナ。\n父さんが守ったものを、今度はおれが守る。', 'アレン');
     } else if (!G.flags.garva) yield* say('風のクリスタルを頼んだぞ。\n疲れたら宿屋で休むとよい。', '長老');
-    else yield* say('おお…風が戻ってきた。\nよくやってくれた、勇者たちよ。', '長老');
+    else yield* say('おお…風が戻ってきた。\nレオンも、きっと誇りに思っておるよ。', '長老');
   },
   *elmWoman() { yield* say(G.flags.garva ? '風車がまた回り始めたわ!\nありがとう!' : '最近、夜になると洞窟の方から\nうなり声が聞こえるの…\n怖いわ。'); },
   *elmChild() { yield* say(G.flags.cave_boss ? 'ゴブリンの王様をやっつけたって\nほんと!? すっげー!' : 'MENUボタンでメニューを開けるよ!\nセーブはこまめにね!'); },
@@ -447,14 +466,16 @@ const SCRIPTS = {
     yield* say('おーい! そこの人たち!\n助けてくれ!', '???');
     Audio8.sfx('boss'); G.shake = 20;
     yield* say('グフフ…今日は獲物が\nたくさん迷い込んできたわい!', 'ゴブリンキング');
+    yield* say('風が止んでから、洞窟の外は\nオレさまたちの天下よ!', 'ゴブリンキング');
     yield* say('その人を放せ!', 'アレン');
     const r = yield { t: 'battle', ids: ['gking'], boss: true, music: 'boss' };
     if (r !== 'win') return;
     G.flags.cave_boss = 1;
     yield* say('ふぅ、助かったぜ!\nオレはカイ。トレジャーハンターさ。', 'カイ');
-    yield* say('洞窟の宝を狙ってたら、あのデカブツに\nつかまっちまってな。\n…ローザに行くのか? 道案内してやるよ!', 'カイ');
+    yield* say('死んだ親方が遺した地図があってな。\n「風の祠」に眠る秘宝を探してるんだ。', 'カイ');
+    yield* say('…塔へ行くのか? 風が止まったままじゃ\n祠も探しようがねえ。\nローザまで道案内してやるよ!', 'カイ');
     joinParty('kai'); Audio8.play('fanfare', G.map.music);
-    yield* say('カイが仲間に加わった!\n(「ぬすむ」で敵から道具を盗める)');
+    yield* say('カイが仲間に加わった!\n(「ぬすむ」で敵から道具を盗める。\n光る場所も見つけられるようになった)');
   },
   *mayor() {
     if (!G.flags.zek) yield* say('クリスタルの塔の封印を解けるのは\n魔導士だけじゃ。\n酒場に変わり者の魔導士がおるが…', '町長');
@@ -471,6 +492,7 @@ const SCRIPTS = {
   },
   *tempest() {
     if (G.flags.tempest) return;
+    if (G.party.some(m => m.id === 'kai')) yield* say('この祭壇…親方の地図に描いてあった\n場所だ! 秘宝はこの奥に…', 'カイ');
     yield* say('…風がうなっている。\n祭壇の上で、巨大な鳥が翼を広げた!');
     Audio8.sfx('boss'); G.shake = 24;
     yield* say('キィィィィ——ッ!!', 'テンペスト');
@@ -478,6 +500,7 @@ const SCRIPTS = {
     if (r !== 'win') return;
     G.flags.tempest = 1;
     yield* say('嵐の魔鳥は光の粒となって消えた…');
+    yield* say('…親方。見つけたぜ。\nあんたの言ってた「風の秘宝」。', 'カイ');
     Audio8.play('fanfare', G.map.music);
     addItem('windblade'); yield* say('祭壇に「ウィンドブレード」が残されていた!\n(アレン専用の剣)');
   },
@@ -487,16 +510,30 @@ const SCRIPTS = {
   *patron() { yield* say('ヒック…ガルヴァってのは\nもともと立派な魔導士だったらしいぜ…'); },
   *zek() {
     yield* say('…クリスタルの塔へ行くつもりか。', '魔導士');
-    yield* say('僕はゼク。塔の封印を研究している。\nガルヴァは…かつての僕の兄弟子だ。', 'ゼク');
-    yield* say('あいつはクリスタルの力に魅入られ、\n闇に堕ちた。止められるのは僕だけだ。', 'ゼク');
-    yield* say('…君たちと行こう。\n封印は僕が解く。', 'ゼク');
+    yield* say('僕はゼク。王宮で封印術を学んだ。\nガルヴァは…僕の兄弟子だ。', 'ゼク');
+    yield* say('兄さんの故郷は、十年前に大地の\nクリスタルが砕けたとき…\n村ごと消えてしまった。', 'ゼク');
+    yield* say('それから兄さんは、クリスタルが\n消えることばかり考えるようになった。\n「失う前に、時を止めればいい」と。', 'ゼク');
+    yield* say('…止めなきゃいけない。\n僕を拾って育ててくれた人だから。', 'ゼク');
+    yield* say('君たちと行こう。\n外側の封印は僕が解く。', 'ゼク');
     joinParty('zek'); G.flags.zek = 1; Audio8.play('fanfare', G.map.music);
     yield* say('ゼクが仲間に加わった!\n(黒魔法で敵の弱点を突こう)');
+    // that night at the harbour inn
+    yield { t: 'fadeout' };
+    yield* narrate('その夜。\n港の宿屋で、四人は窓の外の\n動かない帆を見つめていた。');
+    yield* say('父さんはおれが六つのとき、\n塔へ行ったきりだった。\n顔もあんまり覚えてないんだ。', 'アレン');
+    yield* say('…わたし、時々思うの。\nあの声は、クリスタルだけじゃなくて\nもっと懐かしい誰かの声みたいだって。', 'リナ');
+    yield* say('しんみりすんなって!\n世界を救ったら、宝探しにも付き合えよ。\n約束だぜ?', 'カイ');
+    yield* say('…ありがとう、みんな。\n兄さんのことは、僕がけりをつける。', 'ゼク');
+    yield { t: 'fadein' };
   },
   *towerSeal() {
     if (!G.flags.zek) { yield* say('見えない壁に阻まれて、中に入れない…\n魔導士の力が必要なようだ。'); return false; }
     if (!G.flags.towerOpen) {
-      yield* say('古き風よ、封を解け……!', 'ゼク');
+      yield* say('これは…命そのものを編みこんだ封印だ。\n刻まれた名は——「レオン」。', 'ゼク');
+      yield* say('父さんの…!', 'アレン');
+      yield* say('内側の封印は兄さんが破った。\nでも外側だけは、今もレオンさんが\n守り続けているんだ。', 'ゼク');
+      yield* say('…声がする。\n「通してあげて」って…\nあたたかい声。', 'リナ');
+      yield* say('古き風よ、守り手の意志よ。\n今だけ、道を開けたまえ……!', 'ゼク');
       Audio8.sfx('crystal'); G.flash = 30; yield { t: 'wait', n: 40 };
       yield* say('塔の封印が解かれた!');
       G.flags.towerOpen = 1;
@@ -506,26 +543,41 @@ const SCRIPTS = {
   *guardian() {
     if (G.flags.guardian) return;
     yield* say('…シンニュウシャ…ハイジョ…スル…', 'ガーディアン');
+    yield* say('塔の番人まで闇に染められてる…!\n来るぞ!', 'ゼク');
     const r = yield { t: 'battle', ids: ['guardian'], boss: true, music: 'boss' };
     if (r !== 'win') return;
     G.flags.guardian = 1;
     yield* say('番人が砕け散り、上への道が開けた。');
+    yield* say('…待って。また声が…\nアレン、あなたを呼んでる。', 'リナ');
+    G.flash = 20; Audio8.sfx('crystal'); yield { t: 'wait', n: 30 };
+    yield* say('…アレン。大きくなったな。', 'レオン');
+    yield* say('この上に、ガルヴァがいる。\nあいつは悪人じゃない…ただ、\n失うことを恐れすぎたんだ。', 'レオン');
+    yield* say('父さん……!', 'アレン');
+    yield* say('…声が、消えちゃった。\nでも、きっと見守ってくれてる。', 'リナ');
   },
   *garva() {
     if (G.flags.garva) return;
-    yield* say('来たか、ゼク。\nそして愚かな旅人どもよ。', 'ガルヴァ');
+    yield* say('来たか、ゼク。\nそして…レオンの息子か。\n目元がよく似ている。', 'ガルヴァ');
     yield* say('ガルヴァ! クリスタルから離れろ!', 'ゼク');
-    yield* say('クリスタルの光は、いずれ消える。\nならば私が闇に還し、\n永遠の静寂をもたらそう。', 'ガルヴァ');
-    yield* say('そんなこと、させるもんか!', 'アレン');
+    yield* say('十年前、私の村は大地のクリスタルと\n共に消えた。母も、妹も。\n残ったのは、静けさだけだった。', 'ガルヴァ');
+    yield* say('光はいつか消える。ならば消える前に\nすべてを止めてしまえばいい。\n誰も、何も、失わぬように。', 'ガルヴァ');
+    yield* say('それじゃ誰も生きてないのと同じだ!\n父さんは…止まるためじゃなく\n前に進むために戦ったんだ!', 'アレン');
+    yield* say('…レオンも同じことを言った。\nならば、その答えを剣で示せ!', 'ガルヴァ');
     Audio8.sfx('boss'); G.shake = 30;
-    yield* say('ならば…闇に沈め!', 'ガルヴァ');
+    yield* say('闇に沈め——!', 'ガルヴァ');
     const r = yield { t: 'battle', ids: ['garva'], boss: true, music: 'final', final: true };
     if (r !== 'win') return;
     G.flags.garva = 1;
-    yield* say('バカな…この、私が……\nゼク…お前は…光を……', 'ガルヴァ');
+    yield* say('…強いな。あの日のレオンのようだ。', 'ガルヴァ');
+    yield* say('兄さん!', 'ゼク');
+    yield* say('ゼク…お前は、失うことを恐れるな。\n光は消えても…\n誰かが、また灯せばいい……', 'ガルヴァ');
     G.flash = 60; Audio8.sfx('crystal'); yield { t: 'wait', n: 70 };
     yield* say('風のクリスタルが\nまばゆい光を取り戻した!');
+    yield* say('…聞こえる。今度ははっきりと。', 'リナ');
+    yield* say('よくやった、アレン。\nお前は、おれの自慢の息子だ。\n…母さんによろしくな。', 'レオン');
+    yield* say('…うん。ありがとう、父さん。', 'アレン');
     yield* say('…兄さん。\nあなたの分まで、光を守るよ。', 'ゼク');
+    yield* say('さ、帰ろうぜ。\n風が吹いてるうちにな!', 'カイ');
     yield { t: 'ending' };
   },
 };

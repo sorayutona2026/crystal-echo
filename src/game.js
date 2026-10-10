@@ -3,7 +3,7 @@ const G = {
   frame: 0, scene: null, flags: {}, party: [], inv: {}, gil: 0, time: 0,
   mapId: null, map: null, p: { x: 0, y: 0, dir: 'down', moving: 0, ox: 0, oy: 0, anim: 0 },
   fadeLevel: 0, fadeTarget: 0, flash: 0, shake: 0, script: null, dialog: null, choice: null, narr: null,
-  menu: null, banner: null, steps: 0, debug: { noEnc: false },
+  menu: null, banner: null, steps: 0, debug: { noEnc: false }, auto: false,
 };
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
@@ -141,7 +141,7 @@ function wrapText(str, maxW, size) {
 }
 // who gets a face in the dialog box (the front-facing field sprite, or a crop of the boss art)
 const SPEAKERS = { 'アレン': 'allen', 'リナ': 'lina', 'カイ': 'kai', 'ゼク': 'zek', '長老': 'elder', '町長': 'mayor', '宿屋': 'inn', 'マスター': 'inn', '店主': 'merchant', '鍛冶屋': 'man',
-  '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit' };
+  '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit', 'レオン': 'leon' };
 function portraitFor(name) { const k = name && SPEAKERS[name]; if (!k) return null; if (k === 'kai' && !G.party.some(m => m.id === 'kai')) return null; return k; }
 function drawPortrait(k, x, y) {
   win(x, y, 52, 56);
@@ -320,14 +320,14 @@ const Field = {
     const lead = G.party[0] ? G.party[0].id : 'allen';
     // party members walk in single file behind the leader
     const prog = p.moving ? 1 - p.moving / 16 : 1;
-    for (let k = G.party.length - 1; k >= 1; k--) {
+    for (let k = G.party.length - 1; k >= 1 && !G.hideParty; k--) {
       const a = this.hist[k + 1], b = this.hist[k];
       const fx = (a.x + (b.x - a.x) * prog) * T, fy = (a.y + (b.y - a.y) * prog) * T;
       if (Math.abs(fx - px_) < 2 && Math.abs(fy - py_) < 2) continue;
       const moving = p.moving && (a.x !== b.x || a.y !== b.y); const dir = (a.x !== b.x || a.y !== b.y) ? b.dir : p.dir;
       const id = G.party[k].id; list.push({ y: fy - 0.1 * k, draw: () => this.drawChar(id, dir, moving ? ((p.anim >> 2) + k) & 3 : 0, fx - cx, fy - cy) });
     }
-    list.push({ y: py_ + 0.01, draw: () => this.drawChar(lead, p.dir, p.moving ? ((p.anim >> 2) & 3) : 0, px_ - cx, py_ - cy) });
+    if (!G.hideParty) list.push({ y: py_ + 0.01, draw: () => this.drawChar(lead, p.dir, p.moving ? ((p.anim >> 2) & 3) : 0, px_ - cx, py_ - cy) });
     list.sort((a, b) => a.y - b.y).forEach(o => o.draw());
     drawAmbientHigh(m, cx, cy);
     this.ps = { x: px_ - cx + 8, y: py_ - cy + 8 };
