@@ -156,7 +156,7 @@ function drawPortrait(k, x, y) {
   const g = ctx.createRadialGradient(x + 26, y + 24, 2, x + 26, y + 24, 34); g.addColorStop(0, 'rgba(120,140,220,.35)'); g.addColorStop(1, 'rgba(20,20,50,0)'); ctx.fillStyle = g; ctx.fillRect(x + 3, y + 3, 46, 50);
   const happy = G.dialog && /[!！♪]/.test(G.dialog.text || '') && k !== 'zek';
   const pi = paintedOf(k, happy ? 'smile' : '');
-  if (pi) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(pi, 0, 0, pi.width, pi.height, x + 3, y + 3, 46, 50); ctx.imageSmoothingEnabled = false; }
+  if (pi) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(pi, 0, 0, pi.width, Math.min(pi.height, pi.width * 50 / 46), x + 3, y + 3, 46, 50); ctx.imageSmoothingEnabled = false; }
   else if (HERO_STYLE[k]) { // vector bust (fallback when there is no painted image)
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(animeOf(k, happy), 0, 0, 192, 192, x + 3, y + 5, 48, 48); ctx.imageSmoothingEnabled = false;
   }
