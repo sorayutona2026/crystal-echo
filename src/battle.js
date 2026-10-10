@@ -88,7 +88,7 @@ const Battle = {
     const es = cfg.ids.map((id, i) => mkEnemy(id, i)); layoutEnemies(es);
     B = { cfg, cb, enemies: es, pb: G.party.map(() => ({ atb: 0, defend: false, offx: 0, offy: 0, hitT: 0, ready: false, trail: [], prot: false, haste: false })), queue: [], ready: [], menu: null,
       gen: null, wait: 0, waitKey: false, popups: [], fx: [], parts: [], flashFx: null, banner: null, phase: 'intro', t: 0, msg: null, slide: 1, cheer: false, flee: false,
-      hold: 0, stop: 0, result: null, clouds: null };
+      hold: 0, stop: 0, result: null, clouds: null, echo: 0, voice: null };
     G.party.forEach((m, i) => { const s = stats(m); B.pb[i].atb = m.hp > 0 ? 20 + rnd() * 60 + s.spd * 2 : 0; });
     G.scene = Battle; Audio8.play(cfg.music || 'battle');
   },
@@ -107,6 +107,7 @@ const Battle = {
     B.t++;
     for (const e of B.enemies) if (e.kb > 0) e.kb = Math.max(0, e.kb - 0.8);
     if (B.result) B.result.t++;
+    if (B.voice && ++B.voice.t > 200) B.voice = null;
     B.popups.forEach(p => p.t++); B.popups = B.popups.filter(p => p.t < 50);
     B.fx.forEach(f => f.t++); B.fx = B.fx.filter(f => f.t < f.dur);
     for (const e of B.enemies) {
@@ -166,6 +167,7 @@ const Battle = {
     const skill = (id, target) => ({ kind: 'skill', id, target });
     const item = (id, i) => ({ kind: 'item', id, target: { side: 'p', i } });
     if (me === 'lina') {
+      if (B.echo >= 100 && echoReady() && (dead.length || low.length >= 2)) return skill('echo');
       if (dead.length && can('revive')) return skill('revive', { side: 'p', i: dead[0] });
       if (low.length >= 2 && can('healall')) return skill('healall');
       if (low.length && can('heal')) return skill('heal', { side: 'p', i: low[0] });
@@ -235,6 +237,7 @@ const Battle = {
   healAmt(src, sk) { const A = this.statsOf(src); return Math.round((sk.power + A.mag * 2.4) * (0.92 + rnd() * 0.16)); },
   damage(t, n, col = '#fff', tag) {
     const u = this.unit(t);
+    if (t.side === 'p' && echoReady()) { B.echo = Math.min(100, B.echo + n / stats(u).maxhp * 45 + (u.hp - n <= 0 ? 25 : 0)); }
     if (t.side === 'p') { u.hp = Math.max(0, u.hp - n); B.pb[t.i].hitT = 12; if (u.hp <= 0) { u.poison = false; B.pb[t.i].atb = 0; B.pb[t.i].ready = false; B.ready = B.ready.filter(x => x !== t.i); Audio8.sfx('ko'); } }
     else { u.hp = Math.max(0, u.hp - n); u.hitT = 12; u.kb = tag === 'CRITICAL' ? 9 : 5; if (u.hp <= 0 && u.alive) { u.alive = false; u.dying = 1; Audio8.sfx('ko'); } }
     this.popup(t, n, col, tag);
@@ -267,7 +270,8 @@ const Battle = {
     const otherSide = a.side === 'p' ? 'e' : 'p';
     const allOf = side => side === 'e' ? this.aliveE().map(e => ({ side: 'e', i: e.i })) : this.aliveP().map(i => ({ side: 'p', i }));
     const wantsDead = (item && item.dead) || (sk && sk.dead);
-    if (tgtMode === 'enemies') targets = allOf(otherSide);
+    if (sk && sk.kind === 'echo') { targets = G.party.map((_, i) => ({ side: 'p', i })); B.echo = 0; B.voice = { ...echoVoice(), t: 0 }; }
+    else if (tgtMode === 'enemies') targets = allOf(otherSide);
     else if (tgtMode === 'allies') targets = allOf(a.side);
     else {
       let t = a.target;
@@ -305,7 +309,7 @@ const Battle = {
         this.playFx(fx, src, targets);
         yield fxDur(fx) * 0.6;
         for (const t of targets) {
-          if (!wantsDead && !this.isAlive(t)) continue;
+          if (!wantsDead && !(sk && sk.kind === 'echo') && !this.isAlive(t)) continue;
           if (item) this.applyItem(item, t);
           else this.applySkill(sk, src, t);
         }
@@ -346,6 +350,11 @@ const Battle = {
         break;
       }
       case 'cure': { const u = this.unit(t); u.poison = false; this.popup(t, 'CURE', '#7dffa0'); break; }
+      case 'echo': { // the voices of the lost lift everyone back up
+        const u = G.party[t.i], mx = stats(u).maxhp; const was = u.hp;
+        if (u.hp <= 0) { u.hp = Math.ceil(mx / 2); B.pb[t.i].atb = 50; } else u.hp = Math.min(mx, u.hp + Math.ceil(mx / 2));
+        u.poison = false; B.pb[t.i].prot = true; this.popup(t, u.hp - was || 'FULL', '#7dffa0', 'ECHO'); break;
+      }
       case 'buff': { if (t.side !== 'p') break; B.pb[t.i][sk.buff] = true; this.popup(t, sk.buff === 'prot' ? 'PROTECT' : 'HASTE', sk.buff === 'prot' ? '#9fd8ff' : '#ffe080'); Audio8.sfx('buff'); break; }
       case 'revive': {
         const u = this.unit(t);
@@ -518,6 +527,7 @@ const Battle = {
     if (!listOpen) {
     win(96, 150, 160, 74);
     text('HP', 132, 152.5, UI.label, 5); text('MP', 186, 152.5, UI.label, 5); text('ATB', 204, 152.5, UI.label, 5);
+    if (echoReady()) { const full = B.echo >= 100, a = full ? 0.7 + 0.3 * Math.sin(G.frame / 6) : 1; ctx.save(); ctx.globalAlpha = a; text('ECHO', 104, 152.5, full ? '#bff4ff' : UI.label, 5); bar(117, 154, 12, 1.6, B.echo / 100, full ? '#9ff0ff' : '#6aa8c8'); ctx.restore(); }
     G.party.forEach((m, i) => {
       const y = 160 + i * 15.5; const s = stats(m); const pb = B.pb[i];
       const active = B.menu && B.menu.who === i;
@@ -538,6 +548,7 @@ const Battle = {
     }
     if (B.phase === 'intro' && B.cfg.boss) drawBossIntro();
     if (B.result) drawResult();
+    if (B.voice) drawVoice(B.voice);
     if (B.banner) { const w = Math.max(80, textW(B.banner.text, 8, 't') + 28); win((SW - w) / 2, 5, w, 20); text(B.banner.text, SW / 2, 11, UI.ink, 8, 'center', 't'); }
     if (B.msg) { win(8, 5, 240, 22); text(B.msg, SW / 2, 12, UI.ink, 8, 'center'); if (B.waitKey) { const bob = Math.sin(G.frame / 6); ctx.fillStyle = UI.gold; ctx.beginPath(); ctx.moveTo(238, 17 + bob); ctx.lineTo(243, 17 + bob); ctx.lineTo(240.5, 20.5 + bob); ctx.fill(); } }
   },
@@ -563,6 +574,24 @@ function drawPopup(p) {
     const tc = crit ? '#ffe060' : p.tag === 'WEAK!' ? '#ffb040' : p.tag === 'ABSORB' ? '#7dffa0' : '#ffffff';
     ctx.strokeText(p.tag, p.x, ty); ctx.fillStyle = tc; ctx.fillText(p.tag, p.x, ty);
   }
+  ctx.restore();
+}
+// the Echo: who can be heard depends on where the story is
+function echoReady() { return G.flags.echo && G.party.some(m => m.id === 'lina' && m.hp > 0); }
+function echoVoice() {
+  if (B.cfg.ids.includes('tempest') && G.party.some(m => m.id === 'kai')) return { who: '親方', text: 'カイ! てめえの地図は、てめえで描け!' };
+  if (B.cfg.final) return { who: 'レオン', text: '止まるな、アレン。お前たちの明日を見せてくれ' };
+  if (G.flags.guardian) return { who: 'レオン', text: '大丈夫だ。お前たちは、ひとりじゃない' };
+  if (G.flags.towerOpen) return { who: '???', text: '…通してあげて。あの子たちを、守って' };
+  return { who: 'クリスタル', text: 'まだ…光は、ここにある' };
+}
+function drawVoice(v) {
+  const a = clamp(v.t / 20, 0, 1) * clamp((200 - v.t) / 30, 0, 1); if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  const g = ctx.createLinearGradient(0, 40, 0, 84); g.addColorStop(0, 'rgba(160,230,255,0)'); g.addColorStop(0.5, 'rgba(60,110,160,.55)'); g.addColorStop(1, 'rgba(160,230,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 40, SW, 44);
+  text('— ' + v.who + ' —', SW / 2, 48, '#bff4ff', 7, 'center', 't');
+  const shown = v.text.slice(0, Math.floor(v.t / 2)); text(shown, SW / 2, 62, '#ffffff', 9, 'center', 't');
   ctx.restore();
 }
 // cinematic bars and a name card while a boss slides in
@@ -905,7 +934,7 @@ const BMenu = {
       Audio8.sfx('ok');
       switch (M.ci) {
         case 0: this.target({ kind: 'skill', id: 'attack' }, 'enemy'); break;
-        case 1: M.list = skillsOf(m).map(id => ({ id, label: SKILLS[id].name, right: SKILLS[id].mp ? String(SKILLS[id].mp) : '', ok: m.mp >= SKILLS[id].mp, desc: SKILLS[id].desc })); M.listKind = 'skill'; M.stage = 'list'; M.li = 0; M.scroll = 0; break;
+        case 1: M.list = skillsOf(m).concat(m.id === 'lina' && echoReady() ? ['echo'] : []).map(id => ({ id, label: SKILLS[id].name, right: id === 'echo' ? Math.floor(B.echo) + '%' : SKILLS[id].mp ? String(SKILLS[id].mp) : '', ok: id === 'echo' ? B.echo >= 100 : m.mp >= SKILLS[id].mp, desc: SKILLS[id].desc })); M.listKind = 'skill'; M.stage = 'list'; M.li = 0; M.scroll = 0; break;
         case 2: M.list = Object.keys(G.inv).filter(id => ITEMS[id].type === 'use' && ITEMS[id].field !== 'only').map(id => ({ id, label: ITEMS[id].name, right: '×' + G.inv[id], ok: true, desc: ITEMS[id].desc })); M.listKind = 'item'; M.stage = 'list'; M.li = 0; M.scroll = 0;
           if (!M.list.length) { M.stage = 'cmd'; Audio8.sfx('error'); } break;
         case 3: this.close({ kind: 'defend' }); break;

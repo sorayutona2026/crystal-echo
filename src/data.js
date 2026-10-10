@@ -60,6 +60,7 @@ const SKILLS = {
   revive: { name: 'リバイブ', mp: 14, kind: 'revive', target: 'ally', dead: true, fx: 'holy', field: true, desc: '戦闘不能から復活' },
   protect: { name: 'プロテス', mp: 8, kind: 'buff', buff: 'prot', target: 'allies', fx: 'barrier', desc: '味方全員の受ける物理ダメージを減らす' },
   haste: { name: 'ヘイスト', mp: 10, kind: 'buff', buff: 'haste', target: 'ally', fx: 'haste', desc: '味方1人のATBを速くする' },
+  echo: { name: 'エコー', mp: 0, kind: 'echo', target: 'allies', fx: 'holy', desc: '想いの声が仲間を包む(ECHOゲージ満タンで使える)' },
   holy: { name: 'ホーリー', mp: 18, kind: 'mag', power: 62, elem: 'holy', target: 'enemy', fx: 'holy', desc: '聖なる光で攻撃' },
   steal: { name: 'ぬすむ', mp: 0, kind: 'steal', target: 'enemy', fx: 'none', desc: '敵から盗む' },
   double: { name: '二連撃', mp: 4, kind: 'phys', mult: 0.9, hits: 2, target: 'enemy', fx: 'slash', desc: '素早く2回斬る' },
@@ -189,6 +190,11 @@ function buildElm() {
     signs: { '14,17': 'エルムの村\n「風の吹く丘の村」' },
     npcs: [
       { id: 'elmWoman', x: 15, y: 11, pal: 'woman', wander: true, talk: 'elmWoman' },
+      { id: 'grave', x: 14, y: 2, pal: 'grave', talk: 'grave' },
+      { id: 'mother', x: 16, y: 8, pal: 'mother', dir: 'left', talk: 'mother', show: () => !G.flags.epilogue && !G.flags.dream },
+      { id: 'motherHill', x: 15, y: 2, pal: 'mother', dir: 'left', talk: 'grave', show: () => !!G.flags.epilogue },
+      { id: 'leonDream', x: 12, y: 9, pal: 'leon', dir: 'down', talk: 'leonDream', show: () => !!G.flags.dream },
+      { id: 'motherDream', x: 13, y: 9, pal: 'mother', dir: 'down', talk: 'leonDream', show: () => !!G.flags.dream },
       { id: 'elmChild', x: 9, y: 8, pal: 'child', wander: true, talk: 'elmChild' },
       { id: 'elmMan', x: 10, y: 15, pal: 'man', wander: true, talk: 'elmMan' },
       { id: 'elmGuard', x: 11, y: 18, pal: 'soldier', talk: 'elmGuard' },
@@ -435,18 +441,54 @@ const SCRIPTS = {
       yield* say('父さんの…封印が…', 'アレン');
       yield* say('塔に入りこんだのは、闇の騎士ガルヴァ。\nかつて王宮に仕えた魔導士じゃという。', '長老');
       yield* say('リナ。お前に聞こえる声は\nクリスタルが助けを求める声…\n古い言葉で「エコー」と呼ぶものじゃ。', '長老');
+      yield* say('クリスタルは、この世を去った者の想いを\n映すともいう。お前たちが傷つき倒れそうな\nとき、きっと声が届くじゃろう。', '長老');
       yield* say('わたしに…クリスタルの声が?', 'リナ');
+      G.flags.echo = 1;
       yield* say('塔の入口には外側の封印も残っておる。\n港町ローザで、封印に詳しい魔導士を\n探すのじゃ。', '長老');
       yield* say('ローザへは、村の東にある\n北の洞窟を抜けねばならん。\nこれを持っていきなさい。', '長老');
       addItem('potion', 3); addItem('phoenix', 1); G.gil += 200; G.flags.quest = 1;
       Audio8.sfx('chest');
       yield* say('ポーション×3、不死鳥の羽、200ギルを\n受け取った!');
-      yield* say('レオンは最後までこの村を守った。\nアレン、お前の剣にもその血が流れておる。\n…頼んだぞ。', '長老');
+      yield* say('(戦闘で仲間が傷つくと「ECHO」がたまり\n満タンになるとリナが「エコー」を使える)');
+      yield* say('レオンは最後までこの村を守った。\nアレン、お前の剣にもその血が流れておる。\n…出かける前に、母さんに顔を見せてやれ。', '長老');
       yield* say('…行こう、リナ。\n父さんが守ったものを、今度はおれが守る。', 'アレン');
     } else if (!G.flags.garva) yield* say('風のクリスタルを頼んだぞ。\n疲れたら宿屋で休むとよい。', '長老');
-    else yield* say('おお…風が戻ってきた。\nレオンも、きっと誇りに思っておるよ。', '長老');
+    else yield* say('おお…風が戻ってきた。\nレオンも、きっと誇りに思っておるよ。\n…丘へ行っておやり。', '長老');
   },
-  *elmWoman() { yield* say(G.flags.garva ? '風車がまた回り始めたわ!\nありがとう!' : '最近、夜になると洞窟の方から\nうなり声が聞こえるの…\n怖いわ。'); },
+  *mother() {
+    if (!G.flags.motherTalk) {
+      G.flags.motherTalk = 1;
+      yield* say('…行くのね、塔へ。', '母');
+      yield* say('お父さんもね、出かける前に\nそうやって笑ったのよ。\n「帰ったら、風車を直そうな」って。', '母');
+      yield* say('…待つのは、もう慣れたわ。\nだからね、アレン。\n帰ってくることだけは、約束して。', '母');
+      yield* say('…うん。約束する。', 'アレン');
+      yield* say('リナちゃんも、気をつけてね。\nこの子、無茶ばかりするから。', '母');
+    } else yield* say('ちゃんとご飯は食べてる?\n…いってらっしゃい、アレン。', '母');
+  },
+  *grave() {
+    if (!G.flags.epilogue) {
+      yield* say('「風の騎士レオン ここに眠る」\n…墓の下に、亡骸はない。');
+      yield* say('十年前から、ずっと空っぽの墓。\n母さんは毎朝、花を替えてる。', 'アレン');
+      return;
+    }
+    yield* say('…来たのね。', '母');
+    yield* say('ねえ、アレン。見て。\n村の風車が、回ってるわ。\n十年ぶりに。', '母');
+    yield* say('父さんとの約束…\nおれ、代わりに果たせたかな。', 'アレン');
+    if (G.flags.innAnswer === 1) yield* say('ずっと、ゆるせなかったんだ。\nおれと母さんを置いていった父さんを。\n…でも、今はわかるよ。', 'アレン');
+    else yield* say('会えたんだ、父さんに。\nちゃんと、声も聞けた。\n…母さんに、よろしくって。', 'アレン');
+    yield* say('……そう。\nあの人らしいわね。\n最後まで、私には直接言わないんだから。', '母');
+    yield* say('…待って。\n声が…聞こえる。最後の、エコー。', 'リナ');
+    G.flash = 30; Audio8.sfx('crystal'); yield { t: 'wait', n: 50 };
+    yield* say('マーサ。\n…ただいま。それから、ありがとう。\n待っていてくれて。', 'レオン');
+    yield* say('……おかえりなさい、あなた。', '母');
+    yield* say('アレン。\nもう、父さんの背中を追わなくていい。\nお前の風で、お前の空を飛べ。', 'レオン');
+    if (G.flags.stayed) yield* say('あの夢の中で、お前が\n「ここにいたい」と言ってくれたこと。\n…父さんは、一生の宝にするよ。', 'レオン');
+    yield* say('…いってきます、父さん。', 'アレン');
+    yield* say('声は、風にとけて消えた。\nでも、丘を渡る風は\nどこまでもあたたかかった。');
+    yield { t: 'ending' };
+  },
+  *leonDream() { yield* say('…行っておいで、アレン。', 'レオン'); },
+  *elmWoman() { yield* say(G.flags.garva ? '風車がまた回り始めたわ!\n洗濯物がよく乾くのよ、ありがとう!' : '最近、夜になると洞窟の方から\nうなり声が聞こえるの…\n怖いわ。'); },
   *elmChild() { yield* say(G.flags.cave_boss ? 'ゴブリンの王様をやっつけたって\nほんと!? すっげー!' : 'MENUボタンでメニューを開けるよ!\nセーブはこまめにね!'); },
   *elmMan() { yield* say('戦闘では、キャラクターの\nATBゲージがたまったら行動できる。\nわざや魔法を上手に使うんだぞ。'); },
   *elmGuard() { yield* say('村の外には魔物が出る。\n森や丘では魔物に遭いやすいぞ。\n気をつけてな!', '村の衛兵'); },
@@ -521,6 +563,10 @@ const SCRIPTS = {
     yield { t: 'fadeout' };
     yield* narrate('その夜。\n港の宿屋で、四人は窓の外の\n動かない帆を見つめていた。');
     yield* say('父さんはおれが六つのとき、\n塔へ行ったきりだった。\n顔もあんまり覚えてないんだ。', 'アレン');
+    const ans = yield* ask('…アレンは、お父さんのこと\nどう思ってるの?', ['会いたい', 'ゆるせない'], 'リナ');
+    G.flags.innAnswer = ans;
+    if (ans === 1) yield* say('…ずるいだろ。\n英雄になって、帰ってこないなんて。\n母さん、ずっと泣いてたんだ。', 'アレン');
+    else yield* say('会いたいよ。\n…会って、言いたいことがたくさんある。\n「おかえり」とかさ。', 'アレン');
     yield* say('…わたし、時々思うの。\nあの声は、クリスタルだけじゃなくて\nもっと懐かしい誰かの声みたいだって。', 'リナ');
     yield* say('しんみりすんなって!\n世界を救ったら、宝探しにも付き合えよ。\n約束だぜ?', 'カイ');
     yield* say('…ありがとう、みんな。\n兄さんのことは、僕がけりをつける。', 'ゼク');
@@ -559,9 +605,36 @@ const SCRIPTS = {
     if (G.flags.garva) return;
     yield* say('来たか、ゼク。\nそして…レオンの息子か。\n目元がよく似ている。', 'ガルヴァ');
     yield* say('ガルヴァ! クリスタルから離れろ!', 'ゼク');
-    yield* say('十年前、私の村は大地のクリスタルと\n共に消えた。母も、妹も。\n残ったのは、静けさだけだった。', 'ガルヴァ');
+    yield* say('十年前、私の村は大地のクリスタルと\n共に消えた。母も、妹のミナも。\n残ったのは、静けさだけだった。', 'ガルヴァ');
     yield* say('光はいつか消える。ならば消える前に\nすべてを止めてしまえばいい。\n誰も、何も、失わぬように。', 'ガルヴァ');
-    yield* say('それじゃ誰も生きてないのと同じだ!\n父さんは…止まるためじゃなく\n前に進むために戦ったんだ!', 'アレン');
+    yield* say('レオンの息子よ。\nお前にも、取り戻したい時間があるだろう。\n…見せてやろう。止まった時の中を。', 'ガルヴァ');
+    // the dream of stopped time: Allen alone, home, with both parents
+    Audio8.sfx('dark'); G.flash = 40; yield { t: 'fadeout' };
+    G.flags.dream = 1; G.soloLead = true; Field.enter('elm', 12, 11, 'up', true); G.banner = null; Audio8.play('ending');
+    yield { t: 'fadein' };
+    yield* say('…おかえり、アレン。', 'レオン');
+    yield* say('父さん……? 母さんも……', 'アレン');
+    yield* say('ほら、風車も直したんだ。\n約束しただろう?\n今日は母さんがシチューを作ってくれてる。', 'レオン');
+    yield* say('ここでは、もう誰もいなくならない。\n…ずっと、ここにいてもいいんだぞ。', 'レオン');
+    const c = yield* ask('……', ['ここにいたい', '…行かなきゃ'], 'アレン');
+    if (c === 0) {
+      G.flags.stayed = 1;
+      yield* say('…ずっと、こうしたかったんだ。\n父さんと母さんと、三人で\n夕ごはんを食べたかった……!', 'アレン');
+      yield* say('……そうか。\n…父さんもだよ、アレン。', 'レオン');
+      yield* say('アレン…! アレン!\n聞こえる!? 戻ってきて!', 'リナ');
+      yield* say('…聞こえるか。\nお前を待ってる人たちの声だ。\n止まった時間の中に、あの子たちはいない。', 'レオン');
+      yield* say('父さんはな、お前の「明日」が見たいんだ。\n明日を生きるお前を。\n…だから、行け。', 'レオン');
+    } else {
+      G.flags.stayed = 0;
+      yield* say('…ありがとう、父さん。\nでも、みんなが待ってるんだ。\nそれに…母さんは、本当はここにいない。', 'アレン');
+      yield* say('…ああ。強くなったな。\nそれでこそ、おれの息子だ。', 'レオン');
+    }
+    yield* say('行っておいで、アレン。\n風は、いつだってお前の背中を押す。', 'レオン');
+    yield { t: 'fadeout' };
+    G.flags.dream = 0; G.soloLead = false; Field.enter('tower3', 9, 6, 'up', true); G.banner = null;
+    yield { t: 'fadein' };
+    yield* say('…戻ってきたのか。\n止まった時を、拒んだのだな。', 'ガルヴァ');
+    yield* say('父さんは…止まるためじゃなく\n前に進むために戦ったんだ!\nおれも、そうする!', 'アレン');
     yield* say('…レオンも同じことを言った。\nならば、その答えを剣で示せ!', 'ガルヴァ');
     Audio8.sfx('boss'); G.shake = 30;
     yield* say('闇に沈め——!', 'ガルヴァ');
@@ -570,14 +643,28 @@ const SCRIPTS = {
     G.flags.garva = 1;
     yield* say('…強いな。あの日のレオンのようだ。', 'ガルヴァ');
     yield* say('兄さん!', 'ゼク');
-    yield* say('ゼク…お前は、失うことを恐れるな。\n光は消えても…\n誰かが、また灯せばいい……', 'ガルヴァ');
+    yield* say('……待って。\nもうひとつ、声が聞こえる。\n小さな女の子の声……', 'リナ');
+    G.flash = 20; Audio8.sfx('crystal'); yield { t: 'wait', n: 30 };
+    yield* say('お兄ちゃん。\nもういいんだよ。\nずっと止まってたのは、お兄ちゃんのほうだよ。', 'ミナ');
+    yield* say('……ミナ……?', 'ガルヴァ');
+    yield* say('わたしね、あの日のこと、\n怖くなかったよ。お兄ちゃんが\nずっと手をにぎっててくれたから。', 'ミナ');
+    yield* say('…すまなかった。\n守れなかった。忘れることも、\n前に進むことも…できなかった。', 'ガルヴァ');
+    yield* say('ゼク。\n…お前は、失うことを恐れるな。\n光は消えても、誰かがまた灯せばいい。', 'ガルヴァ');
+    yield* say('ミナ……今、行く……', 'ガルヴァ');
     G.flash = 60; Audio8.sfx('crystal'); yield { t: 'wait', n: 70 };
+    yield* say('…兄さん。\nあなたの分まで、光を守るよ。\n…ありがとう、育ててくれて。', 'ゼク');
     yield* say('風のクリスタルが\nまばゆい光を取り戻した!');
     yield* say('…聞こえる。今度ははっきりと。', 'リナ');
-    yield* say('よくやった、アレン。\nお前は、おれの自慢の息子だ。\n…母さんによろしくな。', 'レオン');
-    yield* say('…うん。ありがとう、父さん。', 'アレン');
-    yield* say('…兄さん。\nあなたの分まで、光を守るよ。', 'ゼク');
-    yield* say('さ、帰ろうぜ。\n風が吹いてるうちにな!', 'カイ');
-    yield { t: 'ending' };
+    yield* say('よくやった、アレン。\nお前は、おれの自慢の息子だ。', 'レオン');
+    yield* say('父さん、待って!\nまだ…まだ言いたいことが……!', 'アレン');
+    yield* say('…村で、待ってるよ。\nあの丘の上で。', 'レオン');
+    yield* say('さ、帰ろうぜ。\n…風が吹いてるうちにな。', 'カイ');
+    // epilogue: walk the village with the wind back, then climb the hill
+    yield { t: 'fadeout' };
+    G.flags.epilogue = 1; Field.enter('elm', 12, 12, 'up', true); G.banner = null;
+    yield* narrate('それから、三日後——\nエルムの村に、風が帰ってきた。');
+    yield { t: 'fadein' };
+    yield* say('アレン。\nおばさんが、丘の上で待ってるって。\n…みんなにも、会っていこうよ。', 'リナ');
+    G.banner = { text: '丘の上の墓へ行こう', t: 180 };
   },
 };

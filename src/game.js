@@ -141,7 +141,7 @@ function wrapText(str, maxW, size) {
 }
 // who gets a face in the dialog box (the front-facing field sprite, or a crop of the boss art)
 const SPEAKERS = { 'アレン': 'allen', 'リナ': 'lina', 'カイ': 'kai', 'ゼク': 'zek', '長老': 'elder', '町長': 'mayor', '宿屋': 'inn', 'マスター': 'inn', '店主': 'merchant', '鍛冶屋': 'man',
-  '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit', 'レオン': 'leon' };
+  '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit', 'レオン': 'leon', '母': 'mother', 'ミナ': 'spirit' };
 function portraitFor(name) { const k = name && SPEAKERS[name]; if (!k) return null; if (k === 'kai' && !G.party.some(m => m.id === 'kai')) return null; return k; }
 function drawPortrait(k, x, y) {
   win(x, y, 52, 56);
@@ -320,7 +320,7 @@ const Field = {
     const lead = G.party[0] ? G.party[0].id : 'allen';
     // party members walk in single file behind the leader
     const prog = p.moving ? 1 - p.moving / 16 : 1;
-    for (let k = G.party.length - 1; k >= 1 && !G.hideParty; k--) {
+    for (let k = G.party.length - 1; k >= 1 && !G.hideParty && !G.soloLead; k--) {
       const a = this.hist[k + 1], b = this.hist[k];
       const fx = (a.x + (b.x - a.x) * prog) * T, fy = (a.y + (b.y - a.y) * prog) * T;
       if (Math.abs(fx - px_) < 2 && Math.abs(fy - py_) < 2) continue;
@@ -348,6 +348,14 @@ const Field = {
   drawChar(pal, dir, frame, x, y) {
     if (pal === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest, im = A.frames[(G.frame >> 4) % 4]; ctx.fillStyle = 'rgba(10,6,20,.3)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 15, 14, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(im, x + 8 - 22, y + 16 - 36 + Math.round(Math.sin(G.frame / 16) * 2), 44, 34); addLight(x + 8, y, 60, '#8affd8', 0.6); return; }
     if (pal === 'spirit') { drawSpirit(x + 8, y + 6, 1); addLight(x + 8, y + 6, 70, '#a8ffe0', 0.9); return; }
+    if (pal === 'grave') { // a weathered headstone with fresh flowers
+      ctx.fillStyle = 'rgba(10,6,20,.3)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 15, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5a5e62'; ctx.fillRect(x + 3, y + 1, 10, 14); ctx.fillStyle = '#8a8e90'; ctx.fillRect(x + 4, y, 8, 14); ctx.fillStyle = '#a8acae'; ctx.fillRect(x + 4, y, 2, 13);
+      ctx.fillStyle = '#4a4e52'; ctx.fillRect(x + 7, y + 3, 2, 7); ctx.fillRect(x + 5, y + 5, 6, 2);
+      ctx.fillStyle = '#3e7a2e'; ctx.fillRect(x + 2, y + 13, 3, 2); ctx.fillRect(x + 11, y + 13, 3, 2);
+      for (const [fx, fy, c] of [[2, 12, '#ffe060'], [4, 13, '#ff9ac8'], [12, 12, '#ffffff'], [13, 13, '#ffe060']]) { ctx.fillStyle = c; ctx.fillRect(x + fx, y + fy, 1, 1); }
+      return;
+    }
     const s = SPR[pal]; if (!s) return;
     ctx.fillStyle = 'rgba(10,6,20,.32)'; ctx.beginPath(); ctx.ellipse(x + 9, y + 15, 6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.drawImage(s[dir][frame], x, y - 2);

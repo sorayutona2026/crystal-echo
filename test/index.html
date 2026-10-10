@@ -60,7 +60,7 @@ body{background:var(--void);color:var(--ink);font-family:var(--font);overflow:hi
 </div>
 
 <script>
-const GLYPHS = '×π—…→▲▶▼◀◆♪\u3000、。々「」』〜あいぅうえおかがきぎくぐけげこごさざしじすずせぜそぞただちっつづてでとどなにぬねのはばひびふぶへべぺほぼぽまみむめもゃやゆょよらりるれろわをんァアィイウエオカガキギクグケゲコゴサザシジスズセゼソタダッテデトドナニネハバヒビピフブプヘベペホボポマミムメモャュョラリルレロワンヴ・ー一上下不世丘並中主乗二亡亭人今仕付仲休会似体何作使個値側備僕元兄先光入全六共兵具内再冒冶出刃分切刻前剣力加助効動勘包北十南印取受口古叩叫右合同名君吟吸吹味呼命和員商器四回図地場塔増壁壇士声売変外夜大天失奥妹始嫌子学守定宝宮家宿封専導屋嵐川左巨帆帰年広店度引弟弱張強当影待後御復必志快怖思急恐息悪意慢懐戦戻所手技抜拾持捕掛探描撃攻放故救教散敵文斬新方旅旋日早時晩暗書替最服朝本村杖束来東果枯染案森棲楽様横樫次止武死残母毒気水氷永求決沈治泊法波洞活派流海消減渡港渾滅激灯炎点照爪父牙物猫獲王理生用由町界番疲疾痛白盗目直眠短石研砕破示祀祠祭私秘究空突窓窟立答箱粒精約素経絵絹続編縫羽翼老考者耳聖聞育能腕膨自航船若荒葉血行術衛裂装製西要見覚親解言詩話詳誇誰議賢起越足跡身車輝込近迷追逃通速連進遊道遠遭遺郷酒金針鉄鉤銅鍛鎖鎧鎮長開間闇闘防阻険隕雄離雷震霊静音頼顔風騎験高魔鳥黒！）？～';
+const GLYPHS = '×π—…→▲▶▼◀◆♪\u3000、。々「」』〜あいぅうえおかがきぎくぐけげこごさざしじすずせぜそぞただちっつづてでとどなにぬねのはばひびふぶへべぺほぼぽまみむめもゃやゆょよらりるれろわをんァアィイウエオカガキギクグケゲコゴサザシジスズセゼソタダチッテデトドナニネハバヒビピフブプヘベペホボポマミムメモャュョラリルレロワンヴ・ー一丈三上下不世丘並中主乗乾二亡亭人今仕付代仲休会似体何余作使供個倒値側備傷僕元兄先光入全六共兵具内再冒冶出刃分切刻前剣力加助効動勘包北十南印去取受口古叩叫右合同名君吟吸吹味呼命和員商器四回図地場塔墓増壁壇士声売変夕外夜夢大天夫失奥女妹始嫌子学守定宝宮家宿封専導小届屋嵐川左巨帆帰年広店度引弟弱張強当影彼待後御復必志忘快怖思急恐息悪想意慢慣懐戦戻所手技抜押拒拾持捕掛探接描撃攻放故救教散敵文斬新方旅旋日早明映時晩暗書替最服朝本村杖束来東果枯染案森棲楽様横樫次止武死残母毎毒気水氷永求決沈治泊法波泣洗洞活派流海消減渡港渾満滅激濯灯炎点無照爪父牙物猫獲王理生用由町界番疲疾痛白盗目直眠短石研砕破示祀祠祭私秘究空突窓窟立笑答箱粒精約素経絵絹続編縫置羽翼老考者耳聖聞育背胸能腕膨自航船花若英茶荒葉血行術衛裂装製西要見覚親解言詩話詳誇誰議賢起越足跡身車輝輪辺込近迷追逃通速連進遊道遠遭遺郷酒金針鉄鉤銅鍛鎖鎧鎮長開間闇闘防阻険隕雄離雷震霊静音頼顔風飛食飯騎験骸高魔鳥鳴黒！）？～';
 'use strict';
 // ===================== ENGINE =====================
 const SW = 256, SH = 224, SCALE = 3;
@@ -690,6 +690,7 @@ const PALS = {
   sailor: { H: '#f6f6f6', S: '#d8a070', E: '#1a1a2a', C: '#2a4a9a', A: '#f6f6f6', P: '#f6f6f6', B: '#2a2a3a' },
   gking: { H: '#e8c030', S: '#5aa040', E: '#ff3030', C: '#8a3a1a', A: '#c83030', P: '#5a2a10', B: '#2a1408' },
   garva: { H: '#1e1e2e', S: '#3a3a4e', E: '#ff3040', C: '#2a2a3c', A: '#a02040', P: '#1e1e2e', B: '#101018' },
+  mother: { H: '#9a5a2a', S: '#f6cfa6', E: '#1a1a2a', C: '#7a9a6a', A: '#f6f2ea', P: '#5a6a4a', B: '#5a3418' },
   leon: { H: '#6a3a1a', S: '#f0c49a', E: '#1a1a2a', C: '#9aa6bc', A: '#d8b040', P: '#3a3a58', B: '#3a2414' },
   bard: { H: '#7a2a9a', S: '#f2c8a0', E: '#1a1a2a', C: '#2e8a64', A: '#e8c040', P: '#4a3a2a', B: '#3a2414' },
   guardian: { H: '#7fe0ff', S: '#bff0ff', E: '#ff40a0', C: '#4aa0e0', A: '#ffffff', P: '#2a70b0', B: '#1a4a80' },
@@ -1373,9 +1374,16 @@ const ENV = {
   battleCave: { grade: ['#4060a0', 0.12], bloom: 0.5, thr: 180, vignette: 0.6, parts: 'dust' },
   battleTower: { grade: ['#8a70ff', 0.12], bloom: 0.5, thr: 180, vignette: 0.55, parts: 'sparks' },
   battleShrine: { grade: ['#70ffc0', 0.12], bloom: 0.45, thr: 190, vignette: 0.5, parts: 'leaves' },
+  dream: { grade: ['#fff0d0', 0.3], bloom: 0.8, thr: 170, dof: [0.9, 0.7], rays: 0.9, vignette: 0.7, parts: 'motes' },
   title: { grade: ['#6a80ff', 0.1], bloom: 1.0, thr: 110, dof: [0.9, 0.5], rays: 0.35, vignette: 0.6, parts: 'sparks' },
 };
 function envFor(mapId, set) {
+  if (G.flags.dream) return ENV.dream;
+  const e = envBase(mapId, set);
+  // once the wind returns, leaves blow across the open air
+  return G.flags.garva && (set === 'world' || set === 'town') ? { ...e, parts: 'leaves' } : e;
+}
+function envBase(mapId, set) {
   if (mapId === 'world') return G.p.y >= 14 ? ENV.worldS : ENV.world;
   if (mapId === 'rosa') return ENV.rosa;
   if (mapId === 'tower3') return ENV.tower3;
@@ -1457,7 +1465,7 @@ function finishPost(env, q) {
 }
 function postWorld(env) { const q = layerToMain(env.dof); finishPost(env, q); }
 function drawCloudShadows() {
-  const M = MAIN; M.globalCompositeOperation = 'source-over'; const t = G.frame * 0.12;
+  const M = MAIN; M.globalCompositeOperation = 'source-over'; const t = G.flags.garva ? G.frame * 0.25 : 0; // still air until the crystal is saved
   for (let i = 0; i < 3; i++) {
     const span = 900; const wx = ((i * 330 + t) % span) - 150, wy = (i * 211) % 400 - 60;
     const x = (wx - CAM.x % span) * SCALE, y = (wy - CAM.y % 400) * SCALE; const R = (70 + i * 18) * SCALE;
@@ -1834,6 +1842,7 @@ const SKILLS = {
   revive: { name: 'リバイブ', mp: 14, kind: 'revive', target: 'ally', dead: true, fx: 'holy', field: true, desc: '戦闘不能から復活' },
   protect: { name: 'プロテス', mp: 8, kind: 'buff', buff: 'prot', target: 'allies', fx: 'barrier', desc: '味方全員の受ける物理ダメージを減らす' },
   haste: { name: 'ヘイスト', mp: 10, kind: 'buff', buff: 'haste', target: 'ally', fx: 'haste', desc: '味方1人のATBを速くする' },
+  echo: { name: 'エコー', mp: 0, kind: 'echo', target: 'allies', fx: 'holy', desc: '想いの声が仲間を包む(ECHOゲージ満タンで使える)' },
   holy: { name: 'ホーリー', mp: 18, kind: 'mag', power: 62, elem: 'holy', target: 'enemy', fx: 'holy', desc: '聖なる光で攻撃' },
   steal: { name: 'ぬすむ', mp: 0, kind: 'steal', target: 'enemy', fx: 'none', desc: '敵から盗む' },
   double: { name: '二連撃', mp: 4, kind: 'phys', mult: 0.9, hits: 2, target: 'enemy', fx: 'slash', desc: '素早く2回斬る' },
@@ -1963,6 +1972,11 @@ function buildElm() {
     signs: { '14,17': 'エルムの村\n「風の吹く丘の村」' },
     npcs: [
       { id: 'elmWoman', x: 15, y: 11, pal: 'woman', wander: true, talk: 'elmWoman' },
+      { id: 'grave', x: 14, y: 2, pal: 'grave', talk: 'grave' },
+      { id: 'mother', x: 16, y: 8, pal: 'mother', dir: 'left', talk: 'mother', show: () => !G.flags.epilogue && !G.flags.dream },
+      { id: 'motherHill', x: 15, y: 2, pal: 'mother', dir: 'left', talk: 'grave', show: () => !!G.flags.epilogue },
+      { id: 'leonDream', x: 12, y: 9, pal: 'leon', dir: 'down', talk: 'leonDream', show: () => !!G.flags.dream },
+      { id: 'motherDream', x: 13, y: 9, pal: 'mother', dir: 'down', talk: 'leonDream', show: () => !!G.flags.dream },
       { id: 'elmChild', x: 9, y: 8, pal: 'child', wander: true, talk: 'elmChild' },
       { id: 'elmMan', x: 10, y: 15, pal: 'man', wander: true, talk: 'elmMan' },
       { id: 'elmGuard', x: 11, y: 18, pal: 'soldier', talk: 'elmGuard' },
@@ -2209,18 +2223,54 @@ const SCRIPTS = {
       yield* say('父さんの…封印が…', 'アレン');
       yield* say('塔に入りこんだのは、闇の騎士ガルヴァ。\nかつて王宮に仕えた魔導士じゃという。', '長老');
       yield* say('リナ。お前に聞こえる声は\nクリスタルが助けを求める声…\n古い言葉で「エコー」と呼ぶものじゃ。', '長老');
+      yield* say('クリスタルは、この世を去った者の想いを\n映すともいう。お前たちが傷つき倒れそうな\nとき、きっと声が届くじゃろう。', '長老');
       yield* say('わたしに…クリスタルの声が?', 'リナ');
+      G.flags.echo = 1;
       yield* say('塔の入口には外側の封印も残っておる。\n港町ローザで、封印に詳しい魔導士を\n探すのじゃ。', '長老');
       yield* say('ローザへは、村の東にある\n北の洞窟を抜けねばならん。\nこれを持っていきなさい。', '長老');
       addItem('potion', 3); addItem('phoenix', 1); G.gil += 200; G.flags.quest = 1;
       Audio8.sfx('chest');
       yield* say('ポーション×3、不死鳥の羽、200ギルを\n受け取った!');
-      yield* say('レオンは最後までこの村を守った。\nアレン、お前の剣にもその血が流れておる。\n…頼んだぞ。', '長老');
+      yield* say('(戦闘で仲間が傷つくと「ECHO」がたまり\n満タンになるとリナが「エコー」を使える)');
+      yield* say('レオンは最後までこの村を守った。\nアレン、お前の剣にもその血が流れておる。\n…出かける前に、母さんに顔を見せてやれ。', '長老');
       yield* say('…行こう、リナ。\n父さんが守ったものを、今度はおれが守る。', 'アレン');
     } else if (!G.flags.garva) yield* say('風のクリスタルを頼んだぞ。\n疲れたら宿屋で休むとよい。', '長老');
-    else yield* say('おお…風が戻ってきた。\nレオンも、きっと誇りに思っておるよ。', '長老');
+    else yield* say('おお…風が戻ってきた。\nレオンも、きっと誇りに思っておるよ。\n…丘へ行っておやり。', '長老');
   },
-  *elmWoman() { yield* say(G.flags.garva ? '風車がまた回り始めたわ!\nありがとう!' : '最近、夜になると洞窟の方から\nうなり声が聞こえるの…\n怖いわ。'); },
+  *mother() {
+    if (!G.flags.motherTalk) {
+      G.flags.motherTalk = 1;
+      yield* say('…行くのね、塔へ。', '母');
+      yield* say('お父さんもね、出かける前に\nそうやって笑ったのよ。\n「帰ったら、風車を直そうな」って。', '母');
+      yield* say('…待つのは、もう慣れたわ。\nだからね、アレン。\n帰ってくることだけは、約束して。', '母');
+      yield* say('…うん。約束する。', 'アレン');
+      yield* say('リナちゃんも、気をつけてね。\nこの子、無茶ばかりするから。', '母');
+    } else yield* say('ちゃんとご飯は食べてる?\n…いってらっしゃい、アレン。', '母');
+  },
+  *grave() {
+    if (!G.flags.epilogue) {
+      yield* say('「風の騎士レオン ここに眠る」\n…墓の下に、亡骸はない。');
+      yield* say('十年前から、ずっと空っぽの墓。\n母さんは毎朝、花を替えてる。', 'アレン');
+      return;
+    }
+    yield* say('…来たのね。', '母');
+    yield* say('ねえ、アレン。見て。\n村の風車が、回ってるわ。\n十年ぶりに。', '母');
+    yield* say('父さんとの約束…\nおれ、代わりに果たせたかな。', 'アレン');
+    if (G.flags.innAnswer === 1) yield* say('ずっと、ゆるせなかったんだ。\nおれと母さんを置いていった父さんを。\n…でも、今はわかるよ。', 'アレン');
+    else yield* say('会えたんだ、父さんに。\nちゃんと、声も聞けた。\n…母さんに、よろしくって。', 'アレン');
+    yield* say('……そう。\nあの人らしいわね。\n最後まで、私には直接言わないんだから。', '母');
+    yield* say('…待って。\n声が…聞こえる。最後の、エコー。', 'リナ');
+    G.flash = 30; Audio8.sfx('crystal'); yield { t: 'wait', n: 50 };
+    yield* say('マーサ。\n…ただいま。それから、ありがとう。\n待っていてくれて。', 'レオン');
+    yield* say('……おかえりなさい、あなた。', '母');
+    yield* say('アレン。\nもう、父さんの背中を追わなくていい。\nお前の風で、お前の空を飛べ。', 'レオン');
+    if (G.flags.stayed) yield* say('あの夢の中で、お前が\n「ここにいたい」と言ってくれたこと。\n…父さんは、一生の宝にするよ。', 'レオン');
+    yield* say('…いってきます、父さん。', 'アレン');
+    yield* say('声は、風にとけて消えた。\nでも、丘を渡る風は\nどこまでもあたたかかった。');
+    yield { t: 'ending' };
+  },
+  *leonDream() { yield* say('…行っておいで、アレン。', 'レオン'); },
+  *elmWoman() { yield* say(G.flags.garva ? '風車がまた回り始めたわ!\n洗濯物がよく乾くのよ、ありがとう!' : '最近、夜になると洞窟の方から\nうなり声が聞こえるの…\n怖いわ。'); },
   *elmChild() { yield* say(G.flags.cave_boss ? 'ゴブリンの王様をやっつけたって\nほんと!? すっげー!' : 'MENUボタンでメニューを開けるよ!\nセーブはこまめにね!'); },
   *elmMan() { yield* say('戦闘では、キャラクターの\nATBゲージがたまったら行動できる。\nわざや魔法を上手に使うんだぞ。'); },
   *elmGuard() { yield* say('村の外には魔物が出る。\n森や丘では魔物に遭いやすいぞ。\n気をつけてな!', '村の衛兵'); },
@@ -2295,6 +2345,10 @@ const SCRIPTS = {
     yield { t: 'fadeout' };
     yield* narrate('その夜。\n港の宿屋で、四人は窓の外の\n動かない帆を見つめていた。');
     yield* say('父さんはおれが六つのとき、\n塔へ行ったきりだった。\n顔もあんまり覚えてないんだ。', 'アレン');
+    const ans = yield* ask('…アレンは、お父さんのこと\nどう思ってるの?', ['会いたい', 'ゆるせない'], 'リナ');
+    G.flags.innAnswer = ans;
+    if (ans === 1) yield* say('…ずるいだろ。\n英雄になって、帰ってこないなんて。\n母さん、ずっと泣いてたんだ。', 'アレン');
+    else yield* say('会いたいよ。\n…会って、言いたいことがたくさんある。\n「おかえり」とかさ。', 'アレン');
     yield* say('…わたし、時々思うの。\nあの声は、クリスタルだけじゃなくて\nもっと懐かしい誰かの声みたいだって。', 'リナ');
     yield* say('しんみりすんなって!\n世界を救ったら、宝探しにも付き合えよ。\n約束だぜ?', 'カイ');
     yield* say('…ありがとう、みんな。\n兄さんのことは、僕がけりをつける。', 'ゼク');
@@ -2333,9 +2387,36 @@ const SCRIPTS = {
     if (G.flags.garva) return;
     yield* say('来たか、ゼク。\nそして…レオンの息子か。\n目元がよく似ている。', 'ガルヴァ');
     yield* say('ガルヴァ! クリスタルから離れろ!', 'ゼク');
-    yield* say('十年前、私の村は大地のクリスタルと\n共に消えた。母も、妹も。\n残ったのは、静けさだけだった。', 'ガルヴァ');
+    yield* say('十年前、私の村は大地のクリスタルと\n共に消えた。母も、妹のミナも。\n残ったのは、静けさだけだった。', 'ガルヴァ');
     yield* say('光はいつか消える。ならば消える前に\nすべてを止めてしまえばいい。\n誰も、何も、失わぬように。', 'ガルヴァ');
-    yield* say('それじゃ誰も生きてないのと同じだ!\n父さんは…止まるためじゃなく\n前に進むために戦ったんだ!', 'アレン');
+    yield* say('レオンの息子よ。\nお前にも、取り戻したい時間があるだろう。\n…見せてやろう。止まった時の中を。', 'ガルヴァ');
+    // the dream of stopped time: Allen alone, home, with both parents
+    Audio8.sfx('dark'); G.flash = 40; yield { t: 'fadeout' };
+    G.flags.dream = 1; G.soloLead = true; Field.enter('elm', 12, 11, 'up', true); G.banner = null; Audio8.play('ending');
+    yield { t: 'fadein' };
+    yield* say('…おかえり、アレン。', 'レオン');
+    yield* say('父さん……? 母さんも……', 'アレン');
+    yield* say('ほら、風車も直したんだ。\n約束しただろう?\n今日は母さんがシチューを作ってくれてる。', 'レオン');
+    yield* say('ここでは、もう誰もいなくならない。\n…ずっと、ここにいてもいいんだぞ。', 'レオン');
+    const c = yield* ask('……', ['ここにいたい', '…行かなきゃ'], 'アレン');
+    if (c === 0) {
+      G.flags.stayed = 1;
+      yield* say('…ずっと、こうしたかったんだ。\n父さんと母さんと、三人で\n夕ごはんを食べたかった……!', 'アレン');
+      yield* say('……そうか。\n…父さんもだよ、アレン。', 'レオン');
+      yield* say('アレン…! アレン!\n聞こえる!? 戻ってきて!', 'リナ');
+      yield* say('…聞こえるか。\nお前を待ってる人たちの声だ。\n止まった時間の中に、あの子たちはいない。', 'レオン');
+      yield* say('父さんはな、お前の「明日」が見たいんだ。\n明日を生きるお前を。\n…だから、行け。', 'レオン');
+    } else {
+      G.flags.stayed = 0;
+      yield* say('…ありがとう、父さん。\nでも、みんなが待ってるんだ。\nそれに…母さんは、本当はここにいない。', 'アレン');
+      yield* say('…ああ。強くなったな。\nそれでこそ、おれの息子だ。', 'レオン');
+    }
+    yield* say('行っておいで、アレン。\n風は、いつだってお前の背中を押す。', 'レオン');
+    yield { t: 'fadeout' };
+    G.flags.dream = 0; G.soloLead = false; Field.enter('tower3', 9, 6, 'up', true); G.banner = null;
+    yield { t: 'fadein' };
+    yield* say('…戻ってきたのか。\n止まった時を、拒んだのだな。', 'ガルヴァ');
+    yield* say('父さんは…止まるためじゃなく\n前に進むために戦ったんだ!\nおれも、そうする!', 'アレン');
     yield* say('…レオンも同じことを言った。\nならば、その答えを剣で示せ!', 'ガルヴァ');
     Audio8.sfx('boss'); G.shake = 30;
     yield* say('闇に沈め——!', 'ガルヴァ');
@@ -2344,15 +2425,29 @@ const SCRIPTS = {
     G.flags.garva = 1;
     yield* say('…強いな。あの日のレオンのようだ。', 'ガルヴァ');
     yield* say('兄さん!', 'ゼク');
-    yield* say('ゼク…お前は、失うことを恐れるな。\n光は消えても…\n誰かが、また灯せばいい……', 'ガルヴァ');
+    yield* say('……待って。\nもうひとつ、声が聞こえる。\n小さな女の子の声……', 'リナ');
+    G.flash = 20; Audio8.sfx('crystal'); yield { t: 'wait', n: 30 };
+    yield* say('お兄ちゃん。\nもういいんだよ。\nずっと止まってたのは、お兄ちゃんのほうだよ。', 'ミナ');
+    yield* say('……ミナ……?', 'ガルヴァ');
+    yield* say('わたしね、あの日のこと、\n怖くなかったよ。お兄ちゃんが\nずっと手をにぎっててくれたから。', 'ミナ');
+    yield* say('…すまなかった。\n守れなかった。忘れることも、\n前に進むことも…できなかった。', 'ガルヴァ');
+    yield* say('ゼク。\n…お前は、失うことを恐れるな。\n光は消えても、誰かがまた灯せばいい。', 'ガルヴァ');
+    yield* say('ミナ……今、行く……', 'ガルヴァ');
     G.flash = 60; Audio8.sfx('crystal'); yield { t: 'wait', n: 70 };
+    yield* say('…兄さん。\nあなたの分まで、光を守るよ。\n…ありがとう、育ててくれて。', 'ゼク');
     yield* say('風のクリスタルが\nまばゆい光を取り戻した!');
     yield* say('…聞こえる。今度ははっきりと。', 'リナ');
-    yield* say('よくやった、アレン。\nお前は、おれの自慢の息子だ。\n…母さんによろしくな。', 'レオン');
-    yield* say('…うん。ありがとう、父さん。', 'アレン');
-    yield* say('…兄さん。\nあなたの分まで、光を守るよ。', 'ゼク');
-    yield* say('さ、帰ろうぜ。\n風が吹いてるうちにな!', 'カイ');
-    yield { t: 'ending' };
+    yield* say('よくやった、アレン。\nお前は、おれの自慢の息子だ。', 'レオン');
+    yield* say('父さん、待って!\nまだ…まだ言いたいことが……!', 'アレン');
+    yield* say('…村で、待ってるよ。\nあの丘の上で。', 'レオン');
+    yield* say('さ、帰ろうぜ。\n…風が吹いてるうちにな。', 'カイ');
+    // epilogue: walk the village with the wind back, then climb the hill
+    yield { t: 'fadeout' };
+    G.flags.epilogue = 1; Field.enter('elm', 12, 12, 'up', true); G.banner = null;
+    yield* narrate('それから、三日後——\nエルムの村に、風が帰ってきた。');
+    yield { t: 'fadein' };
+    yield* say('アレン。\nおばさんが、丘の上で待ってるって。\n…みんなにも、会っていこうよ。', 'リナ');
+    G.banner = { text: '丘の上の墓へ行こう', t: 180 };
   },
 };
 
@@ -2499,7 +2594,7 @@ function wrapText(str, maxW, size) {
 }
 // who gets a face in the dialog box (the front-facing field sprite, or a crop of the boss art)
 const SPEAKERS = { 'アレン': 'allen', 'リナ': 'lina', 'カイ': 'kai', 'ゼク': 'zek', '長老': 'elder', '町長': 'mayor', '宿屋': 'inn', 'マスター': 'inn', '店主': 'merchant', '鍛冶屋': 'man',
-  '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit', 'レオン': 'leon' };
+  '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit', 'レオン': 'leon', '母': 'mother', 'ミナ': 'spirit' };
 function portraitFor(name) { const k = name && SPEAKERS[name]; if (!k) return null; if (k === 'kai' && !G.party.some(m => m.id === 'kai')) return null; return k; }
 function drawPortrait(k, x, y) {
   win(x, y, 52, 56);
@@ -2678,7 +2773,7 @@ const Field = {
     const lead = G.party[0] ? G.party[0].id : 'allen';
     // party members walk in single file behind the leader
     const prog = p.moving ? 1 - p.moving / 16 : 1;
-    for (let k = G.party.length - 1; k >= 1 && !G.hideParty; k--) {
+    for (let k = G.party.length - 1; k >= 1 && !G.hideParty && !G.soloLead; k--) {
       const a = this.hist[k + 1], b = this.hist[k];
       const fx = (a.x + (b.x - a.x) * prog) * T, fy = (a.y + (b.y - a.y) * prog) * T;
       if (Math.abs(fx - px_) < 2 && Math.abs(fy - py_) < 2) continue;
@@ -2706,6 +2801,14 @@ const Field = {
   drawChar(pal, dir, frame, x, y) {
     if (pal === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest, im = A.frames[(G.frame >> 4) % 4]; ctx.fillStyle = 'rgba(10,6,20,.3)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 15, 14, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(im, x + 8 - 22, y + 16 - 36 + Math.round(Math.sin(G.frame / 16) * 2), 44, 34); addLight(x + 8, y, 60, '#8affd8', 0.6); return; }
     if (pal === 'spirit') { drawSpirit(x + 8, y + 6, 1); addLight(x + 8, y + 6, 70, '#a8ffe0', 0.9); return; }
+    if (pal === 'grave') { // a weathered headstone with fresh flowers
+      ctx.fillStyle = 'rgba(10,6,20,.3)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 15, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5a5e62'; ctx.fillRect(x + 3, y + 1, 10, 14); ctx.fillStyle = '#8a8e90'; ctx.fillRect(x + 4, y, 8, 14); ctx.fillStyle = '#a8acae'; ctx.fillRect(x + 4, y, 2, 13);
+      ctx.fillStyle = '#4a4e52'; ctx.fillRect(x + 7, y + 3, 2, 7); ctx.fillRect(x + 5, y + 5, 6, 2);
+      ctx.fillStyle = '#3e7a2e'; ctx.fillRect(x + 2, y + 13, 3, 2); ctx.fillRect(x + 11, y + 13, 3, 2);
+      for (const [fx, fy, c] of [[2, 12, '#ffe060'], [4, 13, '#ff9ac8'], [12, 12, '#ffffff'], [13, 13, '#ffe060']]) { ctx.fillStyle = c; ctx.fillRect(x + fx, y + fy, 1, 1); }
+      return;
+    }
     const s = SPR[pal]; if (!s) return;
     ctx.fillStyle = 'rgba(10,6,20,.32)'; ctx.beginPath(); ctx.ellipse(x + 9, y + 15, 6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.drawImage(s[dir][frame], x, y - 2);
@@ -2848,7 +2951,7 @@ const Battle = {
     const es = cfg.ids.map((id, i) => mkEnemy(id, i)); layoutEnemies(es);
     B = { cfg, cb, enemies: es, pb: G.party.map(() => ({ atb: 0, defend: false, offx: 0, offy: 0, hitT: 0, ready: false, trail: [], prot: false, haste: false })), queue: [], ready: [], menu: null,
       gen: null, wait: 0, waitKey: false, popups: [], fx: [], parts: [], flashFx: null, banner: null, phase: 'intro', t: 0, msg: null, slide: 1, cheer: false, flee: false,
-      hold: 0, stop: 0, result: null, clouds: null };
+      hold: 0, stop: 0, result: null, clouds: null, echo: 0, voice: null };
     G.party.forEach((m, i) => { const s = stats(m); B.pb[i].atb = m.hp > 0 ? 20 + rnd() * 60 + s.spd * 2 : 0; });
     G.scene = Battle; Audio8.play(cfg.music || 'battle');
   },
@@ -2867,6 +2970,7 @@ const Battle = {
     B.t++;
     for (const e of B.enemies) if (e.kb > 0) e.kb = Math.max(0, e.kb - 0.8);
     if (B.result) B.result.t++;
+    if (B.voice && ++B.voice.t > 200) B.voice = null;
     B.popups.forEach(p => p.t++); B.popups = B.popups.filter(p => p.t < 50);
     B.fx.forEach(f => f.t++); B.fx = B.fx.filter(f => f.t < f.dur);
     for (const e of B.enemies) {
@@ -2926,6 +3030,7 @@ const Battle = {
     const skill = (id, target) => ({ kind: 'skill', id, target });
     const item = (id, i) => ({ kind: 'item', id, target: { side: 'p', i } });
     if (me === 'lina') {
+      if (B.echo >= 100 && echoReady() && (dead.length || low.length >= 2)) return skill('echo');
       if (dead.length && can('revive')) return skill('revive', { side: 'p', i: dead[0] });
       if (low.length >= 2 && can('healall')) return skill('healall');
       if (low.length && can('heal')) return skill('heal', { side: 'p', i: low[0] });
@@ -2995,6 +3100,7 @@ const Battle = {
   healAmt(src, sk) { const A = this.statsOf(src); return Math.round((sk.power + A.mag * 2.4) * (0.92 + rnd() * 0.16)); },
   damage(t, n, col = '#fff', tag) {
     const u = this.unit(t);
+    if (t.side === 'p' && echoReady()) { B.echo = Math.min(100, B.echo + n / stats(u).maxhp * 45 + (u.hp - n <= 0 ? 25 : 0)); }
     if (t.side === 'p') { u.hp = Math.max(0, u.hp - n); B.pb[t.i].hitT = 12; if (u.hp <= 0) { u.poison = false; B.pb[t.i].atb = 0; B.pb[t.i].ready = false; B.ready = B.ready.filter(x => x !== t.i); Audio8.sfx('ko'); } }
     else { u.hp = Math.max(0, u.hp - n); u.hitT = 12; u.kb = tag === 'CRITICAL' ? 9 : 5; if (u.hp <= 0 && u.alive) { u.alive = false; u.dying = 1; Audio8.sfx('ko'); } }
     this.popup(t, n, col, tag);
@@ -3027,7 +3133,8 @@ const Battle = {
     const otherSide = a.side === 'p' ? 'e' : 'p';
     const allOf = side => side === 'e' ? this.aliveE().map(e => ({ side: 'e', i: e.i })) : this.aliveP().map(i => ({ side: 'p', i }));
     const wantsDead = (item && item.dead) || (sk && sk.dead);
-    if (tgtMode === 'enemies') targets = allOf(otherSide);
+    if (sk && sk.kind === 'echo') { targets = G.party.map((_, i) => ({ side: 'p', i })); B.echo = 0; B.voice = { ...echoVoice(), t: 0 }; }
+    else if (tgtMode === 'enemies') targets = allOf(otherSide);
     else if (tgtMode === 'allies') targets = allOf(a.side);
     else {
       let t = a.target;
@@ -3065,7 +3172,7 @@ const Battle = {
         this.playFx(fx, src, targets);
         yield fxDur(fx) * 0.6;
         for (const t of targets) {
-          if (!wantsDead && !this.isAlive(t)) continue;
+          if (!wantsDead && !(sk && sk.kind === 'echo') && !this.isAlive(t)) continue;
           if (item) this.applyItem(item, t);
           else this.applySkill(sk, src, t);
         }
@@ -3106,6 +3213,11 @@ const Battle = {
         break;
       }
       case 'cure': { const u = this.unit(t); u.poison = false; this.popup(t, 'CURE', '#7dffa0'); break; }
+      case 'echo': { // the voices of the lost lift everyone back up
+        const u = G.party[t.i], mx = stats(u).maxhp; const was = u.hp;
+        if (u.hp <= 0) { u.hp = Math.ceil(mx / 2); B.pb[t.i].atb = 50; } else u.hp = Math.min(mx, u.hp + Math.ceil(mx / 2));
+        u.poison = false; B.pb[t.i].prot = true; this.popup(t, u.hp - was || 'FULL', '#7dffa0', 'ECHO'); break;
+      }
       case 'buff': { if (t.side !== 'p') break; B.pb[t.i][sk.buff] = true; this.popup(t, sk.buff === 'prot' ? 'PROTECT' : 'HASTE', sk.buff === 'prot' ? '#9fd8ff' : '#ffe080'); Audio8.sfx('buff'); break; }
       case 'revive': {
         const u = this.unit(t);
@@ -3278,6 +3390,7 @@ const Battle = {
     if (!listOpen) {
     win(96, 150, 160, 74);
     text('HP', 132, 152.5, UI.label, 5); text('MP', 186, 152.5, UI.label, 5); text('ATB', 204, 152.5, UI.label, 5);
+    if (echoReady()) { const full = B.echo >= 100, a = full ? 0.7 + 0.3 * Math.sin(G.frame / 6) : 1; ctx.save(); ctx.globalAlpha = a; text('ECHO', 104, 152.5, full ? '#bff4ff' : UI.label, 5); bar(117, 154, 12, 1.6, B.echo / 100, full ? '#9ff0ff' : '#6aa8c8'); ctx.restore(); }
     G.party.forEach((m, i) => {
       const y = 160 + i * 15.5; const s = stats(m); const pb = B.pb[i];
       const active = B.menu && B.menu.who === i;
@@ -3298,6 +3411,7 @@ const Battle = {
     }
     if (B.phase === 'intro' && B.cfg.boss) drawBossIntro();
     if (B.result) drawResult();
+    if (B.voice) drawVoice(B.voice);
     if (B.banner) { const w = Math.max(80, textW(B.banner.text, 8, 't') + 28); win((SW - w) / 2, 5, w, 20); text(B.banner.text, SW / 2, 11, UI.ink, 8, 'center', 't'); }
     if (B.msg) { win(8, 5, 240, 22); text(B.msg, SW / 2, 12, UI.ink, 8, 'center'); if (B.waitKey) { const bob = Math.sin(G.frame / 6); ctx.fillStyle = UI.gold; ctx.beginPath(); ctx.moveTo(238, 17 + bob); ctx.lineTo(243, 17 + bob); ctx.lineTo(240.5, 20.5 + bob); ctx.fill(); } }
   },
@@ -3323,6 +3437,24 @@ function drawPopup(p) {
     const tc = crit ? '#ffe060' : p.tag === 'WEAK!' ? '#ffb040' : p.tag === 'ABSORB' ? '#7dffa0' : '#ffffff';
     ctx.strokeText(p.tag, p.x, ty); ctx.fillStyle = tc; ctx.fillText(p.tag, p.x, ty);
   }
+  ctx.restore();
+}
+// the Echo: who can be heard depends on where the story is
+function echoReady() { return G.flags.echo && G.party.some(m => m.id === 'lina' && m.hp > 0); }
+function echoVoice() {
+  if (B.cfg.ids.includes('tempest') && G.party.some(m => m.id === 'kai')) return { who: '親方', text: 'カイ! てめえの地図は、てめえで描け!' };
+  if (B.cfg.final) return { who: 'レオン', text: '止まるな、アレン。お前たちの明日を見せてくれ' };
+  if (G.flags.guardian) return { who: 'レオン', text: '大丈夫だ。お前たちは、ひとりじゃない' };
+  if (G.flags.towerOpen) return { who: '???', text: '…通してあげて。あの子たちを、守って' };
+  return { who: 'クリスタル', text: 'まだ…光は、ここにある' };
+}
+function drawVoice(v) {
+  const a = clamp(v.t / 20, 0, 1) * clamp((200 - v.t) / 30, 0, 1); if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  const g = ctx.createLinearGradient(0, 40, 0, 84); g.addColorStop(0, 'rgba(160,230,255,0)'); g.addColorStop(0.5, 'rgba(60,110,160,.55)'); g.addColorStop(1, 'rgba(160,230,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 40, SW, 44);
+  text('— ' + v.who + ' —', SW / 2, 48, '#bff4ff', 7, 'center', 't');
+  const shown = v.text.slice(0, Math.floor(v.t / 2)); text(shown, SW / 2, 62, '#ffffff', 9, 'center', 't');
   ctx.restore();
 }
 // cinematic bars and a name card while a boss slides in
@@ -3665,7 +3797,7 @@ const BMenu = {
       Audio8.sfx('ok');
       switch (M.ci) {
         case 0: this.target({ kind: 'skill', id: 'attack' }, 'enemy'); break;
-        case 1: M.list = skillsOf(m).map(id => ({ id, label: SKILLS[id].name, right: SKILLS[id].mp ? String(SKILLS[id].mp) : '', ok: m.mp >= SKILLS[id].mp, desc: SKILLS[id].desc })); M.listKind = 'skill'; M.stage = 'list'; M.li = 0; M.scroll = 0; break;
+        case 1: M.list = skillsOf(m).concat(m.id === 'lina' && echoReady() ? ['echo'] : []).map(id => ({ id, label: SKILLS[id].name, right: id === 'echo' ? Math.floor(B.echo) + '%' : SKILLS[id].mp ? String(SKILLS[id].mp) : '', ok: id === 'echo' ? B.echo >= 100 : m.mp >= SKILLS[id].mp, desc: SKILLS[id].desc })); M.listKind = 'skill'; M.stage = 'list'; M.li = 0; M.scroll = 0; break;
         case 2: M.list = Object.keys(G.inv).filter(id => ITEMS[id].type === 'use' && ITEMS[id].field !== 'only').map(id => ({ id, label: ITEMS[id].name, right: '×' + G.inv[id], ok: true, desc: ITEMS[id].desc })); M.listKind = 'item'; M.stage = 'list'; M.li = 0; M.scroll = 0;
           if (!M.list.length) { M.stage = 'cmd'; Audio8.sfx('error'); } break;
         case 3: this.close({ kind: 'defend' }); break;
@@ -4178,11 +4310,12 @@ const GameOver = {
 };
 const ENDING_LINES = [
   '', '風のクリスタルは輝きを取り戻し', '世界に再び、やさしい風が吹いた。', '',
-  'アレンは父の剣を壁に掛け', 'その横に、自分の剣を並べた。', '「行ってきます」と言える場所を', '守るために。', '',
-  'リナは村の教会で', 'クリスタルの声に耳をすませている。', 'ときどき、懐かしい声もまじるという。', '',
-  'カイは親方の地図を新しく書き直し', '港から次の宝を探しに旅立った。', '', 
-  'ゼクは塔に残り', '兄弟子の遺した研究を', '光をもう一度灯すために使っている。', '',
-  '止まっていた風車が回り', '港の帆が、いっせいにふくらむ。', '', 
+  'エルムの丘の墓には', '今も毎朝、新しい花が供えられている。', 'その横で、直った風車が回っている。', '',
+  'アレンは父の剣を壁に掛け', 'その横に、自分の剣を並べた。', '「いってきます」と言える場所を', '守るために。', '',
+  'リナは村の教会で', 'クリスタルの声に耳をすませている。', 'あれから一度も、あの声は聞こえない。', 'それでいいのだと、彼女は笑う。', '',
+  'カイは親方の地図を描き直し', '余白に、自分の名前を書き足した。', '',
+  'ゼクは塔に残り', '兄の遺した研究を', '光をもう一度灯すために使っている。', '塔の窓辺には、小さな花が二輪。', '',
+  '失ったものは、戻らない。', 'けれど、想いはこだまのように', '誰かの胸で、もう一度鳴る。', '',
   'そして風は', '今日も大地をめぐる——', '', '',
   '— CRYSTAL ECHO —', '', 'シナリオ・プログラム・ドット絵・音楽', 'Claude', '', 'Special Thanks', 'あなた', '', '', '',
 ];

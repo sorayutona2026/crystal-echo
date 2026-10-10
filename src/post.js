@@ -37,9 +37,16 @@ const ENV = {
   battleCave: { grade: ['#4060a0', 0.12], bloom: 0.5, thr: 180, vignette: 0.6, parts: 'dust' },
   battleTower: { grade: ['#8a70ff', 0.12], bloom: 0.5, thr: 180, vignette: 0.55, parts: 'sparks' },
   battleShrine: { grade: ['#70ffc0', 0.12], bloom: 0.45, thr: 190, vignette: 0.5, parts: 'leaves' },
+  dream: { grade: ['#fff0d0', 0.3], bloom: 0.8, thr: 170, dof: [0.9, 0.7], rays: 0.9, vignette: 0.7, parts: 'motes' },
   title: { grade: ['#6a80ff', 0.1], bloom: 1.0, thr: 110, dof: [0.9, 0.5], rays: 0.35, vignette: 0.6, parts: 'sparks' },
 };
 function envFor(mapId, set) {
+  if (G.flags.dream) return ENV.dream;
+  const e = envBase(mapId, set);
+  // once the wind returns, leaves blow across the open air
+  return G.flags.garva && (set === 'world' || set === 'town') ? { ...e, parts: 'leaves' } : e;
+}
+function envBase(mapId, set) {
   if (mapId === 'world') return G.p.y >= 14 ? ENV.worldS : ENV.world;
   if (mapId === 'rosa') return ENV.rosa;
   if (mapId === 'tower3') return ENV.tower3;
@@ -121,7 +128,7 @@ function finishPost(env, q) {
 }
 function postWorld(env) { const q = layerToMain(env.dof); finishPost(env, q); }
 function drawCloudShadows() {
-  const M = MAIN; M.globalCompositeOperation = 'source-over'; const t = G.frame * 0.12;
+  const M = MAIN; M.globalCompositeOperation = 'source-over'; const t = G.flags.garva ? G.frame * 0.25 : 0; // still air until the crystal is saved
   for (let i = 0; i < 3; i++) {
     const span = 900; const wx = ((i * 330 + t) % span) - 150, wy = (i * 211) % 400 - 60;
     const x = (wx - CAM.x % span) * SCALE, y = (wy - CAM.y % 400) * SCALE; const R = (70 + i * 18) * SCALE;
