@@ -23,10 +23,7 @@ Object.assign(ENEMIES.skeleton, { name: '灰骨' });
 ENEMIES.ashbeast = { name: '灰喰いの獣', img: 'hellhound', hp: 190, str: 12, def: 5, mag: 6, mdf: 5, spd: 8, exp: 200, gil: 300, boss: true, weak: ['fire'], ai: 'gking' };
 FORMATIONS.ruins = [['slime', 'bat'], ['bat', 'bat'], ['goblin'], ['slime', 'slime'], ['goblin', 'bat']];
 
-// 色を暗く・赤く(灰の空の世界)
-Object.assign(PALS.allen, { H: '#d8d8e4', C: '#5a1f2a', A: '#c8963c', P: '#2a2a3a' });
-Object.assign(PALS.lina, { H: '#f0e8e0', C: '#d8d0e0', A: '#9a2a48', P: '#c8c0d0' });
-Object.assign(HERO_STYLE.allen, { hair: '#d8d8e4', top: '#5a1f2a', legs: '#2a2a3a' });
+// 暗い見た目(主人公の色は art.js / hd_heroes.js / hd_anime.js に直接反映済み)
 Object.assign(ENV.town, { grade: ['#5a3a58', 0.24], ambient: '#4a4064', halo: 1.7, bloom: 0.75, thr: 150, rays: 0.1, vignette: 0.65, parts: 'dust', torch: true });
 Object.assign(ENV.cave, { grade: ['#7a3030', 0.14], ambient: '#3a3048', vignette: 0.6 });
 Object.assign(ENV.inside, { grade: ['#c07040', 0.14], ambient: '#4a3a4a', vignette: 0.6 });

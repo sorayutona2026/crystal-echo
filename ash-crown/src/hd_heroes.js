@@ -5,8 +5,8 @@ const HB_W = 32, HB_H = 40;         // logical size on screen
 const HBS = 2;                      // sprite density relative to that size
 const HW = HB_W * HBS, HH = HB_H * HBS;
 const HERO_STYLE = {
-  allen: { skin: '#f7d0a8', iris: '#3a86e6', hair: '#8a4e22', top: '#2f62d6', legs: '#2e3a66', boots: '#6e4220', kind: 'tunic', weapon: 'sword', cape: '#c42c38' },
-  lina: { skin: '#f9d9bc', iris: '#2aa8d8', hair: '#e8b832', top: '#f6f2ec', legs: '#f6f2ec', boots: '#a86a3a', kind: 'robe', weapon: 'staff', gem: '#e84a58', trim: '#d8303e' },
+  allen: { skin: '#f3cfae', iris: '#ff7a3a', hair: '#2e2a3a', top: '#3a2230', legs: '#22222e', boots: '#2a1a1a', kind: 'tunic', weapon: 'sword', cape: '#8a1e2a' },
+  lina: { skin: '#f6dcc8', iris: '#b070e8', hair: '#e8e4f0', top: '#cfcbdc', legs: '#cfcbdc', boots: '#6a5a6a', kind: 'robe', weapon: 'staff', gem: '#e8a838', trim: '#7a1a2e' },
   kai: { skin: '#e9b98c', iris: '#9a6420', hair: '#4a2e1a', top: '#eee2be', legs: '#3a5a40', boots: '#5a3418', kind: 'tunic', weapon: 'dagger', scarf: '#2e9a44' },
   zek: { skin: '#f5dccc', iris: '#9a40e0', hair: '#b8bedc', top: '#6a2ea4', legs: '#4e1e78', boots: '#2a1440', kind: 'robe', weapon: 'staff', gem: '#b060ff', trim: '#e8c440' },
 };
@@ -104,9 +104,9 @@ function hdHero(id, poseName) {
   const cap = (top, side, col, o = {}) => shape(mkc([[hx - side, hy + 2], [hx - side - 1, hy - top * 0.7, hx - side * 0.5, hy - top, hx, hy - top], [hx + side * 0.5, hy - top, hx + side + 1, hy - top * 0.7, hx + side, hy + 2], [hx + side - 3, hy - 4, hx + 7, hy - 7, hx + 2, hy - 5.4], [hx - 3, hy - 8.4, hx - 8, hy - 6, hx - side + 3, hy - 3.6]]), col, { gx0: hx - side, gx1: hx + side, ...o });
   const band = (col, dk) => { shape(mkc([[hx - 16, hy - 5], [hx - 8, hy - 11, hx + 8, hy - 11, hx + 16, hy - 5], [hx + 16, hy - 1.4, hx + 15, hy - 1, hx + 14, hy - 1.6], [hx + 7, hy - 6.6, hx - 7, hy - 6.6, hx - 14, hy - 1.6], [hx - 15, hy - 1, hx - 16, hy - 1.4, hx - 16, hy - 5]]), col, { lw: 0.9 }); shape(mkp([hx + 14, hy - 8, hx + 22, hy - 7, hx + 27, hy - 2, hx + 20, hy - 3.6, hx + 15, hy - 4.6]), col, { lw: 0.7 }); shape(mkp([hx + 15, hy - 5.6, hx + 23, hy - 0.6, hx + 24, hy + 5, hx + 19, hy + 0.6, hx + 14, hy - 2.4]), dk, { lw: 0.7 }); };
   if (id === 'allen') {
-    cap(17, 18.5, L.hair, { lt: '#d28a48' });
-    for (const [a, b, c2, d] of [[-13, -8, -19, -15], [-6, -14, -9, -20], [2, -16, 3, -21], [10, -13, 15, -19], [14, -6, 20, -10]]) shape(mkp([hx + a, hy + b, hx + c2, hy + d, hx + a + 6, hy + b + 1.4]), L.hair, { lw: 0.8, lt: '#d28a48' });
-    band('#d8343e', '#a82430');
+    cap(17, 18.5, L.hair, { lt: '#6a5a7e' });
+    for (const [a, b, c2, d] of [[-13, -8, -19, -15], [-6, -14, -9, -20], [2, -16, 3, -21], [10, -13, 15, -19], [14, -6, 20, -10]]) shape(mkp([hx + a, hy + b, hx + c2, hy + d, hx + a + 6, hy + b + 1.4]), L.hair, { lw: 0.8, lt: '#6a5a7e' });
+    band('#c8402e', '#8a2418');
     for (const k of [-1, 1]) shape(mkp([hx + k * 17, hy - 3, hx + k * 9, hy - 2, hx + k * 11, hy + 8, hx + k * 18, hy + 5]), L.hair, { lw: 0.7 });
   } else if (id === 'kai') {
     cap(16, 18.5, L.hair, { lt: '#8a5a34' });
@@ -114,9 +114,10 @@ function hdHero(id, poseName) {
     band('#2e9a44', '#1e6a2e');
     for (const k of [-1, 1]) shape(mkp([hx + k * 17, hy - 3, hx + k * 9, hy - 2, hx + k * 11, hy + 7, hx + k * 18, hy + 4]), L.hair, { lw: 0.7 });
   } else if (id === 'lina') {
-    cap(18, 18.5, L.hair, { lt: '#ffe27a' });
-    for (const k of [-1, 1]) shape(mkc([[hx + k * 15, hy - 2], [hx + k * 19, hy + 8, hx + k * 17, hy + 18, hx + k * 14, hy + 21], [hx + k * 12, hy + 12, hx + k * 11, hy + 4, hx + k * 11, hy - 2]]), L.hair, { gx0: hx - 19, gx1: hx + 19, lw: 0.8, lt: '#ffe27a' });
-    band('#d8303e', '#a82430');
+    cap(18, 18.5, L.hair, { lt: '#ffffff', dk: '#8a86a8' });
+    for (const k of [-1, 1]) shape(mkc([[hx + k * 15, hy - 2], [hx + k * 19, hy + 8, hx + k * 17, hy + 18, hx + k * 14, hy + 21], [hx + k * 12, hy + 12, hx + k * 11, hy + 4, hx + k * 11, hy - 2]]), L.hair, { gx0: hx - 19, gx1: hx + 19, lw: 0.8, lt: '#ffffff' });
+    band('#7a1a2e', '#4a0e1a');
+    ell(hx + 1, hy - 9.2, 1.8, 1.8, '#e8a838', { lw: 0.6 });
   } else {
     cap(18, 18.5, L.hair, { lt: '#f4f6ff', dk: '#7a80a8' });
     shape(mkc([[hx - 16, hy - 6], [hx - 17, hy - 16, hx - 8, hy - 20, hx + 1, hy - 20], [hx + 11, hy - 20, hx + 18, hy - 15, hx + 17, hy - 6], [hx + 9, hy - 10, hx - 8, hy - 10, hx - 16, hy - 6]]), '#6a2ea4', { lw: 1, lt: '#9a60d0', dk: '#44167a', gx0: hx - 16, gx1: hx + 17 });

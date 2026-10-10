@@ -229,8 +229,8 @@ const LEGS = {
   SB: ['....OPPOOPPO....', '...OPPO..OPPO...', '...OBBO..OBBO...'],
 };
 const PALS = {
-  allen: { H: '#8a5226', S: '#f6cfa2', E: '#1a1a2a', C: '#2f62d6', A: '#e8b830', P: '#34385a', B: '#5a3418' },
-  lina: { H: '#e8b832', S: '#f6d2b0', E: '#3a2a1a', C: '#f6f2ea', A: '#d8303e', P: '#ebe4d8', B: '#a86a3a' },
+  allen: { H: '#2e2a3a', S: '#f0cba6', E: '#1a1a2a', C: '#3a2230', A: '#c8402e', P: '#22222e', B: '#2a1a1a' },
+  lina: { H: '#e8e4f0', S: '#f6d8c0', E: '#3a2a4a', C: '#a8a4c4', A: '#e8a838', P: '#8a86a8', B: '#6a5a6a' },
   kai: { H: '#2e9a44', S: '#e8b888', E: '#1a1a2a', C: '#7a5230', A: '#d8b040', P: '#3a4a3a', B: '#4a2c14' },
   zek: { H: '#cfd6ee', S: '#f2d0b8', E: '#5a2a9a', C: '#6a2ea4', A: '#e8c440', P: '#4e1e78', B: '#2a1440' },
   elder: { H: '#ececec', S: '#e8c09a', E: '#1a1a2a', C: '#7a5a3a', A: '#c8a040', P: '#6a4a2a', B: '#3a2414', beard: '#ffffff' },
@@ -274,9 +274,9 @@ const HERO_HEADS = {
 };
 // small identifying details layered on the 16x16 field sprites
 const FEATURES = {
-  allen: { down: [['#d8343e', 4, 4, 8, 1], ['#d8343e', 4, 9, 8, 1]], up: [['#d8343e', 4, 4, 8, 1], ['#d8343e', 4, 9, 8, 1]], left: [['#d8343e', 7, 4, 5, 1], ['#d8343e', 5, 9, 6, 1], ['#b82430', 11, 9, 2, 1], ['#b82430', 12, 10, 2, 1]] },
+  allen: { down: [['#c8402e', 4, 4, 8, 1], ['#d8343e', 4, 9, 8, 1]], up: [['#c8402e', 4, 4, 8, 1], ['#c8402e', 4, 9, 8, 1]], left: [['#c8402e', 7, 4, 5, 1], ['#c8402e', 5, 9, 6, 1], ['#8a2418', 11, 9, 2, 1], ['#8a2418', 12, 10, 2, 1]] },
   zek: { down: [['#ff70c0', 7, 3, 2, 1], ['#cfd6ee', 3, 9, 1, 2], ['#cfd6ee', 12, 9, 1, 2]], up: [['#cfd6ee', 4, 9, 8, 2]], left: [['#ff70c0', 4, 3, 1, 1], ['#cfd6ee', 10, 9, 2, 2]] },
-  lina: { down: [['#d8303e', 5, 9, 6, 1]], up: [['#d8303e', 4, 1, 8, 1]], left: [['#d8303e', 5, 9, 4, 1]] },
+  lina: { down: [['#7a1a2e', 5, 9, 6, 1], ['#e8a838', 7, 3, 2, 1]], up: [['#7a1a2e', 4, 1, 8, 1]], left: [['#7a1a2e', 5, 9, 4, 1]] },
 };
 function renderChar(pal, body, legs, flip, name, dir) {
   const c = mkCanvas(16, 16), x = c.getContext('2d');
