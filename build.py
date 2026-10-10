@@ -6,6 +6,9 @@ import base64
 # painted portraits (assets/portrait_<id>.jpg) are embedded as data URIs; the game falls back to the vector busts if one is missing
 imgs = {f.stem.replace('portrait_', ''): 'data:image/jpeg;base64,' + base64.b64encode(f.read_bytes()).decode() for f in sorted((root / 'assets').glob('portrait_*.jpg'))}
 js += '\nconst PORTRAIT_IMG = ' + repr(imgs) + ';'
+# painted battle sprites (assets/battle_<id>.png, 64x80 with alpha) replace the code-drawn ones once decoded
+bimgs = {f.stem.replace('battle_', ''): 'data:image/png;base64,' + base64.b64encode(f.read_bytes()).decode() for f in sorted((root / 'assets').glob('battle_*.png'))}
+js += '\nconst BATTLE_IMG = ' + repr(bimgs) + ';'
 glyphs = ''.join(sorted({c for c in js if ord(c) > 127}))
 js = 'const GLYPHS = ' + repr(glyphs) + ';\n' + js
 shell = (src / 'shell.html').read_text()
