@@ -1,0 +1,60 @@
+<title>クリスタル・エコー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+<style>
+/* Layout: one-screen console. Screen on top, controller deck below (touch) or key legend (desktop). */
+:root{
+  --void:#07070f; --deck:#141726; --deck-edge:#4a3f28; --ink:#f3ede0; --muted:#9a9282;
+  --gem:#f0cf86; --btn-a:#d4ab5e; --btn-b:#3a4058;
+  --font:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif; --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--void);color:var(--ink);font-family:var(--font);overflow:hidden;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#app{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;
+  gap:10px;padding-inline:16px;padding-block:8px}
+#bar{width:100%;max-width:768px;display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;color:var(--muted);letter-spacing:.08em}
+#bar b{color:var(--gem);font-family:var(--serif);font-weight:800;letter-spacing:.14em}
+#mute{font:inherit;color:var(--ink);background:var(--deck);border:1px solid var(--deck-edge);
+  border-radius:6px;padding:4px 10px;cursor:pointer}
+#mute:focus-visible,.pbtn:focus-visible{outline:2px solid var(--gem);outline-offset:2px}
+#screen{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;
+  border:2px solid var(--deck-edge);border-radius:6px;box-shadow:0 0 0 1px #000,0 0 30px rgba(240,207,134,.12),0 12px 40px #000a;max-width:100%}
+#pad{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex:0 0 auto}
+#dpad{position:relative;width:150px;height:150px;flex:0 0 auto;touch-action:none}
+#dpad::before,#dpad::after{content:"";position:absolute;background:var(--deck);border:2px solid var(--deck-edge);border-radius:10px}
+#dpad::before{left:50px;top:0;width:46px;height:146px}
+#dpad::after{top:50px;left:0;height:46px;width:146px}
+#dpad i{position:absolute;z-index:1;width:0;height:0;border:9px solid transparent;pointer-events:none}
+#dpad .u{left:66px;top:12px;border-bottom-color:var(--muted)}
+#dpad .d{left:66px;bottom:12px;border-top-color:var(--muted)}
+#dpad .l{top:66px;left:12px;border-right-color:var(--muted)}
+#dpad .r{top:66px;right:12px;border-left-color:var(--muted)}
+#dpad i.on{border-bottom-color:var(--gem)}#dpad i.d.on{border-top-color:var(--gem)}
+#dpad i.l.on{border-right-color:var(--gem)}#dpad i.r.on{border-left-color:var(--gem)}
+#mid{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pbtn{font:inherit;color:var(--ink);border:none;cursor:pointer;touch-action:none}
+#menuBtn{background:var(--deck);border:1px solid var(--deck-edge);border-radius:14px;padding:6px 14px;font-size:12px;letter-spacing:.1em}
+#ab{position:relative;width:150px;height:130px;flex:0 0 auto}
+#ab .pbtn{position:absolute;width:66px;height:66px;border-radius:50%;font-size:15px;
+  box-shadow:inset 0 -4px 0 #0005,0 3px 0 #000}
+#btnA{right:0;top:6px;background:radial-gradient(circle at 35% 30%,#ffe6a8,var(--btn-a) 60%,#9a7434);color:#2a1e08;font-weight:700}
+#btnB{left:0;bottom:6px;background:radial-gradient(circle at 35% 30%,#6a7290,var(--btn-b) 60%,#22263a)}
+.pbtn.on{transform:translateY(2px);filter:brightness(1.25)}
+#keys{display:none;font-size:13px;color:var(--muted);text-align:center;line-height:1.8}
+#keys kbd{font:inherit;color:var(--ink);border:1px solid var(--deck-edge);border-radius:4px;padding:0 6px;background:var(--deck)}
+@media (hover:hover) and (pointer:fine){#pad{display:none}#keys{display:block}}
+</style>
+<div id="app">
+  <div id="bar"><span><b>CRYSTAL ECHO</b>　クリスタル・エコー</span><button id="mute" type="button">♪ ON</button></div>
+  <canvas id="screen" width="768" height="672"></canvas>
+  <div id="pad">
+    <div id="dpad"><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i></div>
+    <div id="mid"><button class="pbtn" id="menuBtn" type="button">MENU</button></div>
+    <div id="ab"><button class="pbtn" id="btnB" type="button">戻る</button><button class="pbtn" id="btnA" type="button">決定</button></div>
+  </div>
+  <div id="keys">移動 <kbd>↑↓←→</kbd>/<kbd>WASD</kbd>　決定 <kbd>Z</kbd>/<kbd>Enter</kbd>　戻る <kbd>X</kbd>　メニュー <kbd>C</kbd>/<kbd>Esc</kbd></div>
+</div>

@@ -1,0 +1,45 @@
+// ===================== MAIN LOOP =====================
+function step() {
+  Input.update(); G.frame++;
+  if (!transitionCb) G.scene.update(); else if (G.scene === Battle) Battle.update();
+  updateFade();
+  if (G.flash > 0) G.flash--;
+  if (G.shake > 0) G.shake--;
+}
+function render() {
+  resetT();
+  G.scene.draw();
+  if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, G.flash / 20)})`; ctx.fillRect(0, 0, SW, SH); }
+  if (G.fadeLevel > 0) { ctx.fillStyle = `rgba(0,0,0,${G.fadeLevel})`; ctx.fillRect(0, 0, SW, SH); }
+}
+let last = 0, acc = 0, booted = false;
+function loop(ts) {
+  requestAnimationFrame(loop);
+  if (window.__manual) return;
+  if (!last) last = ts; acc += Math.min(100, ts - last); last = ts;
+  let n = 0; while (acc >= 1000 / 60 && n < 4) { step(); acc -= 1000 / 60; n++; }
+  if (n) {
+    const t0 = performance.now(); render(); const dt = performance.now() - t0;
+    // adaptive quality: keep slower phones smooth
+    perfAvg = perfAvg * 0.95 + dt * 0.05; perfN++;
+    if (perfN > 90 && perfAvg > 13 && QUALITY.level > 0) { QUALITY.level--; perfN = 0; perfAvg = 8; }
+    else if (perfN > 600 && perfAvg < 5 && QUALITY.level < 2) { QUALITY.level++; perfN = 0; }
+  }
+}
+let perfAvg = 8, perfN = 0;
+function boot(saved) {
+  if (booted) return; booted = true;
+  buildTiles(); buildTallSprites(); buildChars(); buildHeroBattle(); buildEnemyArt(); buildMaps(); loadOverrides();
+  fit();
+  if (saved && saved.party) { try { applySnapshot(saved); } catch (e) { Title.start(); } } else Title.start();
+  requestAnimationFrame(loop);
+}
+// debug / test hooks
+window.__rpg = { G, get B() { return B; }, MAPS: () => MAPS, Field, Battle, BMenu, Menu, Shop, Title, SCRIPTS, ENEMIES, ITEMS, SKILLS, HEROES, FORMATIONS, TILESETS,
+  newGame, startBattle, BattleTrans, GameOver, Ending, transitioning: () => !!transitionCb, stats, gainExp, joinParty, saveGame, loadGame, snapshot, setSeed, step, render, Input, expAt, addItem, healAll };
+const fontReady = (document.fonts && document.fonts.load) ? Promise.race([
+  Promise.all([document.fonts.load('500 24px "Zen Kaku Gothic New"', GLYPHS), document.fonts.load('800 24px "Zen Kaku Gothic New"', '0123456789MISFULCREAT'), document.fonts.load('700 24px "Shippori Mincho B1"', GLYPHS), document.fonts.load('800 24px "Shippori Mincho B1"', 'CRYSTAL ECHO')]),
+  new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
+const hot = window.claude && window.claude.hot;
+if (hot && hot.snapshot) hot.snapshot(() => (G.scene === Field && !G.script) ? snapshot() : null);
+fontReady.catch(() => { }).then(() => { if (hot && hot.ready) hot.ready(boot); else boot(hot && hot.data); });

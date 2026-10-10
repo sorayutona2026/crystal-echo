@@ -1,0 +1,10 @@
+require('fs').mkdirSync('test-out/shots', { recursive: true }); require('fs').mkdirSync('test-out/g', { recursive: true });
+const { chromium } = require(process.env.PW_PATH || 'playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage();
+await p.goto('file://' + __dirname + '/index.html');await p.waitForFunction(()=>window.__rpg&&__rpg.G.scene);
+await p.evaluate(()=>{window.__manual=true});
+const r=await p.evaluate(()=>{const R=__rpg;const out={};const time=(k)=>{for(let i=0;i<10;i++){R.step();R.render();} const t0=performance.now();for(let i=0;i<120;i++){R.step();R.render();} out[k]=((performance.now()-t0)/120).toFixed(2)+'ms';};
+time('title'); R.newGame(); R.G.script=null;R.G.narr=null;R.G.dialog=null;R.G.fadeLevel=0;R.G.fadeTarget=0;
+R.Field.enter('elm',12,12); time('town'); R.Field.enter('world',9,9); time('world'); R.Field.enter('cave',4,17); time('cave'); R.Field.enter('tower3',9,9); time('tower3');
+R.startBattle({ids:['golem','specter','darkmage']}); time('battle'); return out;});
+console.log(JSON.stringify(r));await b.close();})();

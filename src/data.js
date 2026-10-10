@@ -1,0 +1,444 @@
+// ===================== GAME DATA =====================
+const ALL = ['allen', 'lina', 'kai', 'zek'];
+const ITEMS = {
+  potion: { name: 'ポーション', type: 'use', price: 30, heal: 60, target: 'ally', desc: 'HPを60回復する' },
+  hipotion: { name: 'ハイポーション', type: 'use', price: 150, heal: 250, target: 'ally', desc: 'HPを250回復する' },
+  ether: { name: 'エーテル', type: 'use', price: 200, mpheal: 40, target: 'ally', desc: 'MPを40回復する' },
+  phoenix: { name: '不死鳥の羽', type: 'use', price: 250, revive: 0.3, target: 'ally', dead: true, desc: '戦闘不能から復活させる' },
+  antidote: { name: '毒消し', type: 'use', price: 20, cure: true, target: 'ally', desc: '毒を治す' },
+  elixir: { name: 'エリクサー', type: 'use', price: 0, full: true, target: 'ally', desc: 'HPとMPを全回復する' },
+  tent: { name: 'テント', type: 'use', price: 250, tent: true, field: 'only', target: 'party', desc: 'フィールドで使うと全員全回復' },
+  // weapons
+  copper: { name: '銅の剣', type: 'weapon', atk: 6, eq: ['allen'], price: 50 },
+  iron: { name: '鉄の剣', type: 'weapon', atk: 14, eq: ['allen'], price: 240 },
+  mythril: { name: 'ミスリルソード', type: 'weapon', atk: 26, eq: ['allen'], price: 900 },
+  rune: { name: 'ルーンブレイド', type: 'weapon', atk: 40, mag: 4, eq: ['allen'], price: 0 },
+  oakstaff: { name: '樫の杖', type: 'weapon', atk: 3, mag: 2, eq: ['lina', 'zek'], price: 40 },
+  cleric: { name: 'クレリックロッド', type: 'weapon', atk: 7, mag: 7, eq: ['lina'], price: 420 },
+  wizard: { name: 'ウィザードロッド', type: 'weapon', atk: 7, mag: 9, eq: ['zek'], price: 480 },
+  sage: { name: '賢者の杖', type: 'weapon', atk: 10, mag: 15, eq: ['lina', 'zek'], price: 0 },
+  dagger: { name: 'ダガー', type: 'weapon', atk: 9, eq: ['kai'], price: 60 },
+  mdagger: { name: 'ミスリルダガー', type: 'weapon', atk: 22, eq: ['kai'], price: 800 },
+  assassin: { name: 'アサシンダガー', type: 'weapon', atk: 34, spd: 3, eq: ['kai'], price: 0 },
+  // armor
+  cloth: { name: '旅人の服', type: 'armor', def: 3, mdf: 1, eq: ALL, price: 30 },
+  chain: { name: '鎖かたびら', type: 'armor', def: 8, mdf: 2, eq: ['allen', 'kai'], price: 180 },
+  silk: { name: '絹のローブ', type: 'armor', def: 5, mdf: 5, eq: ['lina', 'zek'], price: 200 },
+  mmail: { name: 'ミスリルメイル', type: 'armor', def: 16, mdf: 5, eq: ['allen', 'kai'], price: 1000 },
+  srobe: { name: '賢者のローブ', type: 'armor', def: 10, mdf: 13, eq: ['lina', 'zek'], price: 950 },
+};
+
+const HEROES = {
+  allen: { name: 'アレン', job: '剣士', cmd: 'わざ', crit: 0.06, weapon: 'copper', armor: 'cloth',
+    base: { hp: 64, mp: 6, str: 12, def: 7, mag: 4, mdf: 4, spd: 9 }, grow: { hp: 14, mp: 1.2, str: 2.2, def: 1.4, mag: 0.5, mdf: 0.9, spd: 0.5 },
+    skills: [['power', 1], ['whirl', 6], ['braver', 12]] },
+  lina: { name: 'リナ', job: '白魔導士', cmd: '白魔法', crit: 0.04, weapon: 'oakstaff', armor: 'cloth',
+    base: { hp: 46, mp: 20, str: 6, def: 5, mag: 11, mdf: 9, spd: 9 }, grow: { hp: 10, mp: 3.2, str: 0.8, def: 0.9, mag: 1.8, mdf: 1.4, spd: 0.5 },
+    skills: [['heal', 1], ['cure', 2], ['healall', 6], ['revive', 9], ['holy', 13]] },
+  kai: { name: 'カイ', job: 'トレジャーハンター', cmd: 'わざ', crit: 0.15, weapon: 'dagger', armor: 'cloth',
+    base: { hp: 54, mp: 8, str: 10, def: 6, mag: 5, mdf: 5, spd: 14 }, grow: { hp: 12, mp: 1.3, str: 2.0, def: 1.1, mag: 0.5, mdf: 0.8, spd: 0.9 },
+    skills: [['steal', 1], ['double', 4], ['shadow', 11]] },
+  zek: { name: 'ゼク', job: '黒魔導士', cmd: '黒魔法', crit: 0.03, weapon: 'oakstaff', armor: 'cloth',
+    base: { hp: 42, mp: 24, str: 5, def: 4, mag: 14, mdf: 9, spd: 8 }, grow: { hp: 9, mp: 3.6, str: 0.6, def: 0.8, mag: 2.1, mdf: 1.3, spd: 0.5 },
+    skills: [['fire', 1], ['frost', 1], ['bolt', 1], ['blaze', 9], ['meteor', 14]] },
+};
+
+// kind: phys | mag | heal | cure | revive | steal
+const SKILLS = {
+  power: { name: '強撃', mp: 3, kind: 'phys', mult: 1.8, target: 'enemy', fx: 'slash2', desc: '渾身の一撃' },
+  whirl: { name: '旋風斬', mp: 7, kind: 'phys', mult: 1.0, target: 'enemies', fx: 'whirl', desc: '敵全体を斬る' },
+  braver: { name: 'ブレイバー', mp: 14, kind: 'phys', mult: 3.2, target: 'enemy', fx: 'braver', desc: '天を裂く大技' },
+  heal: { name: 'ヒール', mp: 3, kind: 'heal', power: 22, target: 'ally', fx: 'heal', field: true, desc: '味方1人のHP回復' },
+  cure: { name: 'キュア', mp: 2, kind: 'cure', target: 'ally', fx: 'heal', desc: '毒を治す' },
+  healall: { name: 'ヒールオール', mp: 9, kind: 'heal', power: 20, target: 'allies', fx: 'heal', field: true, desc: '味方全員のHP回復' },
+  revive: { name: 'リバイブ', mp: 14, kind: 'revive', target: 'ally', dead: true, fx: 'holy', field: true, desc: '戦闘不能から復活' },
+  holy: { name: 'ホーリー', mp: 18, kind: 'mag', power: 62, elem: 'holy', target: 'enemy', fx: 'holy', desc: '聖なる光で攻撃' },
+  steal: { name: 'ぬすむ', mp: 0, kind: 'steal', target: 'enemy', fx: 'none', desc: '敵から盗む' },
+  double: { name: '二連撃', mp: 4, kind: 'phys', mult: 0.9, hits: 2, target: 'enemy', fx: 'slash', desc: '素早く2回斬る' },
+  shadow: { name: '影縫い', mp: 10, kind: 'phys', mult: 1.25, target: 'enemies', fx: 'dark', desc: '影の刃で敵全体を斬る' },
+  fire: { name: 'フレイム', mp: 4, kind: 'mag', power: 16, elem: 'fire', target: 'enemy', fx: 'fire', desc: '炎で攻撃' },
+  frost: { name: 'フロスト', mp: 4, kind: 'mag', power: 16, elem: 'ice', target: 'enemy', fx: 'ice', desc: '氷で攻撃' },
+  bolt: { name: 'ボルト', mp: 4, kind: 'mag', power: 16, elem: 'bolt', target: 'enemy', fx: 'bolt', desc: '雷で攻撃' },
+  blaze: { name: 'ブレイズ', mp: 12, kind: 'mag', power: 26, elem: 'fire', target: 'enemies', fx: 'fire', desc: '炎で敵全体を攻撃' },
+  meteor: { name: 'メテオ', mp: 28, kind: 'mag', power: 58, target: 'enemies', fx: 'meteor', desc: '隕石で敵全体を攻撃' },
+  // enemy-only
+  attack: { name: 'こうげき', kind: 'phys', mult: 1, target: 'enemy', fx: 'claw' },
+  smash: { name: '叩きつけ', kind: 'phys', mult: 1.7, target: 'enemy', fx: 'slash2' },
+  roar: { name: '雄叫び', kind: 'phys', mult: 0.55, target: 'enemies', fx: 'quake' },
+  sting: { name: '毒針', kind: 'phys', mult: 1.0, poison: 0.6, target: 'enemy', fx: 'claw' },
+  beam: { name: 'クリスタルビーム', kind: 'mag', power: 34, elem: 'holy', target: 'enemy', fx: 'beam' },
+  quake: { name: '震撃', kind: 'phys', mult: 0.7, target: 'enemies', fx: 'quake' },
+  darkblade: { name: '暗黒剣', kind: 'phys', mult: 1.9, target: 'enemy', fx: 'dark' },
+  darkwave: { name: '闇の波動', kind: 'mag', power: 34, elem: 'dark', target: 'enemies', fx: 'dark' },
+};
+
+const ENEMIES = {
+  slime: { name: 'スライム', img: 'slime', hp: 22, str: 8, def: 3, mag: 2, mdf: 3, spd: 6, exp: 5, gil: 6, weak: ['fire'], drop: ['potion', 0.12], steal: 'potion' },
+  bat: { name: '吸血コウモリ', img: 'bat', hp: 17, str: 10, def: 2, mag: 2, mdf: 2, spd: 14, exp: 6, gil: 5, weak: ['bolt'], steal: 'potion' },
+  goblin: { name: 'ゴブリン', img: 'goblin', hp: 32, str: 12, def: 4, mag: 2, mdf: 2, spd: 8, exp: 9, gil: 14, drop: ['antidote', 0.15], steal: 'potion' },
+  skeleton: { name: 'スケルトン', img: 'skeleton', hp: 80, str: 20, def: 9, mag: 4, mdf: 6, spd: 9, exp: 22, gil: 24, weak: ['fire', 'holy'], undead: true, steal: 'antidote' },
+  redslime: { name: 'レッドスライム', img: 'redslime', hp: 54, str: 18, def: 6, mag: 11, mdf: 8, spd: 8, exp: 18, gil: 20, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['fire', 1]], steal: 'potion' },
+  wolf: { name: 'ウルフ', img: 'wolf', hp: 80, str: 24, def: 6, mag: 3, mdf: 4, spd: 15, exp: 20, gil: 16, weak: ['fire'], steal: 'potion' },
+  bee: { name: 'キラービー', img: 'bee', hp: 60, str: 23, def: 5, mag: 3, mdf: 5, spd: 17, exp: 18, gil: 14, weak: ['ice'], ai: [['attack', 2], ['sting', 1]], steal: 'antidote' },
+  gmage: { name: 'ゴブリンメイジ', img: 'gmage', hp: 70, str: 9, def: 5, mag: 18, mdf: 10, spd: 9, exp: 24, gil: 30, ai: [['attack', 1], ['fire', 2]], drop: ['ether', 0.08], steal: 'ether' },
+  golem: { name: 'ゴーレム', img: 'golem', hp: 260, str: 42, def: 24, mag: 4, mdf: 8, spd: 6, exp: 60, gil: 60, weak: ['bolt'], ai: [['attack', 3], ['quake', 1]], steal: 'hipotion' },
+  specter: { name: 'スペクター', img: 'specter', hp: 150, str: 14, def: 18, mag: 30, mdf: 18, spd: 12, exp: 52, gil: 50, weak: ['holy', 'fire'], undead: true, ai: [['attack', 1], ['frost', 2]], steal: 'ether' },
+  darkmage: { name: 'ダークメイジ', img: 'darkmage', hp: 170, str: 14, def: 10, mag: 32, mdf: 18, spd: 11, exp: 62, gil: 80, ai: [['attack', 1], ['fire', 1], ['bolt', 1], ['frost', 1]], drop: ['ether', 0.2], steal: 'ether' },
+  armor: { name: 'リビングアーマー', img: 'armor', hp: 300, str: 46, def: 26, mag: 4, mdf: 10, spd: 9, exp: 70, gil: 90, weak: ['bolt'], ai: [['attack', 3], ['smash', 1]], drop: ['hipotion', 0.2], steal: 'hipotion' },
+  gking: { name: 'ゴブリンキング', img: 'gking', hp: 800, str: 27, def: 8, mag: 8, mdf: 6, spd: 9, exp: 160, gil: 400, boss: true, steal: 'hipotion', ai: 'gking' },
+  guardian: { name: 'クリスタルガーディアン', img: 'guardian', hp: 3000, str: 44, def: 20, mag: 36, mdf: 18, spd: 11, exp: 700, gil: 1200, boss: true, weak: ['bolt'], steal: 'elixir', ai: 'guardian' },
+  garva: { name: '闇騎士ガルヴァ', img: 'garva', hp: 4200, str: 44, def: 24, mag: 35, mdf: 22, spd: 16, exp: 0, gil: 0, boss: true, weak: ['holy'], steal: 'elixir', ai: 'garva' },
+};
+
+const FORMATIONS = {
+  north: [['slime', 'slime'], ['slime', 'bat'], ['goblin'], ['bat', 'bat', 'bat'], ['goblin', 'slime'], ['slime', 'slime', 'slime'], ['goblin', 'bat']],
+  cave: [['bat', 'bat'], ['skeleton'], ['redslime', 'bat'], ['goblin', 'goblin', 'bat'], ['skeleton', 'bat'], ['redslime', 'redslime']],
+  south: [['wolf'], ['wolf', 'wolf'], ['bee', 'bee'], ['gmage', 'goblin'], ['bee', 'wolf'], ['gmage', 'gmage'], ['skeleton', 'gmage']],
+  east: [['wolf', 'wolf', 'bee'], ['gmage', 'wolf'], ['skeleton', 'gmage', 'bee'], ['redslime', 'wolf']],
+  tower1: [['golem'], ['specter', 'specter'], ['armor'], ['darkmage', 'specter'], ['golem', 'darkmage']],
+  tower2: [['armor', 'darkmage'], ['golem', 'specter'], ['specter', 'specter', 'darkmage'], ['armor', 'specter']],
+};
+
+const SHOPS = {
+  elm: ['potion', 'antidote', 'phoenix', 'tent', 'iron', 'chain', 'silk'],
+  rosaItem: ['potion', 'hipotion', 'ether', 'antidote', 'phoenix', 'tent'],
+  rosaSmith: ['mythril', 'mdagger', 'cleric', 'wizard', 'mmail', 'srobe'],
+};
+
+function expToNext(lv) { return Math.round(5 * lv * lv + 10 * lv); }
+function expAt(lv) { let s = 0; for (let l = 1; l < lv; l++) s += expToNext(l); return s; }
+
+// ===================== MAPS =====================
+function grid(w, h, ch) { return Array.from({ length: h }, () => Array(w).fill(ch)); }
+function fromRows(rows) { const w = Math.max(...rows.map(r => r.length)); return rows.map(r => (r + '#'.repeat(w)).slice(0, w).split('')); }
+function fillRect(g, x, y, w, h, ch) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (g[j] && g[j][i] !== undefined) g[j][i] = ch; }
+function house(g, x, y, w, roof, doorX) {
+  fillRect(g, x, y, w, 2, roof);
+  for (let i = 0; i < w; i++) g[y + 2][x + i] = (x + i === doorX) ? 'D' : (i === 0 || i === w - 1 ? 'W' : (i % 2 ? 'N' : 'W'));
+}
+
+function buildWorld() {
+  const W = 44, H = 32; const g = grid(W, H, '.'); const r = mulberry(4242);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = Math.min(x, y, W - 1 - x, H - 1 - y);
+    if (d < 2 || (d < 3 && r() < 0.45)) g[y][x] = '~';
+  }
+  // forests & hills (north)
+  fillRect(g, 3, 3, 4, 3, 'T'); fillRect(g, 15, 4, 5, 4, 'T'); fillRect(g, 31, 3, 7, 3, 'T'); fillRect(g, 33, 6, 4, 2, 'T');
+  fillRect(g, 12, 9, 3, 3, 'h'); fillRect(g, 28, 9, 4, 2, 'h');
+  // north lake
+  fillRect(g, 20, 8, 4, 3, '~'); fillRect(g, 21, 7, 2, 1, '~');
+  // mountain ridge
+  for (let x = 2; x < W - 2; x++) { for (let y = 14; y <= 16; y++) g[y][x] = 'M'; if (r() < 0.5) g[13][x] = 'M'; if (r() < 0.5) g[17][x] = 'M'; }
+  // river in the south splits tower land
+  for (let y = 17; y < H - 1; y++) { g[y][30] = '~'; if (y > 25) g[y][31] = '~'; }
+  // south forests/hills/sand
+  fillRect(g, 3, 19, 4, 3, 'T'); fillRect(g, 16, 20, 6, 3, 'T'); fillRect(g, 34, 19, 5, 3, 'T'); fillRect(g, 22, 26, 4, 2, 'h');
+  fillRect(g, 6, 26, 10, 3, 's'); fillRect(g, 36, 26, 4, 2, 'h');
+  // landmarks (ensure surroundings walkable)
+  const clear = (x, y) => { for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ('MT~'.includes(g[y + j][x + i])) g[y + j][x + i] = '.'; };
+  clear(9, 7); g[7][9] = 'V';
+  g[13][24] = 'C'; g[12][24] = '.'; g[12][23] = '.'; g[12][25] = '.'; g[13][23] = 'M'; g[13][25] = 'M';
+  g[17][24] = 'c'; g[18][24] = '.'; g[18][23] = '.'; g[18][25] = '.'; g[17][23] = 'M'; g[17][25] = 'M';
+  clear(10, 24); g[24][10] = 'R';
+  g[22][30] = '=';
+  clear(37, 24); g[24][37] = 'X';
+  return { id: 'world', name: 'ワールドマップ', set: 'world', music: 'field', w: W, h: H, g,
+    warps: { '9,7': { map: 'elm', x: 12, y: 18, dir: 'up' }, '24,13': { map: 'cave', x: 2, y: 2, dir: 'down' }, '24,17': { map: 'cave', x: 27, y: 17, dir: 'left' },
+      '10,24': { map: 'rosa', x: 13, y: 1, dir: 'down' }, '37,24': { map: 'tower1', x: 8, y: 13, dir: 'up', cond: 'zek', script: 'towerSeal' } },
+    enc: (x, y) => y < 14 ? 'north' : x < 30 ? 'south' : 'east', rate: 22, npcs: [] };
+}
+
+function buildElm() {
+  const W = 26, H = 20; const g = grid(W, H, 'g');
+  for (let x = 0; x < W; x++) { g[0][x] = 'T'; g[H - 1][x] = 'T'; } for (let y = 0; y < H; y++) { g[y][0] = 'T'; g[y][W - 1] = 'T'; }
+  fillRect(g, 12, 6, 2, 14, 'p'); fillRect(g, 2, 10, 22, 1, 'p');
+  house(g, 3, 3, 6, 'R', 5); fillRect(g, 5, 6, 1, 4, 'p');
+  house(g, 17, 3, 6, 'R', 19); fillRect(g, 19, 6, 1, 4, 'p');
+  house(g, 3, 11, 6, 'R', 5); fillRect(g, 5, 14, 8, 1, 'p');
+  g[13][16] = 'w'; fillRect(g, 20, 12, 4, 3, '~'); fillRect(g, 16, 16, 4, 2, 'f'); fillRect(g, 10, 4, 2, 2, 'f');
+  g[17][14] = 'S'; fillRect(g, 15, 17, 3, 1, 'F'); fillRect(g, 8, 17, 3, 1, 'F');
+  g[2][12] = 'T'; g[2][13] = 'T'; g[16][2] = 'T'; g[17][3] = 'T';
+  return { id: 'elm', name: 'エルムの村', set: 'town', music: 'town', w: W, h: H, g, exit: { map: 'world', x: 9, y: 7, gate: 'elmGate' },
+    warps: { '5,5': { map: 'elder', x: 4, y: 6, dir: 'up' }, '19,5': { map: 'innElm', x: 5, y: 6, dir: 'up' }, '5,13': { map: 'shopElm', x: 4, y: 6, dir: 'up' } },
+    signs: { '14,17': 'エルムの村\n「風の吹く丘の村」' },
+    npcs: [
+      { id: 'elmWoman', x: 15, y: 11, pal: 'woman', wander: true, talk: 'elmWoman' },
+      { id: 'elmChild', x: 9, y: 8, pal: 'child', wander: true, talk: 'elmChild' },
+      { id: 'elmMan', x: 10, y: 15, pal: 'man', wander: true, talk: 'elmMan' },
+      { id: 'elmGuard', x: 11, y: 18, pal: 'soldier', talk: 'elmGuard' },
+      { id: 'elmOld', x: 21, y: 15, pal: 'elder', dir: 'left', talk: 'elmOld' },
+    ] };
+}
+function buildRosa() {
+  const W = 28, H = 22; const g = grid(W, H, 'g');
+  for (let x = 0; x < W; x++) g[0][x] = 'T'; for (let y = 0; y < H; y++) { g[y][0] = 'T'; g[y][W - 1] = 'T'; }
+  fillRect(g, 0, 19, W, 3, '~');
+  fillRect(g, 13, 0, 2, 19, 'P'); fillRect(g, 2, 9, 24, 1, 'P'); fillRect(g, 1, 17, 26, 2, 'P'); g[1][12] = 'P';
+  house(g, 3, 2, 6, 'r', 5); fillRect(g, 5, 5, 1, 4, 'P');
+  house(g, 18, 2, 6, 'r', 20); fillRect(g, 20, 5, 1, 4, 'P');
+  house(g, 3, 11, 6, 'r', 5); fillRect(g, 5, 14, 1, 3, 'P');
+  house(g, 18, 11, 6, 'r', 20); fillRect(g, 20, 14, 1, 3, 'P');
+  fillRect(g, 13, 19, 2, 2, 'b'); g[13][10] = 'w';
+  for (const [x, y] of [[11, 6], [16, 6], [11, 14], [16, 14]]) g[y][x] = 'L';
+  g[16][24] = 'x'; g[16][25] = 'x'; g[16][2] = 'x'; fillRect(g, 9, 3, 3, 2, 'f'); fillRect(g, 15, 11, 2, 2, 'f');
+  g[8][15] = 'S';
+  return { id: 'rosa', name: '港町ローザ', set: 'town', music: 'town', w: W, h: H, g, exit: { map: 'world', x: 10, y: 24 },
+    warps: { '5,4': { map: 'innRosa', x: 5, y: 6, dir: 'up' }, '20,4': { map: 'itemRosa', x: 4, y: 6, dir: 'up' }, '5,13': { map: 'smithRosa', x: 4, y: 6, dir: 'up' }, '20,13': { map: 'pub', x: 5, y: 7, dir: 'up' } },
+    signs: { '15,8': '港町ローザ\n左上:宿屋 右上:道具屋\n左下:武具屋 右下:酒場' },
+    npcs: [
+      { id: 'mayor', x: 16, y: 10, pal: 'mayor', talk: 'mayor' },
+      { id: 'sailor', x: 14, y: 20, pal: 'sailor', dir: 'down', talk: 'sailor' },
+      { id: 'rosaWoman', x: 9, y: 7, pal: 'woman', wander: true, talk: 'rosaWoman' },
+      { id: 'rosaMan', x: 22, y: 16, pal: 'man', wander: true, talk: 'rosaMan' },
+      { id: 'rosaChild', x: 8, y: 16, pal: 'child', wander: true, talk: 'rosaChild' },
+      { id: 'rosaGuard', x: 12, y: 1, pal: 'soldier', talk: 'rosaGuard' },
+    ] };
+}
+function room(id, name, rows, back, npcs, music = 'town') {
+  const g = fromRows(rows); const h = g.length, w = g[0].length;
+  const warps = {}; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (g[y][x] === 'e') warps[x + ',' + y] = back;
+  return { id, name, set: 'inside', music, w, h, g, warps, npcs };
+}
+function buildCave() {
+  const rows = [
+    '##############################',
+    '#.>....############........B##',
+    '#......############.........##',
+    '#...........................##',
+    '#......############.........##',
+    '###################.........##',
+    '#######################.######',
+    '#######################.######',
+    '#######################.######',
+    '##########..................##',
+    '##########...~~~~~~~~.......##',
+    '###..........~~~~~~~~......B##',
+    '###.######...~~~~~~~~.......##',
+    '###.######..................##',
+    '###.##########################',
+    '###.################.......###',
+    '#........###########.......###',
+    '#........###########........>#',
+    '#..........................###',
+    '#B.......###########.......###',
+    '####################.......###',
+    '##############################',
+  ];
+  const g = fromRows(rows);
+  const trig = {}; for (let y = 15; y <= 20; y++) trig['21,' + y] = 'caveBoss';
+  return { id: 'cave', name: '北の洞窟', set: 'cave', music: 'dungeon', w: g[0].length, h: g.length, g,
+    warps: { '2,1': { map: 'world', x: 24, y: 13, dir: 'down' }, '28,17': { map: 'world', x: 24, y: 17, dir: 'down' } },
+    chests: { '27,1': { item: 'chain' }, '27,11': { item: 'phoenix' }, '1,19': { gil: 250 } },
+    triggers: trig, enc: () => 'cave', rate: 20,
+    npcs: [
+      { id: 'gking', x: 27, y: 17, pal: 'gking', dir: 'left', talk: 'caveBoss', show: () => !G.flags.cave_boss },
+      { id: 'kaiCaged', x: 25, y: 19, pal: 'kai', dir: 'left', talk: 'kaiCaged', show: () => !G.flags.cave_boss },
+    ] };
+}
+function buildTower1() {
+  const g = fromRows([
+    '####################',
+    '#......#^#.........#',
+    '#.PP...#c#...PP....#',
+    '#......#c#.........#',
+    '#..B...#c#....B....#',
+    '####.###c###.#######',
+    '#.......c..........#',
+    '#.P...P.c.P...P....#',
+    '#.......c..........#',
+    '#...........~~~....#',
+    '#..P....c...~~~.P..#',
+    '#.......c..........#',
+    '#.P.....c.....P....#',
+    '#.......c..........#',
+    '#.......E..........#',
+    '####################',
+  ]);
+  g[13][17] = '*';
+  return { id: 'tower1', name: 'クリスタルの塔 1F', set: 'tower', music: 'tower', w: 20, h: 16, g,
+    warps: { '8,14': { map: 'world', x: 37, y: 24, dir: 'down' }, '8,1': { map: 'tower2', x: 1, y: 13, dir: 'up' } },
+    chests: { '3,4': { item: 'hipotion', n: 2 }, '14,4': { item: 'sage' } },
+    enc: () => 'tower1', rate: 20,
+    npcs: [{ id: 'guardian', x: 8, y: 4, pal: 'guardian', talk: 'guardian', show: () => !G.flags.guardian }] };
+}
+function buildTower2() {
+  const g = fromRows([
+    '####################',
+    '#.....#......#.....#',
+    '#.###.#.####.#.###.#',
+    '#.#B#...#....#.#...#',
+    '#.#.#####.####.#.###',
+    '#.#.....#......#...#',
+    '#.#####.#.######.#.#',
+    '#.....#.#...B..#.#.#',
+    '#####.#.#####..#.#.#',
+    '#.....#.....#..#.#.#',
+    '#.#########.#.##.#.#',
+    '#.#.......#.#....#.#',
+    '#.#.#####.#.#####..#',
+    '#...#B....#.......^#',
+    '#v##################',
+    '####################',
+  ]);
+  g[13][17] = '*';
+  return { id: 'tower2', name: 'クリスタルの塔 2F', set: 'tower', music: 'tower', w: 20, h: 16, g,
+    warps: { '1,14': { map: 'tower1', x: 8, y: 2, dir: 'down' }, '18,13': { map: 'tower3', x: 9, y: 10, dir: 'up' } },
+    chests: { '3,3': { item: 'rune' }, '12,7': { item: 'assassin' }, '5,13': { item: 'elixir' } },
+    enc: () => 'tower2', rate: 18, npcs: [] };
+}
+function buildTower3() {
+  const g = fromRows([
+    '####################',
+    '#~~~~~~~PXP~~~~~~~~#',
+    '#~~~~~~.ccc.~~~~~~~#',
+    '#~~~~~...c...~~~~~~#',
+    '#~~~~P...c...P~~~~~#',
+    '#~~~~....c....~~~~~#',
+    '#~~~~....c....~~~~~#',
+    '#~~~~P...c...P~~~~~#',
+    '#~~~~~...c...~~~~~~#',
+    '#~~~~~~..c..~~~~~~~#',
+    '#~~~~~~~.c.~~~~~~~~#',
+    '#~~~~~~~*v.~~~~~~~~#',
+    '####################',
+  ]);
+  const trig = {}; for (let x = 5; x <= 13; x++) trig[x + ',6'] = 'garva';
+  return { id: 'tower3', name: 'クリスタルの間', set: 'tower', music: 'tower', w: 20, h: 13, g,
+    warps: { '9,11': { map: 'tower2', x: 16, y: 13, dir: 'left' } }, triggers: trig, save: { '8,11': true },
+    npcs: [{ id: 'garva', x: 9, y: 3, pal: 'garva', dir: 'down', talk: 'garva', show: () => !G.flags.garva }] };
+}
+
+const INN_ROWS = ['##########', '#B.B.B.kk#', '#........#', '#ccc.....#', '#........#', '#.t...p..#', '#........#', '#####e####'];
+const SHOP_ROWS = ['##########', '#kkk..kkk#', '#........#', '#cccccc..#', '#........#', '#x......x#', '#........#', '####e#####'];
+let MAPS = {};
+function buildMaps() {
+  MAPS = {
+    world: buildWorld(), elm: buildElm(), rosa: buildRosa(), cave: buildCave(), tower1: buildTower1(), tower2: buildTower2(), tower3: buildTower3(),
+    elder: room('elder', '長老の家', ['##########', '#kk..f.kk#', '#........#', '#.t....B.#', '#........#', '#.p....p.#', '#...rr...#', '####e#####'],
+      { map: 'elm', x: 5, y: 6, dir: 'down' }, [{ id: 'elder', x: 6, y: 2, pal: 'elder', talk: 'elder' }]),
+    innElm: room('innElm', '宿屋', INN_ROWS, { map: 'elm', x: 19, y: 6, dir: 'down' }, [{ id: 'innElm', x: 2, y: 2, pal: 'inn', talk: 'innElm' }]),
+    shopElm: room('shopElm', 'よろず屋', SHOP_ROWS, { map: 'elm', x: 5, y: 14, dir: 'down' }, [{ id: 'shopElm', x: 3, y: 2, pal: 'merchant', talk: 'shopElm' }]),
+    innRosa: room('innRosa', '宿屋', INN_ROWS, { map: 'rosa', x: 5, y: 5, dir: 'down' }, [{ id: 'innRosa', x: 2, y: 2, pal: 'inn', talk: 'innRosa' }]),
+    itemRosa: room('itemRosa', '道具屋', SHOP_ROWS, { map: 'rosa', x: 20, y: 5, dir: 'down' }, [{ id: 'itemRosa', x: 3, y: 2, pal: 'merchant', talk: 'itemRosa' }]),
+    smithRosa: room('smithRosa', '武具屋', SHOP_ROWS, { map: 'rosa', x: 5, y: 14, dir: 'down' }, [{ id: 'smithRosa', x: 3, y: 2, pal: 'man', talk: 'smithRosa' }]),
+    pub: room('pub', '酒場「海猫亭」', ['############', '#kkk.f..xxx#', '#..........#', '#ccccc.....#', '#..........#', '#.t..t..t..#', '#..........#', '#..........#', '#####e######'],
+      { map: 'rosa', x: 20, y: 14, dir: 'down' }, [
+        { id: 'barkeep', x: 2, y: 2, pal: 'inn', talk: 'barkeep' },
+        { id: 'zekNpc', x: 9, y: 5, pal: 'zek', dir: 'left', talk: 'zek', show: () => !G.flags.zek },
+        { id: 'patron', x: 3, y: 6, pal: 'sailor', wander: true, talk: 'patron' },
+      ]),
+  };
+}
+
+// ===================== STORY SCRIPTS =====================
+const SCRIPTS = {
+  *intro() {
+    G.fadeLevel = 1;
+    yield* narrate('世界を照らす四つのクリスタル。\n大地、水、炎、そして風。');
+    yield* narrate('人々はその光に守られ\n長い平和の時を過ごしてきた。');
+    yield* narrate('だがある夜、南の塔に眠る\n風のクリスタルが…\n闇に呑まれ始めた。');
+    yield { t: 'fadein' };
+    yield* say('アレン、長老様がお呼びよ。\n村の左上にある長老様の家に行きましょう。\n…なんだか、胸騒ぎがするの。', 'リナ');
+    G.flags.intro = 1;
+  },
+  *elmGate() {
+    if (G.flags.quest) return true;
+    yield* say('待って、アレン!\n先に長老様のところへ行かなくちゃ。\n村の左上の家よ。', 'リナ');
+    return false;
+  },
+  *elder() {
+    if (!G.flags.quest) {
+      yield* say('おお、来たか。アレン、リナ。', '長老');
+      yield* say('南の塔に眠る「風のクリスタル」の光が\n日に日に弱まっておる。\n風が止めば、作物は枯れ、海は荒れる…', '長老');
+      yield* say('塔は今、闇の騎士ガルヴァという男に\n占拠されているそうじゃ。', '長老');
+      yield* say('塔には強い封印がかけられておる。\n港町ローザで、封印を解ける魔導士を\n探すのじゃ。', '長老');
+      yield* say('ローザへは、村の東にある\n北の洞窟を抜けねばならん。\nこれを持っていきなさい。', '長老');
+      addItem('potion', 3); addItem('phoenix', 1); G.gil += 200; G.flags.quest = 1;
+      Audio8.sfx('chest');
+      yield* say('ポーション×3、不死鳥の羽、200ギルを\n受け取った!');
+      yield* say('アレンは剣士として腕を上げた。\nリナの白魔法もある。…頼んだぞ。', '長老');
+    } else if (!G.flags.garva) yield* say('風のクリスタルを頼んだぞ。\n疲れたら宿屋で休むとよい。', '長老');
+    else yield* say('おお…風が戻ってきた。\nよくやってくれた、勇者たちよ。', '長老');
+  },
+  *elmWoman() { yield* say(G.flags.garva ? '風車がまた回り始めたわ!\nありがとう!' : '最近、夜になると洞窟の方から\nうなり声が聞こえるの…\n怖いわ。'); },
+  *elmChild() { yield* say(G.flags.cave_boss ? 'ゴブリンの王様をやっつけたって\nほんと!? すっげー!' : 'MENUボタンでメニューを開けるよ!\nセーブはこまめにね!'); },
+  *elmMan() { yield* say('戦闘では、キャラクターの\nATBゲージがたまったら行動できる。\nわざや魔法を上手に使うんだぞ。'); },
+  *elmGuard() { yield* say('村の外には魔物が出る。\n森や丘では魔物に遭いやすいぞ。\n気をつけてな!', '村の衛兵'); },
+  *elmOld() { yield* say('むかし、この世界には\n「光の戦士」がいたそうな。\nあんたたちのような若者じゃったよ。'); },
+  *innElm() { yield* inn(20); },
+  *innRosa() { yield* inn(40); },
+  *shopElm() { yield* say('いらっしゃい! よろず屋へようこそ。', '店主'); yield { t: 'shop', id: 'elm' }; },
+  *itemRosa() { yield* say('ローザの道具屋だよ。\n船乗りにも冒険者にも人気さ!', '店主'); yield { t: 'shop', id: 'rosaItem' }; },
+  *smithRosa() { yield* say('ミスリル製の武具がそろってるぜ。\n高いが、そのぶん頼りになる!', '鍛冶屋'); yield { t: 'shop', id: 'rosaSmith' }; },
+  *kaiCaged() { yield* say('おーい! 助けてくれ!\nゴブリンどもに捕まっちまったんだ!', '???'); },
+  *caveBoss() {
+    if (G.flags.cave_boss) return;
+    yield* say('おーい! そこの人たち!\n助けてくれ!', '???');
+    Audio8.sfx('boss'); G.shake = 20;
+    yield* say('グフフ…今日は獲物が\nたくさん迷い込んできたわい!', 'ゴブリンキング');
+    yield* say('その人を放せ!', 'アレン');
+    const r = yield { t: 'battle', ids: ['gking'], boss: true, music: 'boss' };
+    if (r !== 'win') return;
+    G.flags.cave_boss = 1;
+    yield* say('ふぅ、助かったぜ!\nオレはカイ。トレジャーハンターさ。', 'カイ');
+    yield* say('洞窟の宝を狙ってたら、あのデカブツに\nつかまっちまってな。\n…ローザに行くのか? 道案内してやるよ!', 'カイ');
+    joinParty('kai'); Audio8.sfx('levelup');
+    yield* say('カイが仲間に加わった!\n(「ぬすむ」で敵から道具を盗める)');
+  },
+  *mayor() {
+    if (!G.flags.zek) yield* say('クリスタルの塔の封印を解けるのは\n魔導士だけじゃ。\n酒場に変わり者の魔導士がおるが…', '町長');
+    else if (!G.flags.garva) yield* say('塔は東の川を渡った先じゃ。\nどうか、クリスタルを頼む。', '町長');
+    else yield* say('風が戻り、船も出せるようになった。\n本当にありがとう!', '町長');
+  },
+  *sailor() { yield* say(G.flags.garva ? '追い風だ! 最高の航海日和だぜ!' : '風が止んで、船が出せねえんだ…\n商売あがったりだよ。', '船乗り'); },
+  *rosaWoman() { yield* say('塔のてっぺんには、\n風のクリスタルが祀られているの。\nとてもきれいな光なんですって。'); },
+  *rosaMan() { yield* say('塔の魔物は手ごわいぞ。\nゴーレムには雷、亡霊には炎や聖なる力が\n効くって話だ。'); },
+  *rosaChild() { yield* say('アサシンダガーっていう\nすごい短剣が塔に眠ってるって\nカイ兄ちゃんが言ってた!'); },
+  *rosaGuard() { yield* say('ようこそ港町ローザへ。\n宿屋で休めば、HPもMPも全快するぞ。', '衛兵'); },
+  *barkeep() { yield* say('いらっしゃい。…奥の魔導士かい?\nずっと塔の古文書をにらんでるよ。', 'マスター'); },
+  *patron() { yield* say('ヒック…ガルヴァってのは\nもともと立派な魔導士だったらしいぜ…'); },
+  *zek() {
+    yield* say('…クリスタルの塔へ行くつもりか。', '魔導士');
+    yield* say('僕はゼク。塔の封印を研究している。\nガルヴァは…かつての僕の兄弟子だ。', 'ゼク');
+    yield* say('あいつはクリスタルの力に魅入られ、\n闇に堕ちた。止められるのは僕だけだ。', 'ゼク');
+    yield* say('…君たちと行こう。\n封印は僕が解く。', 'ゼク');
+    joinParty('zek'); G.flags.zek = 1; Audio8.sfx('levelup');
+    yield* say('ゼクが仲間に加わった!\n(黒魔法で敵の弱点を突こう)');
+  },
+  *towerSeal() {
+    if (!G.flags.zek) { yield* say('見えない壁に阻まれて、中に入れない…\n魔導士の力が必要なようだ。'); return false; }
+    if (!G.flags.towerOpen) {
+      yield* say('古き風よ、封を解け……!', 'ゼク');
+      Audio8.sfx('crystal'); G.flash = 30; yield { t: 'wait', n: 40 };
+      yield* say('塔の封印が解かれた!');
+      G.flags.towerOpen = 1;
+    }
+    return true;
+  },
+  *guardian() {
+    if (G.flags.guardian) return;
+    yield* say('…シンニュウシャ…ハイジョ…スル…', 'ガーディアン');
+    const r = yield { t: 'battle', ids: ['guardian'], boss: true, music: 'boss' };
+    if (r !== 'win') return;
+    G.flags.guardian = 1;
+    yield* say('番人が砕け散り、上への道が開けた。');
+  },
+  *garva() {
+    if (G.flags.garva) return;
+    yield* say('来たか、ゼク。\nそして愚かな旅人どもよ。', 'ガルヴァ');
+    yield* say('ガルヴァ! クリスタルから離れろ!', 'ゼク');
+    yield* say('クリスタルの光は、いずれ消える。\nならば私が闇に還し、\n永遠の静寂をもたらそう。', 'ガルヴァ');
+    yield* say('そんなこと、させるもんか!', 'アレン');
+    Audio8.sfx('boss'); G.shake = 30;
+    yield* say('ならば…闇に沈め!', 'ガルヴァ');
+    const r = yield { t: 'battle', ids: ['garva'], boss: true, music: 'boss', final: true };
+    if (r !== 'win') return;
+    G.flags.garva = 1;
+    yield* say('バカな…この、私が……\nゼク…お前は…光を……', 'ガルヴァ');
+    G.flash = 60; Audio8.sfx('crystal'); yield { t: 'wait', n: 70 };
+    yield* say('風のクリスタルが\nまばゆい光を取り戻した!');
+    yield* say('…兄さん。\nあなたの分まで、光を守るよ。', 'ゼク');
+    yield { t: 'ending' };
+  },
+};
