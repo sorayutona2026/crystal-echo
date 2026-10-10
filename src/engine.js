@@ -1,6 +1,8 @@
 'use strict';
 // ===================== ENGINE =====================
-const SW = 256, SH = 224, SCALE = 3;
+const SW = 256, SH = 224;
+// crisp integer render scale: 3x normally, 4x on big desktop windows (the canvas is then shown up to 1024px wide)
+const SCALE = (window.matchMedia && matchMedia('(pointer: fine)').matches && Math.min(innerWidth, innerHeight * SW / SH) >= 900) ? 4 : 3;
 const cv = document.getElementById('screen');
 cv.width = SW * SCALE; cv.height = SH * SCALE;
 const MAIN = cv.getContext('2d');
@@ -167,14 +169,24 @@ function drawSwipe() {
 const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 
 // ---- layout fit ----
+// landscape phones: the screen takes the full height and the buttons sit in the side margins
+const LANDSCAPE = window.matchMedia ? matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 600px)') : { matches: false };
 function fit() {
   const pad = document.getElementById('pad'), keys = document.getElementById('keys'), bar = document.getElementById('bar');
-  const extra = (pad && pad.offsetHeight) + (keys && keys.offsetHeight) + (bar && bar.offsetHeight) + 44;
   const app = document.getElementById('app');
-  const availW = app.clientWidth - 32, availH = app.clientHeight - extra;
-  let w = Math.min(availW, availH * SW / SH, 768);
+  const land = LANDSCAPE.matches;
+  document.body.classList.toggle('land', land);
+  let availW, availH;
+  if (land) { availW = app.clientWidth - 2 * 112; availH = app.clientHeight - 4; }
+  else {
+    const extra = (pad && pad.offsetHeight) + (keys && keys.offsetHeight) + (bar && bar.offsetHeight) + 30;
+    availW = app.clientWidth - 12; availH = app.clientHeight - extra;
+  }
+  let w = Math.min(availW, availH * SW / SH, SW * SCALE);
   w = Math.max(200, w);
   cv.style.width = Math.floor(w) + 'px'; cv.style.height = Math.floor(w * SH / SW) + 'px';
+  // upscaling stays crisp; downscaling (phones) uses the browser's smooth filter instead of dropping pixels
+  cv.style.imageRendering = w >= SW * SCALE ? 'pixelated' : 'auto';
 }
 addEventListener('resize', fit);
 

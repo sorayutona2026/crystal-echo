@@ -1,7 +1,26 @@
 // ===================== HD-2D RENDER PIPELINE =====================
 // World is drawn into a 256x224 pixel layer (crisp pixels), then composited onto the 3x main canvas
 // with smooth lighting: colored light map, bloom, tilt-shift depth of field, light shafts, particles, vignette.
-const pcv = mkCanvas(SW, SH), pctx = pcv.getContext('2d');
+const pcv = mkCanvas(SW, SH), pctx = pcv.getContext('2d', { willReadFrequently: true });
+// Scale2x / EPX: edge-directed 2x upscale of the pixel layer. Diagonals and curves lose their stair-steps while flat colours
+// and single-pixel detail stay untouched, so it reads as "HD remaster" rather than blur.
+const epxC = mkCanvas(SW * 2, SH * 2), epxX = epxC.getContext('2d', { willReadFrequently: true });
+let epxIn = null, epxOut = null;
+function epx() {
+  const src = pctx.getImageData(0, 0, SW, SH); const S = new Uint32Array(src.data.buffer);
+  if (!epxOut) epxOut = epxX.createImageData(SW * 2, SH * 2); const O = new Uint32Array(epxOut.data.buffer); const W2 = SW * 2;
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+    const i = y * SW + x, P = S[i];
+    const A = y > 0 ? S[i - SW] : P, B = x < SW - 1 ? S[i + 1] : P, C = x > 0 ? S[i - 1] : P, D = y < SH - 1 ? S[i + SW] : P;
+    let p1 = P, p2 = P, p3 = P, p4 = P;
+    if (C === A && C !== D && A !== B) p1 = A;
+    if (A === B && A !== C && B !== D) p2 = B;
+    if (D === C && D !== B && C !== A) p3 = C;
+    if (B === D && B !== A && D !== C) p4 = D;
+    const o = y * 2 * W2 + x * 2; O[o] = p1; O[o + 1] = p2; O[o + W2] = p3; O[o + W2 + 1] = p4;
+  }
+  epxX.putImageData(epxOut, 0, 0); return epxC;
+}
 const shadowC = mkCanvas(SW, SH), shx = shadowC.getContext('2d');
 const halfC = mkCanvas(SW / 2, SH / 2), hlx = halfC.getContext('2d');
 const qC = mkCanvas(SW / 4, SH / 4), qx = qC.getContext('2d', { willReadFrequently: true });
@@ -9,7 +28,10 @@ const bloomC = mkCanvas(SW / 4, SH / 4), bx = bloomC.getContext('2d');
 const lightC = mkCanvas(SW / 2, SH / 2), lx = lightC.getContext('2d');
 const hiC = mkCanvas(SW / 2, SH / 2), hix = hiC.getContext('2d');
 let LIGHTS = [];
-const QUALITY = { level: 2 }; // 2 = full, 1 = lighter, 0 = minimal (auto-adjusted by frame time)
+// level: 2 = full, 1 = lighter, 0 = minimal (auto-adjusted by frame time)
+// smooth: '1' = Scale2x edge smoothing (opt-in: it costs a little extra per frame), anything else = off
+const QUALITY = { level: 2, smooth: (() => { try { return Store.get('crystal-echo-smooth') === '1' ? '1' : '0'; } catch (e) { return '0'; } })() };
+function smoothOn() { return QUALITY.smooth === '1'; }
 const W3 = SW * SCALE, H3 = SH * SCALE;
 
 function beginWorld(clear) {
@@ -84,7 +106,8 @@ function hexA(col, a) { const c = hex(col); return `rgba(${c[0]},${c[1]},${c[2]}
 function layerToMain(dof) {
   const M = MAIN; ctx = MAIN;
   M.save(); M.setTransform(1, 0, 0, 1, 0, 0); M.globalCompositeOperation = 'source-over'; M.globalAlpha = 1;
-  M.imageSmoothingEnabled = false; M.drawImage(pcv, 0, 0, W3, H3);
+  if (smoothOn() && QUALITY.level >= 2) { M.imageSmoothingEnabled = SCALE % 2 === 1; M.imageSmoothingQuality = 'high'; M.drawImage(epx(), 0, 0, W3, H3); }
+  else { M.imageSmoothingEnabled = false; M.drawImage(pcv, 0, 0, W3, H3); }
   const q = downsample(pcv);
   if (dof && QUALITY.level >= 1) {
     hix.globalCompositeOperation = 'copy'; hix.imageSmoothingEnabled = true; hix.drawImage(halfC, 0, 0);
@@ -162,8 +185,8 @@ function drawParticles(kind) {
     const p = PARTS[i]; p.t++; p.x += p.vx + Math.sin((p.t + p.ph) / 40) * p.sw; p.y += p.vy;
     if (p.t > p.life || p.y < -20 || p.y > H3 + 20 || p.x < -20 || p.x > W3 + 20) { PARTS[i] = newPart(kind, false); continue; }
     const a = Math.min(1, p.t / 30, (p.life - p.t) / 30) * p.a;
-    if (kind === 'petals' || kind === 'leaves') { M.globalAlpha = a; M.fillStyle = p.col; M.save(); M.translate(p.x, p.y); M.rotate(p.t / 20 + p.ph); M.fillRect(-3, -1.5, 6, 3); M.restore(); M.globalAlpha = 1; continue; }
-    const r = p.r * (kind === 'sparks' ? (0.7 + 0.3 * Math.sin(p.t / 6 + p.ph)) : 1);
+    if (kind === 'petals' || kind === 'leaves') { M.globalAlpha = a; M.fillStyle = p.col; M.save(); M.translate(p.x, p.y); M.rotate(p.t / 20 + p.ph); M.fillRect(-3 * SCALE / 3, -1.5 * SCALE / 3, 6 * SCALE / 3, 3 * SCALE / 3); M.restore(); M.globalAlpha = 1; continue; }
+    const r = p.r * (SCALE / 3) * (kind === 'sparks' ? (0.7 + 0.3 * Math.sin(p.t / 6 + p.ph)) : 1);
     const g = M.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3); g.addColorStop(0, hexA(p.col, a)); g.addColorStop(0.3, hexA(p.col, a * 0.5)); g.addColorStop(1, hexA(p.col, 0));
     M.fillStyle = g; M.fillRect(p.x - r * 3, p.y - r * 3, r * 6, r * 6);
   }

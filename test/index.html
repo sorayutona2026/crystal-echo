@@ -14,7 +14,7 @@ html,body{height:100%}
 body{background:var(--void);color:var(--ink);font-family:var(--font);overflow:hidden;
   touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #app{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;
-  gap:10px;padding-inline:16px;padding-block:8px}
+  gap:8px;padding-inline:6px;padding-block:6px}
 #bar{width:100%;max-width:768px;display:flex;justify-content:space-between;align-items:center;
   font-size:13px;color:var(--muted);letter-spacing:.08em}
 #bar b{color:var(--gem);font-family:var(--serif);font-weight:800;letter-spacing:.14em}
@@ -64,9 +64,27 @@ body.nodpad #mid{grid-column:2;grid-row:1}
 body.nodpad #btnA{grid-column:3;grid-row:1;justify-self:end}
 body.nodpad #menuBtn{padding:12px 20px;font-size:14px}
 @media (hover:hover) and (pointer:fine){#pad{display:none}#keys{display:block}}
+/* landscape phone: the screen fills the height, controls float in the black side margins */
+body.land #app{flex-direction:row;justify-content:center;align-items:center;padding:0;gap:0}
+body.land #bar{position:fixed;top:4px;right:6px;width:auto;z-index:6;max-width:none}
+body.land #bar .ttl{display:none}
+body.land #bar button{padding:3px 8px;font-size:11px;opacity:.7}
+body.land #screen{border-radius:0;border-width:1px}
+body.land #pad{position:fixed;inset:0;max-width:none;display:block;pointer-events:none;z-index:5}
+body.land #pad>*{pointer-events:none}
+body.land .pbtn,body.land #dpad{pointer-events:auto}
+body.land #ab{display:contents}
+body.land #ab .pbtn{position:fixed;width:74px;height:74px;font-size:15px;opacity:.88}
+body.land #btnA{right:22px;bottom:18px;top:auto;left:auto}
+body.land #btnB{right:22px;bottom:104px;top:auto;left:auto}
+body.land #mid{position:fixed;right:20px;top:34px}
+body.land #menuBtn{pointer-events:auto;padding:8px 14px;opacity:.85}
+body.land #dpad{position:fixed;left:18px;bottom:16px;zoom:.78}
+body.land.nodpad #dpad{display:none}
+body.land #keys{display:none}
 </style>
 <div id="app">
-  <div id="bar"><span class="ttl"><b>CRYSTAL ECHO</b><span class="sub">　クリスタル・エコー</span></span><span class="btns"><button id="padToggle" type="button">十字キー</button><button id="mute" type="button">♪ ON</button></span></div>
+  <div id="bar"><span class="ttl"><b>CRYSTAL ECHO</b><span class="sub">　クリスタル・エコー</span></span><span class="btns"><button id="smoothToggle" type="button">なめらか</button><button id="padToggle" type="button">十字キー</button><button id="mute" type="button">♪ ON</button></span></div>
   <canvas id="screen" width="768" height="672"></canvas>
   <div id="pad">
     <div id="dpad"><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i></div>
@@ -80,7 +98,9 @@ body.nodpad #menuBtn{padding:12px 20px;font-size:14px}
 const GLYPHS = '×π—…→▲▶▼◀◆♪\u3000、。々「」』〜あいぅうえおかがきぎくぐけげこごさざしじすずせぜそぞただちっつづてでとどなにぬねのはばひびふぶへべぺほぼぽまみむめもゃやゆょよらりるれろわをんァアィイウエオカガキギクグケゲコゴサザシジスズセゼソタダチッテデトドナニネハバヒビピフブプヘベペホボポマミムメモャュョラリルレロワンヴ・ー一丈三上下不世丘並中主乗乾二亡亭人今仕付代仲休会似体何余作使供個倒値側備傷僕元兄先光入全六共兵具内再冒冶出刃分切刻前剣力加助効動勘包北十南印去取受口古叩叫右合同名君吟吸吹味呼命和員商器四回図地場塔墓増壁壇士声売変夕外夜夢大天夫失奥女妹始嫌子字学守定宝宮家宿封専導小届屋嵐川左巨帆帰年広店度引弟弱張強当影彼待後御復必志忘快怖思急恐息悪想意慢慣懐戦戻所手技抜押拒拾持捕掛探接描撃攻放故救教散敵文斬新方旅旋日早明映時晩暗書替最服朝本村杖束来東果枯染案森棲楽様横樫次止武死残母毎毒気水氷永求決沈治泊法波泣洗洞活派流海消減渡港渾満滅激濯灯炎点無照爪父牙物猫獲王理生用由町界番疲疾痛白盗目直眠短石研砕破示祀祠祭私秘移究空突窓窟立笑答箱粒精約素経絵絹続編縫置羽翼老考者耳聖聞育背胸能腕膨自航船花若英茶荒葉血行術衛裂装製西要見覚親解言詩話詳誇誰議賢起越足跡身車輝輪辺込近迷追逃通速連進遊道遠遭遺郷酒金針鉄鉤銅鍛鎖鎧鎮長開間闇闘防阻険隕雄離雷震霊静音頼顔風飛食飯騎験骸高魔鳥鳴黒！）？～';
 'use strict';
 // ===================== ENGINE =====================
-const SW = 256, SH = 224, SCALE = 3;
+const SW = 256, SH = 224;
+// crisp integer render scale: 3x normally, 4x on big desktop windows (the canvas is then shown up to 1024px wide)
+const SCALE = (window.matchMedia && matchMedia('(pointer: fine)').matches && Math.min(innerWidth, innerHeight * SW / SH) >= 900) ? 4 : 3;
 const cv = document.getElementById('screen');
 cv.width = SW * SCALE; cv.height = SH * SCALE;
 const MAIN = cv.getContext('2d');
@@ -247,14 +267,24 @@ function drawSwipe() {
 const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 
 // ---- layout fit ----
+// landscape phones: the screen takes the full height and the buttons sit in the side margins
+const LANDSCAPE = window.matchMedia ? matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 600px)') : { matches: false };
 function fit() {
   const pad = document.getElementById('pad'), keys = document.getElementById('keys'), bar = document.getElementById('bar');
-  const extra = (pad && pad.offsetHeight) + (keys && keys.offsetHeight) + (bar && bar.offsetHeight) + 44;
   const app = document.getElementById('app');
-  const availW = app.clientWidth - 32, availH = app.clientHeight - extra;
-  let w = Math.min(availW, availH * SW / SH, 768);
+  const land = LANDSCAPE.matches;
+  document.body.classList.toggle('land', land);
+  let availW, availH;
+  if (land) { availW = app.clientWidth - 2 * 112; availH = app.clientHeight - 4; }
+  else {
+    const extra = (pad && pad.offsetHeight) + (keys && keys.offsetHeight) + (bar && bar.offsetHeight) + 30;
+    availW = app.clientWidth - 12; availH = app.clientHeight - extra;
+  }
+  let w = Math.min(availW, availH * SW / SH, SW * SCALE);
   w = Math.max(200, w);
   cv.style.width = Math.floor(w) + 'px'; cv.style.height = Math.floor(w * SH / SW) + 'px';
+  // upscaling stays crisp; downscaling (phones) uses the browser's smooth filter instead of dropping pixels
+  cv.style.imageRendering = w >= SW * SCALE ? 'pixelated' : 'auto';
 }
 addEventListener('resize', fit);
 
@@ -1410,7 +1440,26 @@ function buildEnemyArt() {
 // ===================== HD-2D RENDER PIPELINE =====================
 // World is drawn into a 256x224 pixel layer (crisp pixels), then composited onto the 3x main canvas
 // with smooth lighting: colored light map, bloom, tilt-shift depth of field, light shafts, particles, vignette.
-const pcv = mkCanvas(SW, SH), pctx = pcv.getContext('2d');
+const pcv = mkCanvas(SW, SH), pctx = pcv.getContext('2d', { willReadFrequently: true });
+// Scale2x / EPX: edge-directed 2x upscale of the pixel layer. Diagonals and curves lose their stair-steps while flat colours
+// and single-pixel detail stay untouched, so it reads as "HD remaster" rather than blur.
+const epxC = mkCanvas(SW * 2, SH * 2), epxX = epxC.getContext('2d', { willReadFrequently: true });
+let epxIn = null, epxOut = null;
+function epx() {
+  const src = pctx.getImageData(0, 0, SW, SH); const S = new Uint32Array(src.data.buffer);
+  if (!epxOut) epxOut = epxX.createImageData(SW * 2, SH * 2); const O = new Uint32Array(epxOut.data.buffer); const W2 = SW * 2;
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+    const i = y * SW + x, P = S[i];
+    const A = y > 0 ? S[i - SW] : P, B = x < SW - 1 ? S[i + 1] : P, C = x > 0 ? S[i - 1] : P, D = y < SH - 1 ? S[i + SW] : P;
+    let p1 = P, p2 = P, p3 = P, p4 = P;
+    if (C === A && C !== D && A !== B) p1 = A;
+    if (A === B && A !== C && B !== D) p2 = B;
+    if (D === C && D !== B && C !== A) p3 = C;
+    if (B === D && B !== A && D !== C) p4 = D;
+    const o = y * 2 * W2 + x * 2; O[o] = p1; O[o + 1] = p2; O[o + W2] = p3; O[o + W2 + 1] = p4;
+  }
+  epxX.putImageData(epxOut, 0, 0); return epxC;
+}
 const shadowC = mkCanvas(SW, SH), shx = shadowC.getContext('2d');
 const halfC = mkCanvas(SW / 2, SH / 2), hlx = halfC.getContext('2d');
 const qC = mkCanvas(SW / 4, SH / 4), qx = qC.getContext('2d', { willReadFrequently: true });
@@ -1418,7 +1467,10 @@ const bloomC = mkCanvas(SW / 4, SH / 4), bx = bloomC.getContext('2d');
 const lightC = mkCanvas(SW / 2, SH / 2), lx = lightC.getContext('2d');
 const hiC = mkCanvas(SW / 2, SH / 2), hix = hiC.getContext('2d');
 let LIGHTS = [];
-const QUALITY = { level: 2 }; // 2 = full, 1 = lighter, 0 = minimal (auto-adjusted by frame time)
+// level: 2 = full, 1 = lighter, 0 = minimal (auto-adjusted by frame time)
+// smooth: '1' = Scale2x edge smoothing (opt-in: it costs a little extra per frame), anything else = off
+const QUALITY = { level: 2, smooth: (() => { try { return Store.get('crystal-echo-smooth') === '1' ? '1' : '0'; } catch (e) { return '0'; } })() };
+function smoothOn() { return QUALITY.smooth === '1'; }
 const W3 = SW * SCALE, H3 = SH * SCALE;
 
 function beginWorld(clear) {
@@ -1493,7 +1545,8 @@ function hexA(col, a) { const c = hex(col); return `rgba(${c[0]},${c[1]},${c[2]}
 function layerToMain(dof) {
   const M = MAIN; ctx = MAIN;
   M.save(); M.setTransform(1, 0, 0, 1, 0, 0); M.globalCompositeOperation = 'source-over'; M.globalAlpha = 1;
-  M.imageSmoothingEnabled = false; M.drawImage(pcv, 0, 0, W3, H3);
+  if (smoothOn() && QUALITY.level >= 2) { M.imageSmoothingEnabled = SCALE % 2 === 1; M.imageSmoothingQuality = 'high'; M.drawImage(epx(), 0, 0, W3, H3); }
+  else { M.imageSmoothingEnabled = false; M.drawImage(pcv, 0, 0, W3, H3); }
   const q = downsample(pcv);
   if (dof && QUALITY.level >= 1) {
     hix.globalCompositeOperation = 'copy'; hix.imageSmoothingEnabled = true; hix.drawImage(halfC, 0, 0);
@@ -1571,8 +1624,8 @@ function drawParticles(kind) {
     const p = PARTS[i]; p.t++; p.x += p.vx + Math.sin((p.t + p.ph) / 40) * p.sw; p.y += p.vy;
     if (p.t > p.life || p.y < -20 || p.y > H3 + 20 || p.x < -20 || p.x > W3 + 20) { PARTS[i] = newPart(kind, false); continue; }
     const a = Math.min(1, p.t / 30, (p.life - p.t) / 30) * p.a;
-    if (kind === 'petals' || kind === 'leaves') { M.globalAlpha = a; M.fillStyle = p.col; M.save(); M.translate(p.x, p.y); M.rotate(p.t / 20 + p.ph); M.fillRect(-3, -1.5, 6, 3); M.restore(); M.globalAlpha = 1; continue; }
-    const r = p.r * (kind === 'sparks' ? (0.7 + 0.3 * Math.sin(p.t / 6 + p.ph)) : 1);
+    if (kind === 'petals' || kind === 'leaves') { M.globalAlpha = a; M.fillStyle = p.col; M.save(); M.translate(p.x, p.y); M.rotate(p.t / 20 + p.ph); M.fillRect(-3 * SCALE / 3, -1.5 * SCALE / 3, 6 * SCALE / 3, 3 * SCALE / 3); M.restore(); M.globalAlpha = 1; continue; }
+    const r = p.r * (SCALE / 3) * (kind === 'sparks' ? (0.7 + 0.3 * Math.sin(p.t / 6 + p.ph)) : 1);
     const g = M.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3); g.addColorStop(0, hexA(p.col, a)); g.addColorStop(0.3, hexA(p.col, a * 0.5)); g.addColorStop(1, hexA(p.col, 0));
     M.fillStyle = g; M.fillRect(p.x - r * 3, p.y - r * 3, r * 6, r * 6);
   }
@@ -4485,6 +4538,13 @@ const fontReady = (document.fonts && document.fonts.load) ? Promise.race([
 const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) hot.snapshot(() => (G.scene === Field && !G.script) ? snapshot() : null);
 fontReady.catch(() => { }).then(() => { if (hot && hot.ready) hot.ready(boot); else boot(hot && hot.data); });
+// edge smoothing on/off, remembered
+(function () {
+  const btn = document.getElementById('smoothToggle'); if (!btn) return;
+  const label = () => { btn.textContent = 'なめらか ' + (QUALITY.smooth === '1' ? 'ON' : 'OFF'); };
+  btn.addEventListener('click', e => { QUALITY.smooth = QUALITY.smooth === '1' ? '0' : '1'; Store.set('crystal-echo-smooth', QUALITY.smooth); label(); e.currentTarget.blur(); });
+  label();
+})();
 
 </script>
 </body></html>

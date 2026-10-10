@@ -52,3 +52,10 @@ const fontReady = (document.fonts && document.fonts.load) ? Promise.race([
 const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) hot.snapshot(() => (G.scene === Field && !G.script) ? snapshot() : null);
 fontReady.catch(() => { }).then(() => { if (hot && hot.ready) hot.ready(boot); else boot(hot && hot.data); });
+// edge smoothing on/off, remembered
+(function () {
+  const btn = document.getElementById('smoothToggle'); if (!btn) return;
+  const label = () => { btn.textContent = 'なめらか ' + (QUALITY.smooth === '1' ? 'ON' : 'OFF'); };
+  btn.addEventListener('click', e => { QUALITY.smooth = QUALITY.smooth === '1' ? '0' : '1'; Store.set('crystal-echo-smooth', QUALITY.smooth); label(); e.currentTarget.blur(); });
+  label();
+})();
