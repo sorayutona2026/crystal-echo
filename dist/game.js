@@ -3283,16 +3283,17 @@ const FRONT = {};
 function frontOf(k, happy) { const key = k + (happy ? '!' : ''); return FRONT[key] || (FRONT[key] = hdFront(k, happy ? 'happy' : 'neutral')); }
 // painted portrait images (PORTRAIT_IMG data URIs); null until decoded or when the hero has none
 const PAINTED = {};
-function paintedOf(k) { if (typeof PORTRAIT_IMG === 'undefined' || !PORTRAIT_IMG[k]) return null; let im = PAINTED[k]; if (!im) { im = PAINTED[k] = new Image(); im.src = PORTRAIT_IMG[k]; } return im.complete && im.naturalWidth ? im : null; }
+// mood '' or 'smile'; a hero with a '<id>_smile' image uses it for lines with !, otherwise the plain '<id>' image
+function paintedOf(k, mood) { if (typeof PORTRAIT_IMG === 'undefined') return null; const key = mood && PORTRAIT_IMG[k + '_' + mood] ? k + '_' + mood : k; if (!PORTRAIT_IMG[key]) return null; let im = PAINTED[key]; if (!im) { im = PAINTED[key] = new Image(); im.src = PORTRAIT_IMG[key]; } return im.complete && im.naturalWidth ? im : null; }
 function drawPortrait(k, x, y) {
   win(x, y, 52, 56);
   ctx.save(); ctx.beginPath(); ctx.rect(x + 3, y + 3, 46, 50); ctx.clip();
   const g = ctx.createRadialGradient(x + 26, y + 24, 2, x + 26, y + 24, 34); g.addColorStop(0, 'rgba(120,140,220,.35)'); g.addColorStop(1, 'rgba(20,20,50,0)'); ctx.fillStyle = g; ctx.fillRect(x + 3, y + 3, 46, 50);
-  if (HERO_STYLE[k]) { // head and shoulders of the front view, smoothly scaled into the frame
-    const happy = G.dialog && /[!！♪]/.test(G.dialog.text || '') && k !== 'zek';
-    const pi = paintedOf(k); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    if (pi) ctx.drawImage(pi, 0, 0, pi.width, pi.height, x + 3, y + 3, 46, 50); else ctx.drawImage(animeOf(k, happy), 0, 0, 192, 192, x + 3, y + 5, 48, 48);
-    ctx.imageSmoothingEnabled = false;
+  const happy = G.dialog && /[!！♪]/.test(G.dialog.text || '') && k !== 'zek';
+  const pi = paintedOf(k, happy ? 'smile' : '');
+  if (pi) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(pi, 0, 0, pi.width, pi.height, x + 3, y + 3, 46, 50); ctx.imageSmoothingEnabled = false; }
+  else if (HERO_STYLE[k]) { // vector bust (fallback when there is no painted image)
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(animeOf(k, happy), 0, 0, 192, 192, x + 3, y + 5, 48, 48); ctx.imageSmoothingEnabled = false;
   }
   else if (k === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest; ctx.drawImage(A.frames[(G.frame >> 4) % 4], 22, 0, 42, 34, x + 2, y + 6, 48, 39); }
   else if (k === 'spirit') { drawSpirit(x + 26, y + 30, 2); }
