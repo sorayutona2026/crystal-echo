@@ -63,29 +63,31 @@ function animeBust(id, mood) {
   // ears
   for (const k of [-1, 1]) { const ex = 96 + k * 42; part([[ex, 86], [ex + k * 8, 84], [ex + k * 8, 100], [ex, 104]], L.skin, { lw: 2 }); }
   part([[56, 74], [54, 98], [66, 122], [96, 138], [126, 122], [138, 98], [136, 74], [96, 36]], L.skin, {
-    shade: [[[96, 44], [136, 74], [138, 98], [126, 122], [110, 130], [118, 100], [114, 78]], [[56, 74], [136, 74], [136, 84], [56, 84]]],
-    shadeCol: 'rgba(200,120,90,.22)', lw: 2.6 });
+    shade: [[[96, 44], [136, 74], [138, 98], [126, 122], [110, 130], [118, 100], [114, 78]], [[56, 74], [136, 74], [136, 80], [56, 80]]],
+    shadeCol: 'rgba(200,120,90,.16)', lw: 2.6 });
   // blush
-  for (const k of [-1, 1]) { const g = x.createRadialGradient(96 + k * 28, 112, 1, 96 + k * 28, 112, 12); g.addColorStop(0, 'rgba(255,110,110,.5)'); g.addColorStop(1, 'rgba(255,110,110,0)'); x.fillStyle = g; x.fillRect(96 + k * 28 - 14, 98, 28, 28); }
+  for (const k of [-1, 1]) { const g = x.createRadialGradient(96 + k * 30, 124, 1, 96 + k * 30, 124, 11); g.addColorStop(0, 'rgba(255,110,110,.5)'); g.addColorStop(1, 'rgba(255,110,110,0)'); x.fillStyle = g; x.fillRect(96 + k * 30 - 14, 110, 28, 28); }
   // ---- eyes ----
   const lid = id === 'zek' ? 3 : 0; // half-lidded and calm
   const eye = (ex, ey, k) => {
     if (happy) { stroke([[ex - 14, ey + 4], [ex - 8, ey - 8, ex + 8, ey - 8, ex + 14, ey + 4]], '#2a1620', 4.4); stroke([[ex - 10, ey + 8], [ex, ey + 2, ex + 10, ey + 8]], 'rgba(220,120,120,.0)', 1); return; }
-    // white
-    P([[ex - 14, ey - 2], [ex - 8, ey - 15 + lid, ex + 8, ey - 15 + lid, ex + 14, ey - 2], [ex + 10, ey + 14, ex - 10, ey + 14, ex - 14, ey - 2]]); x.fillStyle = '#fbfbff'; x.fill();
-    x.save(); P([[ex - 14, ey - 2], [ex - 8, ey - 15 + lid, ex + 8, ey - 15 + lid, ex + 14, ey - 2], [ex + 10, ey + 14, ex - 10, ey + 14, ex - 14, ey - 2]]); x.clip();
-    const g = x.createLinearGradient(0, ey - 16, 0, ey + 15); g.addColorStop(0, sh(L.iris, 0.4)); g.addColorStop(0.45, L.iris); g.addColorStop(1, sh(L.iris, 1.6));
-    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 1, 10.5, 14.5, 0, 0, 7); x.fill();
-    x.fillStyle = '#12101c'; x.beginPath(); x.ellipse(ex, ey + 1, 5, 8, 0, 0, 7); x.fill();
-    x.fillStyle = sh(L.iris, 0.35); x.fillRect(ex - 12, ey - 16, 24, 6 + lid); // upper-lid shadow
+    // anime eye: tall rounded shape, the iris fills almost all of it, only slivers of white at the sides
+    const W = 17, T = 19 - lid, B = 17, shp = [[ex - W, ey - 1], [ex - W + 2, ey - T, ex + W - 2, ey - T, ex + W, ey - 1], [ex + W - 1, ey + B, ex - W + 1, ey + B, ex - W, ey - 1]];
+    P(shp); x.fillStyle = '#fbfbff'; x.fill();
+    x.save(); P(shp); x.clip();
+    const g = x.createLinearGradient(0, ey - T, 0, ey + B); g.addColorStop(0, sh(L.iris, 0.32)); g.addColorStop(0.4, sh(L.iris, 0.85)); g.addColorStop(0.75, L.iris); g.addColorStop(1, sh(L.iris, 1.75));
+    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 1, 13.5, 17.5, 0, 0, 7); x.fill();
+    x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 1.5, 6.4, 8.8, 0, 0, 7); x.fill();
+    // bright crescent along the bottom of the iris
+    x.strokeStyle = sh(L.iris, 1.9); x.globalAlpha = 0.55; x.lineWidth = 2.4; x.beginPath(); x.ellipse(ex, ey + 2, 10, 13, 0, 0.35, Math.PI - 0.35); x.stroke(); x.globalAlpha = 1;
+    x.fillStyle = 'rgba(30,20,40,.45)'; x.fillRect(ex - W, ey - T - 1, W * 2, 7 + lid); // lid shadow on the iris
     x.restore();
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 4.2, ey - 5, 3.6, 4.2, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(ex + 4.5, ey + 7, 2, 2.2, 0, 0, 7); x.fill();
-    // lashes: heavy upper line with a small flick on the outer side
-    stroke([[ex - 15, ey - 1], [ex - 9, ey - 15 + lid, ex + 9, ey - 15 + lid, ex + 15, ey - 1]], '#241420', 4.6);
-    stroke([[ex + k * 13, ey - 4], [ex + k * 19, ey - 8]], '#241420', 3);
-    stroke([[ex - 9, ey + 13], [ex, ey + 15, ex + 9, ey + 13]], 'rgba(120,70,70,.5)', 1.4);
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 6, ey - 6, 5, 6, -0.2, 0, 7); x.fill(); x.beginPath(); x.ellipse(ex + 6.5, ey + 8, 2.6, 2.8, 0, 0, 7); x.fill();
+    stroke([[ex - W - 1, ey - 1], [ex - W + 3, ey - T - 1, ex + W - 3, ey - T - 1, ex + W + 1, ey - 1]], '#1e1018', 5.6);
+    stroke([[ex + k * (W + 1), ey - 3], [ex + k * (W + 8), ey - 8]], '#1e1018', 3.4);
+    stroke([[ex - 11, ey + B - 1], [ex, ey + B + 1, ex + 11, ey + B - 1]], 'rgba(120,70,70,.45)', 1.5);
   };
-  eye(72, 98, -1); eye(120, 98, 1);
+  eye(70, 99, -1); eye(122, 99, 1);
   // brows
   for (const k of [-1, 1]) stroke([[96 + k * 40, 80], [96 + k * 26, 74 + (id === 'allen' ? -3 : 0), 96 + k * 14, 78]], sh(hairCol === '#b8bedc' ? '#8a90b8' : hairCol, 0.6), 3.2);
   // nose, mouth
