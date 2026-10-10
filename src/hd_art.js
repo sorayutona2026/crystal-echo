@@ -26,7 +26,7 @@ function grassBlades(x, r, n, minH = 2, maxH = 5) {
 }
 function patch(x, cx, cy, rad, col) { wrap9((dx, dy) => { const g = x.createRadialGradient(cx + dx, cy + dy, 0, cx + dx, cy + dy, rad); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(cx + dx - rad, cy + dy - rad, rad * 2, rad * 2); }); }
 
-function hdGrass(seed, flowers = 0) {
+function hdGrass(seed, flowers = 0, calm = false) {
   const [c, x] = hdc(); const r = mulberry(seed * 977 + 13);
   fillNoise(x, '#417d2e', '#74b348', seed);
   for (let i = 0; i < 7; i++) patch(x, r() * HS, r() * HS, 5 + r() * 8, r() < 0.55 ? 'rgba(20,56,18,.30)' : 'rgba(190,235,110,.26)');
@@ -35,8 +35,8 @@ function hdGrass(seed, flowers = 0) {
   // darker tuft clusters: a few overlapping blades with a shadow beneath give the lawn depth
   for (let i = 0; i < 6; i++) { const bx = r() * HS, by = 6 + r() * 24; wrap9((dx, dy) => { if (bx + dx > -5 && bx + dx < HS + 5 && by + dy > 0 && by + dy < HS + 6) { x.fillStyle = 'rgba(12,40,12,.28)'; x.beginPath(); x.ellipse(bx + dx, by + dy + 0.5, 3.2, 1.1, 0, 0, 7); x.fill(); for (let k = -2; k <= 2; k++) blade(x, bx + dx + k * 1.1, by + dy, 4.5 - Math.abs(k) * 0.7, k * 0.9, GRASS_COLS[1 + (k + 2) % 4], 1.1); } }); }
   for (let i = 0; i < 18; i++) { x.fillStyle = 'rgba(220,255,150,.5)'; x.fillRect(Math.floor(r() * HS), Math.floor(r() * HS), 1, 1); }
-  if (seed % 4 === 1 || seed === 6) { const px_ = 5 + r() * 22, py_ = 6 + r() * 22, s2 = 1 + r() * 0.8; x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); x.ellipse(px_ + 0.8, py_ + 1.8 * s2, 3.2 * s2, 1.8 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#85847c'; x.beginPath(); x.ellipse(px_, py_, 3 * s2, 2.1 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#b8b6aa'; x.beginPath(); x.ellipse(px_ - 0.8, py_ - 0.7, 1.6 * s2, 1 * s2, 0, 0, 7); x.fill(); x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(px_ - 1.4, py_ - 1.2, 1.2, 0.7); }
-  const nf = flowers || (seed % 4 === 2 ? 3 : seed % 4 === 0 ? 1 : 0);
+  if (calm ? seed % 5 === 0 : (seed % 4 === 1 || seed === 6)) { const px_ = 5 + r() * 22, py_ = 6 + r() * 22, s2 = 1 + r() * 0.8; x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); x.ellipse(px_ + 0.8, py_ + 1.8 * s2, 3.2 * s2, 1.8 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#85847c'; x.beginPath(); x.ellipse(px_, py_, 3 * s2, 2.1 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#b8b6aa'; x.beginPath(); x.ellipse(px_ - 0.8, py_ - 0.7, 1.6 * s2, 1 * s2, 0, 0, 7); x.fill(); x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(px_ - 1.4, py_ - 1.2, 1.2, 0.7); }
+  const nf = flowers || (calm ? (seed % 8 === 3 ? 1 : 0) : (seed % 4 === 2 ? 2 : seed % 4 === 0 ? 1 : 0));
   for (let i = 0; i < nf; i++) hdFlower(x, 3 + r() * 26, 5 + r() * 24, ['#fff0b8', '#ffa8c4', '#ffffff', '#b8a4ff', '#ffe060', '#ff9a7a'][Math.floor(r() * 6)]);
   return c;
 }
@@ -206,5 +206,6 @@ function buildHD() {
   const roofR = ['#b8402e', '#6e2012', '#dc6a50', '#9a3020'], roofB = ['#2f6ac8', '#122e70', '#5a96ee', '#1f4a9c'];
   HD.tile = { roof: hdRoof(roofR), roofB: hdRoof(roofB), wall: hdWall(), window: hdWindow(1), door: hdDoor(), fence: hdFence(), flowers: hdFlowers(), well: hdWell(), sign: hdSign() };
   HD.tall = { tree: [hdTree(0), hdTree(1)] };
+  buildHDWorld();
   for (const id in SPR) { const s = SPR[id]; HD.spr[id] = {}; for (const d of ['down', 'up', 'left', 'right']) HD.spr[id][d] = s[d].map(epx2); }
 }

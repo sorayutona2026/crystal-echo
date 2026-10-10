@@ -143,11 +143,18 @@ function wrapText(str, maxW, size) {
 const SPEAKERS = { 'アレン': 'allen', 'リナ': 'lina', 'カイ': 'kai', 'ゼク': 'zek', '長老': 'elder', '町長': 'mayor', '宿屋': 'inn', 'マスター': 'inn', '店主': 'merchant', '鍛冶屋': 'man',
   '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit', 'レオン': 'leon', '母': 'mother', 'ミナ': 'spirit' };
 function portraitFor(name) { const k = name && SPEAKERS[name]; if (!k) return null; if (k === 'kai' && !G.party.some(m => m.id === 'kai')) return null; return k; }
+// the four heroes talk with their big front-facing pictures (made lazily, one neutral and one smiling face each)
+const FRONT = {};
+function frontOf(k, happy) { const key = k + (happy ? '!' : ''); return FRONT[key] || (FRONT[key] = hdFront(k, happy ? 'happy' : 'neutral')); }
 function drawPortrait(k, x, y) {
   win(x, y, 52, 56);
   ctx.save(); ctx.beginPath(); ctx.rect(x + 3, y + 3, 46, 50); ctx.clip();
   const g = ctx.createRadialGradient(x + 26, y + 24, 2, x + 26, y + 24, 34); g.addColorStop(0, 'rgba(120,140,220,.35)'); g.addColorStop(1, 'rgba(20,20,50,0)'); ctx.fillStyle = g; ctx.fillRect(x + 3, y + 3, 46, 50);
-  if (k === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest; ctx.drawImage(A.frames[(G.frame >> 4) % 4], 22, 0, 42, 34, x + 2, y + 6, 48, 39); }
+  if (HERO_STYLE[k]) { // head and shoulders of the front view, smoothly scaled into the frame
+    const happy = G.dialog && /[!！♪]/.test(G.dialog.text || '') && k !== 'zek';
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(frontOf(k, happy), 6, 0, 52, 46, x + 3, y + 8, 46, 41); ctx.imageSmoothingEnabled = false;
+  }
+  else if (k === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest; ctx.drawImage(A.frames[(G.frame >> 4) % 4], 22, 0, 42, 34, x + 2, y + 6, 48, 39); }
   else if (k === 'spirit') { drawSpirit(x + 26, y + 30, 2); }
   else if (SPR[k]) { // the front-facing field sprite, cropped to head and shoulders
     const bob = (G.frame >> 5) % 2; ctx.drawImage(SPR[k].down[0], 1, 0, 14, 13, x + 5, y + 8 + bob, 42, 39);

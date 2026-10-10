@@ -103,7 +103,8 @@ function mapKey(m, x, y) {
 function hdTile(m, key, x, y) {
   if (!m.hd) return null;
   const hh = ((x * 73856093) ^ (y * 19349663)) >>> 0, v = hh % 4;
-  if (key === 'grass') return HD.grass[(Math.imul(hh ^ (hh >>> 15), 0x2c1b3c6d) >>> 16) % HD.grass.length]; if (key === 'path') return HD.path[v]; if (key === 'water') return HD.water[0];
+  if (key === 'grass') { const G2 = m.id === 'world' ? HD.grassW : HD.grass; return G2[(Math.imul(hh ^ (hh >>> 15), 0x2c1b3c6d) >>> 16) % G2.length]; } if (key === 'path') return HD.path[v];
+  if (key === 'sand') return HD.sand[v]; if (key === 'paving') return HD.paving[v]; if (key === 'water') return HD.water[0];
   return HD.tile[key] || null;
 }
 function buildMapCache(m) {
@@ -244,6 +245,7 @@ function drawMapLayers(m, cx, cy) {
     let key = key0; const ch = m.g[y][x];
     if (ch === 'B' && G.flags[`chest:${G.mapId}:${x},${y}`]) key = m.set === 'tower' ? 'chestOpenT' : 'chestOpen';
     if (key === 'water') continue;
+    if (m.hd && HD.tile[key]) { ctx.drawImage(HD.tile[key], x * T - cx, y * T - cy, T, T); continue; }
     const img = TILE_IMG[key]; ctx.drawImage(img[ANIM_TILES.has(key) ? f : 0], x * T - cx, y * T - cy);
   }
   blitRegion(C.upper, cx, cy);

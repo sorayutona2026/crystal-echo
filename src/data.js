@@ -168,7 +168,7 @@ function buildWorld() {
   g[22][30] = '=';
   clear(37, 24); g[24][37] = 'X';
   clear(4, 23); g[23][4] = 'W';
-  return { id: 'world', name: 'ワールドマップ', set: 'world', music: 'field', w: W, h: H, g,
+  return { id: 'world', hd: true, name: 'ワールドマップ', set: 'world', music: 'field', w: W, h: H, g,
     warps: { '9,7': { map: 'elm', x: 12, y: 18, dir: 'up' }, '24,13': { map: 'cave', x: 2, y: 2, dir: 'down' }, '24,17': { map: 'cave', x: 27, y: 17, dir: 'left' },
       '10,24': { map: 'rosa', x: 13, y: 1, dir: 'down' }, '37,24': { map: 'tower1', x: 8, y: 13, dir: 'up', cond: 'zek', script: 'towerSeal' },
       '4,23': { map: 'shrine', x: 10, y: 13, dir: 'up' } },
@@ -214,7 +214,7 @@ function buildRosa() {
   for (const [x, y] of [[11, 6], [16, 6], [11, 14], [16, 14]]) g[y][x] = 'L';
   g[16][24] = 'x'; g[16][25] = 'x'; g[16][2] = 'x'; fillRect(g, 9, 3, 3, 2, 'f'); fillRect(g, 15, 11, 2, 2, 'f');
   g[8][15] = 'S';
-  return { id: 'rosa', name: '港町ローザ', set: 'town', music: 'port', w: W, h: H, g, exit: { map: 'world', x: 10, y: 24 },
+  return { id: 'rosa', hd: true, name: '港町ローザ', set: 'town', music: 'port', w: W, h: H, g, exit: { map: 'world', x: 10, y: 24 },
     warps: { '5,4': { map: 'innRosa', x: 5, y: 6, dir: 'up' }, '20,4': { map: 'itemRosa', x: 4, y: 6, dir: 'up' }, '5,13': { map: 'smithRosa', x: 4, y: 6, dir: 'up' }, '20,13': { map: 'pub', x: 5, y: 7, dir: 'up' } },
     signs: { '15,8': '港町ローザ\n左上:宿屋 右上:道具屋\n左下:武具屋 右下:酒場' },
     npcs: [
