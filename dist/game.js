@@ -1182,15 +1182,17 @@ function hdHero(id, poseName) {
   }
   // ---- head ----
   const hx = 31 + dx - (poseName === 'hurt' || poseName === 'ko' ? 1 : 0), hy = 14 + dy - (poseName === 'win' ? 1 : 0);
+  // shorter, rounder head: squash vertically about the chin and widen a little about the face centre (the first version was too long)
+  x.save(); x.translate(hx, hy + 11.5); x.scale(1.1, 0.8); x.translate(-hx, -(hy + 11.5));
   shape(mkc([[hx - 8, hy - 6], [hx - 8.8, hy + 1, hx - 7, hy + 7, hx - 2, hy + 11.5], [hx + 3, hy + 12, hx + 9, hy + 7, hx + 9.5, hy - 2], [hx + 10, hy - 11, hx + 1, hy - 14, hx - 4, hy - 12.5], [hx - 7, hy - 11.5, hx - 8, hy - 9, hx - 8, hy - 6]]), L.skin, { lt: shd(L.skin, 1.06), dk: shd(L.skin, 0.8), gx0: hx - 8, gx1: hx + 10, line: shd(L.skin, 0.4) });
   x.fillStyle = 'rgba(255,120,120,.4)'; x.beginPath(); x.ellipse(hx - 4.6, hy + 5.2, 2.2, 1.3, 0, 0, 7); x.fill();
   const ex = hx - 4.4, ey = hy + 0.6;
   if (P.face === 'hurt') { line(ex - 2.4, ey - 1.8, ex + 1.4, ey + 0.4, '#2a1a1a', 1.3); line(ex - 2.4, ey + 2.2, ex + 1.4, ey, '#2a1a1a', 1.3); line(hx - 7, hy + 8.4, hx - 3, hy + 8.4, '#8a3a3a', 1.1); }
   else if (P.face === 'happy') { x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.3; x.beginPath(); x.arc(ex, ey + 1.6, 2.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); x.strokeStyle = '#8a3a3a'; x.lineWidth = 1.1; x.beginPath(); x.arc(hx - 4.4, hy + 7.4, 2.2, 0.2, Math.PI - 0.2); x.stroke(); }
   else {
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 2.9, 3.5, 0.1, 0, 7); x.fill();
-    const g = x.createLinearGradient(0, ey - 3, 0, ey + 3); g.addColorStop(0, shd(L.iris, 0.55)); g.addColorStop(0.5, L.iris); g.addColorStop(0.52, shd(L.iris, 1.4)); g.addColorStop(1, shd(L.iris, 1.5));
-    x.fillStyle = g; x.beginPath(); x.ellipse(ex - 0.3, ey + 0.2, 2.3, 2.9, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex - 0.3, ey + 0.1, 1.1, 1.7, 0, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 2.9, 4.2, 0.1, 0, 7); x.fill();
+    const g = x.createLinearGradient(0, ey - 3.6, 0, ey + 3.6); g.addColorStop(0, shd(L.iris, 0.55)); g.addColorStop(0.5, L.iris); g.addColorStop(0.52, shd(L.iris, 1.4)); g.addColorStop(1, shd(L.iris, 1.5));
+    x.fillStyle = g; x.beginPath(); x.ellipse(ex - 0.3, ey + 0.2, 2.3, 3.5, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex - 0.3, ey + 0.1, 1.1, 2.1, 0, 0, 7); x.fill();
     x.fillStyle = '#fff'; x.fillRect(ex - 1.8, ey - 1.9, 1.3, 1.3); x.strokeStyle = '#2a1a1a'; x.lineWidth = 1; x.beginPath(); x.moveTo(ex - 2.8, ey - 1.7); x.quadraticCurveTo(ex, ey - 3.6, ex + 2.6, ey - 1.8); x.stroke();
     if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 4.4, hy + 8.6, 1.9, 1.5, 0, 0, 7); x.fill(); } else line(hx - 6.4, hy + 8.4, hx - 2.8, hy + 8.4, '#8a3a3a', 1);
   }
@@ -1217,6 +1219,7 @@ function hdHero(id, poseName) {
     x.strokeStyle = '#e8c440'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(hx - 10, hy - 5.4); x.quadraticCurveTo(hx + 1, hy - 10.6, hx + 11, hy - 6.4); x.stroke(); x.fillStyle = '#ff70c0'; x.beginPath(); x.arc(hx, hy - 9, 1.6, 0, 7); x.fill();
     x.strokeStyle = '#ffffff'; x.lineWidth = 0.9; x.beginPath(); x.moveTo(hx - 7, hy - 8); x.quadraticCurveTo(hx - 1, hy - 14, hx + 8, hy - 11); x.stroke();
   }
+  x.restore();
   // ---- front arm + weapon ----
   const [fa0, fa1, fa2, fa3] = P.fa; const fx0 = fa0 + dx, fy0 = fa1 + dy, fx1 = fa2 + (P.legs === 'kneel' ? 0 : 0), fy1 = fa3;
   limb(fx0, fy0, fx1, fy1, robe ? 7 : 6.6, L.top);
