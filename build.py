@@ -1,7 +1,7 @@
 import pathlib
 root = pathlib.Path(__file__).parent
 src = root / 'src'
-js = '\n'.join((src / f).read_text() for f in ['engine.js', 'audio.js', 'art.js', 'hd_art.js', 'hd_world.js', 'hd_heroes.js', 'hd_front.js', 'enemies_art.js', 'post.js', 'render_map.js', 'data.js', 'game.js', 'battle.js', 'menu.js', 'main.js'])
+js = '\n'.join((src / f).read_text() for f in ['engine.js', 'audio.js', 'art.js', 'hd_art.js', 'hd_world.js', 'hd_heroes.js', 'hd_front.js', 'hd_anime.js', 'enemies_art.js', 'post.js', 'render_map.js', 'data.js', 'game.js', 'battle.js', 'menu.js', 'main.js'])
 glyphs = ''.join(sorted({c for c in js if ord(c) > 127}))
 js = 'const GLYPHS = ' + repr(glyphs) + ';\n' + js
 shell = (src / 'shell.html').read_text()

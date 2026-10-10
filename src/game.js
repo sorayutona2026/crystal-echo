@@ -152,7 +152,7 @@ function drawPortrait(k, x, y) {
   const g = ctx.createRadialGradient(x + 26, y + 24, 2, x + 26, y + 24, 34); g.addColorStop(0, 'rgba(120,140,220,.35)'); g.addColorStop(1, 'rgba(20,20,50,0)'); ctx.fillStyle = g; ctx.fillRect(x + 3, y + 3, 46, 50);
   if (HERO_STYLE[k]) { // head and shoulders of the front view, smoothly scaled into the frame
     const happy = G.dialog && /[!！♪]/.test(G.dialog.text || '') && k !== 'zek';
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(frontOf(k, happy), 6, 0, 52, 46, x + 3, y + 8, 46, 41); ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(animeOf(k, happy), 0, 0, 192, 192, x + 3, y + 5, 48, 48); ctx.imageSmoothingEnabled = false;
   }
   else if (k === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest; ctx.drawImage(A.frames[(G.frame >> 4) % 4], 22, 0, 42, 34, x + 2, y + 6, 48, 39); }
   else if (k === 'spirit') { drawSpirit(x + 26, y + 30, 2); }
