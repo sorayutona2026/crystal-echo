@@ -80,19 +80,20 @@ function hdHero(id, poseName) {
   const eyeDraw = (ex, ey) => {
     if (P.face === 'hurt') { line(ex - 3, ey - 3, ex + 3, ey + 3, '#2a1a1a', 1.5); line(ex - 3, ey + 3, ex + 3, ey - 3, '#2a1a1a', 1.5); return; }
     if (P.face === 'happy') { x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.6; x.beginPath(); x.arc(ex, ey + 2.2, 3.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); return; }
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 4.6, 6.2, 0, 0, 7); x.fill();
-    const g = x.createLinearGradient(0, ey - 5.5, 0, ey + 5.5); g.addColorStop(0, shd(L.iris, 0.45)); g.addColorStop(0.5, L.iris); g.addColorStop(0.52, shd(L.iris, 1.4)); g.addColorStop(1, shd(L.iris, 1.7));
-    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.4, 3.9, 5.5, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.6, 1.8, 3, 0, 0, 7); x.fill();
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 1.7, ey - 2, 1.5, 1.8, 0, 0, 7); x.fill(); x.fillRect(ex + 1.2, ey + 2.4, 1, 1);
-    x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(ex - 4.8, ey - 2.2); x.quadraticCurveTo(ex, ey - 6.6, ex + 4.8, ey - 2.2); x.stroke();
+    // big glossy anime eye: tall iris filling the eye, dark top, bright bottom, large catch-light
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 5.2, 6.6, 0, 0, 7); x.fill();
+    const g = x.createLinearGradient(0, ey - 7, 0, ey + 7); g.addColorStop(0, shd(L.iris, 0.7)); g.addColorStop(0.4, L.iris); g.addColorStop(1, shd(L.iris, 1.8));
+    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.8, 4.3, 5.6, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.8, 2.2, 3.2, 0, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 2, ey - 2.6, 2, 2.4, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(ex + 2, ey + 3.6, 1, 1, 0, 0, 7); x.fill();
+    x.strokeStyle = '#1e1018'; x.lineWidth = 1.3; x.beginPath(); x.moveTo(ex - 5.4, ey - 0.6); x.quadraticCurveTo(ex, ey - 9.6, ex + 5.4, ey - 0.6); x.stroke();
   };
   // three-quarter view facing left: the near eye is wide, the far eye narrower, and the face sits toward the left edge
   const eyeAt = (ex, ey, k) => { x.save(); x.translate(ex, ey); x.scale(k, 1); x.translate(-ex, -ey); eyeDraw(ex, ey); x.restore(); };
-  const ey0 = hy + 3; eyeAt(hx - 9, ey0, 1); eyeAt(hx + 3.2, ey0, 0.7);
-  if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 5, hy + 11.2, 2.4, 1.9, 0, 0, 7); x.fill(); }
-  else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx - 5, hy + 9.6, 2.6, 0, Math.PI); x.fill(); }
-  else if (P.face === 'hurt') line(hx - 7.4, hy + 11, hx - 2.6, hy + 11, '#8a3a3a', 1.2);
-  else line(hx - 6.8, hy + 10.6, hx - 3.2, hy + 10.6, '#8a3a3a', 1.1);
+  const ey0 = hy + 5.4; eyeAt(hx - 9.4, ey0, 1); eyeAt(hx + 3.4, ey0, 0.72);
+  if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 5, hy + 12, 2.4, 1.9, 0, 0, 7); x.fill(); }
+  else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx - 5, hy + 10.4, 2.6, 0, Math.PI); x.fill(); }
+  else if (P.face === 'hurt') line(hx - 7.4, hy + 12, hx - 2.6, hy + 12, '#8a3a3a', 1.2);
+  else line(hx - 6.8, hy + 11.8, hx - 3.2, hy + 11.8, '#8a3a3a', 1.1);
   // ---- hair and head gear ----
   const cap = (top, side, col, o = {}) => shape(mkc([[hx - side, hy + 2], [hx - side - 1, hy - top * 0.7, hx - side * 0.5, hy - top, hx, hy - top], [hx + side * 0.5, hy - top, hx + side + 1, hy - top * 0.7, hx + side, hy + 2], [hx + side - 3, hy - 4, hx + 7, hy - 7, hx + 2, hy - 5.4], [hx - 3, hy - 8.4, hx - 8, hy - 6, hx - side + 3, hy - 3.6]]), col, { gx0: hx - side, gx1: hx + side, ...o });
   const band = (col, dk) => { shape(mkc([[hx - 16, hy - 5], [hx - 8, hy - 11, hx + 8, hy - 11, hx + 16, hy - 5], [hx + 16, hy - 1.4, hx + 15, hy - 1, hx + 14, hy - 1.6], [hx + 7, hy - 6.6, hx - 7, hy - 6.6, hx - 14, hy - 1.6], [hx - 15, hy - 1, hx - 16, hy - 1.4, hx - 16, hy - 5]]), col, { lw: 0.9 }); shape(mkp([hx + 14, hy - 8, hx + 22, hy - 7, hx + 27, hy - 2, hx + 20, hy - 3.6, hx + 15, hy - 4.6]), col, { lw: 0.7 }); shape(mkp([hx + 15, hy - 5.6, hx + 23, hy - 0.6, hx + 24, hy + 5, hx + 19, hy + 0.6, hx + 14, hy - 2.4]), dk, { lw: 0.7 }); };

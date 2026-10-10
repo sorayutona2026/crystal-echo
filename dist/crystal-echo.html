@@ -1451,19 +1451,20 @@ function hdHero(id, poseName) {
   const eyeDraw = (ex, ey) => {
     if (P.face === 'hurt') { line(ex - 3, ey - 3, ex + 3, ey + 3, '#2a1a1a', 1.5); line(ex - 3, ey + 3, ex + 3, ey - 3, '#2a1a1a', 1.5); return; }
     if (P.face === 'happy') { x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.6; x.beginPath(); x.arc(ex, ey + 2.2, 3.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); return; }
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 4.6, 6.2, 0, 0, 7); x.fill();
-    const g = x.createLinearGradient(0, ey - 5.5, 0, ey + 5.5); g.addColorStop(0, shd(L.iris, 0.45)); g.addColorStop(0.5, L.iris); g.addColorStop(0.52, shd(L.iris, 1.4)); g.addColorStop(1, shd(L.iris, 1.7));
-    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.4, 3.9, 5.5, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.6, 1.8, 3, 0, 0, 7); x.fill();
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 1.7, ey - 2, 1.5, 1.8, 0, 0, 7); x.fill(); x.fillRect(ex + 1.2, ey + 2.4, 1, 1);
-    x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(ex - 4.8, ey - 2.2); x.quadraticCurveTo(ex, ey - 6.6, ex + 4.8, ey - 2.2); x.stroke();
+    // big glossy anime eye: tall iris filling the eye, dark top, bright bottom, large catch-light
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 5.2, 6.6, 0, 0, 7); x.fill();
+    const g = x.createLinearGradient(0, ey - 7, 0, ey + 7); g.addColorStop(0, shd(L.iris, 0.7)); g.addColorStop(0.4, L.iris); g.addColorStop(1, shd(L.iris, 1.8));
+    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.8, 4.3, 5.6, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.8, 2.2, 3.2, 0, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 2, ey - 2.6, 2, 2.4, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(ex + 2, ey + 3.6, 1, 1, 0, 0, 7); x.fill();
+    x.strokeStyle = '#1e1018'; x.lineWidth = 1.3; x.beginPath(); x.moveTo(ex - 5.4, ey - 0.6); x.quadraticCurveTo(ex, ey - 9.6, ex + 5.4, ey - 0.6); x.stroke();
   };
   // three-quarter view facing left: the near eye is wide, the far eye narrower, and the face sits toward the left edge
   const eyeAt = (ex, ey, k) => { x.save(); x.translate(ex, ey); x.scale(k, 1); x.translate(-ex, -ey); eyeDraw(ex, ey); x.restore(); };
-  const ey0 = hy + 3; eyeAt(hx - 9, ey0, 1); eyeAt(hx + 3.2, ey0, 0.7);
-  if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 5, hy + 11.2, 2.4, 1.9, 0, 0, 7); x.fill(); }
-  else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx - 5, hy + 9.6, 2.6, 0, Math.PI); x.fill(); }
-  else if (P.face === 'hurt') line(hx - 7.4, hy + 11, hx - 2.6, hy + 11, '#8a3a3a', 1.2);
-  else line(hx - 6.8, hy + 10.6, hx - 3.2, hy + 10.6, '#8a3a3a', 1.1);
+  const ey0 = hy + 5.4; eyeAt(hx - 9.4, ey0, 1); eyeAt(hx + 3.4, ey0, 0.72);
+  if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 5, hy + 12, 2.4, 1.9, 0, 0, 7); x.fill(); }
+  else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx - 5, hy + 10.4, 2.6, 0, Math.PI); x.fill(); }
+  else if (P.face === 'hurt') line(hx - 7.4, hy + 12, hx - 2.6, hy + 12, '#8a3a3a', 1.2);
+  else line(hx - 6.8, hy + 11.8, hx - 3.2, hy + 11.8, '#8a3a3a', 1.1);
   // ---- hair and head gear ----
   const cap = (top, side, col, o = {}) => shape(mkc([[hx - side, hy + 2], [hx - side - 1, hy - top * 0.7, hx - side * 0.5, hy - top, hx, hy - top], [hx + side * 0.5, hy - top, hx + side + 1, hy - top * 0.7, hx + side, hy + 2], [hx + side - 3, hy - 4, hx + 7, hy - 7, hx + 2, hy - 5.4], [hx - 3, hy - 8.4, hx - 8, hy - 6, hx - side + 3, hy - 3.6]]), col, { gx0: hx - side, gx1: hx + side, ...o });
   const band = (col, dk) => { shape(mkc([[hx - 16, hy - 5], [hx - 8, hy - 11, hx + 8, hy - 11, hx + 16, hy - 5], [hx + 16, hy - 1.4, hx + 15, hy - 1, hx + 14, hy - 1.6], [hx + 7, hy - 6.6, hx - 7, hy - 6.6, hx - 14, hy - 1.6], [hx - 15, hy - 1, hx - 16, hy - 1.4, hx - 16, hy - 5]]), col, { lw: 0.9 }); shape(mkp([hx + 14, hy - 8, hx + 22, hy - 7, hx + 27, hy - 2, hx + 20, hy - 3.6, hx + 15, hy - 4.6]), col, { lw: 0.7 }); shape(mkp([hx + 15, hy - 5.6, hx + 23, hy - 0.6, hx + 24, hy + 5, hx + 19, hy + 0.6, hx + 14, hy - 2.4]), dk, { lw: 0.7 }); };
@@ -4619,7 +4620,7 @@ const BMenu = {
   open(i) {
     const m = G.party[i];
     B.menu = { who: i, stage: 'cmd', ci: 0, li: 0, scroll: 0, list: [], action: null, tSide: 'e', ti: 0 };
-    B.menu.cmds = ['たたかう', HEROES[m.id].cmd, 'アイテム', 'ぼうぎょ', 'にげる'];
+    B.menu.cmds = ['たたかう', HEROES[m.id].cmd, 'アイテム', 'ぼうぎょ', 'にげる', 'オート'];
   },
   close(action) {
     const M = B.menu; const i = M.who;
@@ -4631,8 +4632,8 @@ const BMenu = {
     const M = B.menu; const m = G.party[M.who];
     if (m.hp <= 0) { B.menu = null; return; }
     if (M.stage === 'cmd') {
-      if (Input.rep('up')) { M.ci = (M.ci + 4) % 5; Audio8.sfx('cursor'); }
-      if (Input.rep('down')) { M.ci = (M.ci + 1) % 5; Audio8.sfx('cursor'); }
+      if (Input.rep('up')) { M.ci = (M.ci + 5) % 6; Audio8.sfx('cursor'); }
+      if (Input.rep('down')) { M.ci = (M.ci + 1) % 6; Audio8.sfx('cursor'); }
       if (Input.pressed.b) { // pass turn to next ready member
         if (B.ready.length > 1) { B.ready.push(B.ready.shift()); B.menu = null; Audio8.sfx('cancel'); } return;
       }
@@ -4645,6 +4646,7 @@ const BMenu = {
           if (!M.list.length) { M.stage = 'cmd'; Audio8.sfx('error'); } break;
         case 3: this.close({ kind: 'defend' }); break;
         case 4: this.close({ kind: 'flee' }); break;
+        case 5: G.auto = true; Store.set('crystal-echo-auto', '1'); Audio8.sfx('ok'); break; // from here on the party fights by itself (MENU switches it off again)
       }
     } else if (M.stage === 'list') {
       const n = M.list.length;
@@ -4686,8 +4688,8 @@ const BMenu = {
     const M = B.menu;
     // command window
     win(0, 150, 96, 74);
-    M.cmds.forEach((c, i) => { text(c, 20, 157 + i * 13, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink); if (M.stage === 'cmd') Touch.add(0, 153 + i * 13, 96, 13, () => { M.ci = i; Input.tapA(); }); });
-    if (M.stage === 'cmd') cursor(7, 158 + M.ci * 13);
+    M.cmds.forEach((c, i) => { text(c, 20, 155 + i * 11, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink); if (M.stage === 'cmd') Touch.add(0, 151 + i * 11, 96, 11, () => { M.ci = i; Input.tapA(); }); });
+    if (M.stage === 'cmd') cursor(7, 156 + M.ci * 11);
     if (M.stage === 'list' || (M.stage === 'target' && M.prev === 'list')) {
       win(0, 150, 256, 74);
       for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
@@ -4901,13 +4903,19 @@ const Menu = {
   scrollTo(M, i, rows) { if (i < M.scroll) M.scroll = i; if (i >= M.scroll + rows) M.scroll = i - rows + 1; },
   itemList() { const order = Object.keys(ITEMS); return Object.keys(G.inv).sort((a, b) => order.indexOf(a) - order.indexOf(b)); },
   equipList() { const M = G.menu; const m = G.party[M.who]; const slot = M.slot ? 'armor' : 'weapon'; return Object.keys(G.inv).filter(id => ITEMS[id].type === slot && ITEMS[id].eq.includes(m.id)); },
+  // a hero's painted face (falls back to the vector bust), cropped from the top to the given box
+  face(id, x, y, w, h, dim) {
+    const pi = paintedOf(id, ''); ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); if (dim) ctx.globalAlpha = 0.4; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    if (pi) ctx.drawImage(pi, 0, 0, pi.width, Math.min(pi.height, pi.width * h / w), x, y, w, h); else ctx.drawImage(animeOf(id, false), 0, 0, 192, 192 * h / w, x, y, w, h);
+    ctx.imageSmoothingEnabled = false; ctx.restore(); ctx.strokeStyle = UI.gold; ctx.globalAlpha = 0.6; ctx.lineWidth = 0.6; ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1); ctx.globalAlpha = 1;
+  },
   drawParty(x, y, w, sel) {
     win(x, y, w, 224 - y);
     G.party.forEach((m, i) => {
       const yy = y + 8 + i * 52; const s = stats(m); const h = HEROES[m.id];
       if (sel != null) Touch.add(x, yy - 3, w, 50, () => { G.menu.who = i; Input.tapA(); });
       if (sel === i) { ctx.fillStyle = 'rgba(240,207,134,.12)'; ctx.fillRect(x + 4, yy - 3, w - 8, 50); }
-      if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 18, yy + 2, HB_W, HB_H); else ctx.drawImage(SPR[m.id].hb.ko, x + 12, yy + 12, HB_H, HB_W);
+      this.face(m.id, x + 9, yy, 42, 44, m.hp <= 0);
       text(h.name, x + 58, yy, m.hp <= 0 ? '#ff7080' : UI.ink, 8.5, 'left', 't'); text(h.job, x + 102, yy, UI.muted, 7);
       text('Lv ' + m.lv, x + 58, yy + 12, UI.gold);
       text('HP', x + 58, yy + 23, UI.label, 7); text(`${m.hp}/${s.maxhp}`, x + 72, yy + 22);
@@ -4947,7 +4955,7 @@ const Menu = {
     }
     if (M.mode === 'equip' || M.mode === 'equipPick') {
       const m = G.party[M.who]; const s = stats(m);
-      win(0, 0, 256, 70); ctx.drawImage(SPR[m.id].hb.idle, 4, 16, 32, 40);
+      win(0, 0, 256, 70); this.face(m.id, 6, 7, 38, 54);
       text(`${HEROES[m.id].name}  Lv${m.lv}`, 50, 8, UI.ink); text('◀ ▶ でキャラ切替', 248, 8, UI.muted, 7, 'right');
       text('武器', 50, 26, UI.label, 7); text(ITEMS[m.weapon].name, 80, 25); text('防具', 50, 42, UI.label, 7); text(ITEMS[m.armor].name, 80, 41);
       if (M.mode === 'equip') cursor(36, 26 + M.slot * 16);
@@ -4964,7 +4972,7 @@ const Menu = {
     }
     if (M.mode === 'status') {
       const m = G.party[M.who]; const s = stats(m); const h = HEROES[m.id];
-      win(0, 0, 256, 224); ctx.drawImage(SPR[m.id].hb.win, 30, 22, HB_W, HB_H);
+      win(0, 0, 256, 224); win(8, 6, 62, 64); this.face(m.id, 11, 9, 56, 58);
       text(h.name, 76, 12, UI.ink, 11, 'left', 't'); text(h.job, 76, 28, UI.muted); text('Lv ' + m.lv, 180, 12, UI.gold, 10);
       text(`HP ${m.hp}/${s.maxhp}`, 76, 44); text(`MP ${m.mp}/${s.maxmp}`, 160, 44);
       [['ちから', s.str], ['こうげき', s.atk], ['ぼうぎょ', s.def], ['まりょく', s.mag], ['まほうぼうぎょ', s.mdf], ['すばやさ', s.spd]].forEach(([lb, v], j) => { text(lb, 20, 72 + j * 15, UI.label); text(String(v), 120, 72 + j * 15, UI.ink, 8, 'right'); });
@@ -5240,6 +5248,7 @@ let perfAvg = 8, perfN = 0;
 function boot(saved) {
   if (booted) return; booted = true;
   buildTiles(); buildTallSprites(); buildChars(); buildHD(); buildHeroBattle(); buildEnemyArt(); buildMaps(); loadOverrides();
+  if (typeof PORTRAIT_IMG !== 'undefined') for (const k in PORTRAIT_IMG) paintedOf(k, ''); // start decoding the painted faces now
   fit(); G.auto = Store.get('crystal-echo-auto') === '1';
   if (saved && saved.party) { try { applySnapshot(saved); } catch (e) { Title.start(); } } else Title.start();
   requestAnimationFrame(loop);

@@ -39,6 +39,7 @@ let perfAvg = 8, perfN = 0;
 function boot(saved) {
   if (booted) return; booted = true;
   buildTiles(); buildTallSprites(); buildChars(); buildHD(); buildHeroBattle(); buildEnemyArt(); buildMaps(); loadOverrides();
+  if (typeof PORTRAIT_IMG !== 'undefined') for (const k in PORTRAIT_IMG) paintedOf(k, ''); // start decoding the painted faces now
   fit(); G.auto = Store.get('crystal-echo-auto') === '1';
   if (saved && saved.party) { try { applySnapshot(saved); } catch (e) { Title.start(); } } else Title.start();
   requestAnimationFrame(loop);

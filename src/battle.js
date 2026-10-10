@@ -916,7 +916,7 @@ const BMenu = {
   open(i) {
     const m = G.party[i];
     B.menu = { who: i, stage: 'cmd', ci: 0, li: 0, scroll: 0, list: [], action: null, tSide: 'e', ti: 0 };
-    B.menu.cmds = ['たたかう', HEROES[m.id].cmd, 'アイテム', 'ぼうぎょ', 'にげる'];
+    B.menu.cmds = ['たたかう', HEROES[m.id].cmd, 'アイテム', 'ぼうぎょ', 'にげる', 'オート'];
   },
   close(action) {
     const M = B.menu; const i = M.who;
@@ -928,8 +928,8 @@ const BMenu = {
     const M = B.menu; const m = G.party[M.who];
     if (m.hp <= 0) { B.menu = null; return; }
     if (M.stage === 'cmd') {
-      if (Input.rep('up')) { M.ci = (M.ci + 4) % 5; Audio8.sfx('cursor'); }
-      if (Input.rep('down')) { M.ci = (M.ci + 1) % 5; Audio8.sfx('cursor'); }
+      if (Input.rep('up')) { M.ci = (M.ci + 5) % 6; Audio8.sfx('cursor'); }
+      if (Input.rep('down')) { M.ci = (M.ci + 1) % 6; Audio8.sfx('cursor'); }
       if (Input.pressed.b) { // pass turn to next ready member
         if (B.ready.length > 1) { B.ready.push(B.ready.shift()); B.menu = null; Audio8.sfx('cancel'); } return;
       }
@@ -942,6 +942,7 @@ const BMenu = {
           if (!M.list.length) { M.stage = 'cmd'; Audio8.sfx('error'); } break;
         case 3: this.close({ kind: 'defend' }); break;
         case 4: this.close({ kind: 'flee' }); break;
+        case 5: G.auto = true; Store.set('crystal-echo-auto', '1'); Audio8.sfx('ok'); break; // from here on the party fights by itself (MENU switches it off again)
       }
     } else if (M.stage === 'list') {
       const n = M.list.length;
@@ -983,8 +984,8 @@ const BMenu = {
     const M = B.menu;
     // command window
     win(0, 150, 96, 74);
-    M.cmds.forEach((c, i) => { text(c, 20, 157 + i * 13, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink); if (M.stage === 'cmd') Touch.add(0, 153 + i * 13, 96, 13, () => { M.ci = i; Input.tapA(); }); });
-    if (M.stage === 'cmd') cursor(7, 158 + M.ci * 13);
+    M.cmds.forEach((c, i) => { text(c, 20, 155 + i * 11, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink); if (M.stage === 'cmd') Touch.add(0, 151 + i * 11, 96, 11, () => { M.ci = i; Input.tapA(); }); });
+    if (M.stage === 'cmd') cursor(7, 156 + M.ci * 11);
     if (M.stage === 'list' || (M.stage === 'target' && M.prev === 'list')) {
       win(0, 150, 256, 74);
       for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {

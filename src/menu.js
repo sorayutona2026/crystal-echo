@@ -131,13 +131,19 @@ const Menu = {
   scrollTo(M, i, rows) { if (i < M.scroll) M.scroll = i; if (i >= M.scroll + rows) M.scroll = i - rows + 1; },
   itemList() { const order = Object.keys(ITEMS); return Object.keys(G.inv).sort((a, b) => order.indexOf(a) - order.indexOf(b)); },
   equipList() { const M = G.menu; const m = G.party[M.who]; const slot = M.slot ? 'armor' : 'weapon'; return Object.keys(G.inv).filter(id => ITEMS[id].type === slot && ITEMS[id].eq.includes(m.id)); },
+  // a hero's painted face (falls back to the vector bust), cropped from the top to the given box
+  face(id, x, y, w, h, dim) {
+    const pi = paintedOf(id, ''); ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); if (dim) ctx.globalAlpha = 0.4; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    if (pi) ctx.drawImage(pi, 0, 0, pi.width, Math.min(pi.height, pi.width * h / w), x, y, w, h); else ctx.drawImage(animeOf(id, false), 0, 0, 192, 192 * h / w, x, y, w, h);
+    ctx.imageSmoothingEnabled = false; ctx.restore(); ctx.strokeStyle = UI.gold; ctx.globalAlpha = 0.6; ctx.lineWidth = 0.6; ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1); ctx.globalAlpha = 1;
+  },
   drawParty(x, y, w, sel) {
     win(x, y, w, 224 - y);
     G.party.forEach((m, i) => {
       const yy = y + 8 + i * 52; const s = stats(m); const h = HEROES[m.id];
       if (sel != null) Touch.add(x, yy - 3, w, 50, () => { G.menu.who = i; Input.tapA(); });
       if (sel === i) { ctx.fillStyle = 'rgba(240,207,134,.12)'; ctx.fillRect(x + 4, yy - 3, w - 8, 50); }
-      if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 18, yy + 2, HB_W, HB_H); else ctx.drawImage(SPR[m.id].hb.ko, x + 12, yy + 12, HB_H, HB_W);
+      this.face(m.id, x + 9, yy, 42, 44, m.hp <= 0);
       text(h.name, x + 58, yy, m.hp <= 0 ? '#ff7080' : UI.ink, 8.5, 'left', 't'); text(h.job, x + 102, yy, UI.muted, 7);
       text('Lv ' + m.lv, x + 58, yy + 12, UI.gold);
       text('HP', x + 58, yy + 23, UI.label, 7); text(`${m.hp}/${s.maxhp}`, x + 72, yy + 22);
@@ -177,7 +183,7 @@ const Menu = {
     }
     if (M.mode === 'equip' || M.mode === 'equipPick') {
       const m = G.party[M.who]; const s = stats(m);
-      win(0, 0, 256, 70); ctx.drawImage(SPR[m.id].hb.idle, 4, 16, 32, 40);
+      win(0, 0, 256, 70); this.face(m.id, 6, 7, 38, 54);
       text(`${HEROES[m.id].name}  Lv${m.lv}`, 50, 8, UI.ink); text('◀ ▶ でキャラ切替', 248, 8, UI.muted, 7, 'right');
       text('武器', 50, 26, UI.label, 7); text(ITEMS[m.weapon].name, 80, 25); text('防具', 50, 42, UI.label, 7); text(ITEMS[m.armor].name, 80, 41);
       if (M.mode === 'equip') cursor(36, 26 + M.slot * 16);
@@ -194,7 +200,7 @@ const Menu = {
     }
     if (M.mode === 'status') {
       const m = G.party[M.who]; const s = stats(m); const h = HEROES[m.id];
-      win(0, 0, 256, 224); ctx.drawImage(SPR[m.id].hb.win, 30, 22, HB_W, HB_H);
+      win(0, 0, 256, 224); win(8, 6, 62, 64); this.face(m.id, 11, 9, 56, 58);
       text(h.name, 76, 12, UI.ink, 11, 'left', 't'); text(h.job, 76, 28, UI.muted); text('Lv ' + m.lv, 180, 12, UI.gold, 10);
       text(`HP ${m.hp}/${s.maxhp}`, 76, 44); text(`MP ${m.mp}/${s.maxmp}`, 160, 44);
       [['ちから', s.str], ['こうげき', s.atk], ['ぼうぎょ', s.def], ['まりょく', s.mag], ['まほうぼうぎょ', s.mdf], ['すばやさ', s.spd]].forEach(([lb, v], j) => { text(lb, 20, 72 + j * 15, UI.label); text(String(v), 120, 72 + j * 15, UI.ink, 8, 'right'); });
