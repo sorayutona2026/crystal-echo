@@ -121,7 +121,10 @@ function buildMapCache(m) {
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
     const key = mapKey(m, x, y); if (!key) continue; const sx = x * T, sy = y * T;
     if (DYN_GROUND.has(key) || DYN_TALL.has(key)) { dyn.push([key, x, y]); if (DYN_TALL.has(key)) { /* floor under fire/crystal is in its image */ } continue; }
-    if (TALL_SPR[key]) { gx.drawImage(groundImg(TALL_SPR[key].base, x, y), sx, sy, T, T); tall.push([key, x, y]); continue; }
+    if (TALL_SPR[key]) {
+      const interior = m.hd && key === 'mountain' && [[0, -1], [0, 1], [-1, 0], [1, 0]].every(([a, b]) => base(x + a, y + b) === 'mountain' || base(x + a, y + b) === 'caveIcon');
+      gx.drawImage(interior ? HD.rock[(((x * 73856093) ^ (y * 19349663)) >>> 0) % 4] : groundImg(TALL_SPR[key].base, x, y), sx, sy, T, T); tall.push([key, x, y]); continue;
+    }
     if (m.hd && key === 'tree') { gx.drawImage(groundImg('grass', x, y), sx, sy, T, T); tall.push([key, x, y]); continue; }
     if (TALL_RECT.has(key) || TALL_ROUND.has(key)) { tall.push([key, x, y]); continue; }
     gx.drawImage(groundImg(key, x, y), sx, sy, T, T);
@@ -198,7 +201,13 @@ function buildMapCache(m) {
   tall.sort((a, b) => a[2] - b[2] || a[1] - b[1]);
   for (const [key, x, y] of tall) {
     const sx = x * T, sy = y * T;
-    if (TALL_SPR[key]) { const S = TALL_SPR[key]; const imgs = m.hd && HD.tall[key] ? HD.tall[key] : S.imgs; const im = imgs[(((x * 92837111) ^ (y * 689287499)) >>> 0) % imgs.length]; const iw = im.lw || im.width, ih = im.lh || im.height; ux.drawImage(im, sx + Math.round((16 - iw) / 2), sy + 16 - ih, iw, ih); continue; }
+    if (TALL_SPR[key]) { const S = TALL_SPR[key]; const imgs = m.hd && HD.tall[key] ? HD.tall[key] : S.imgs; const im = imgs[(((x * 92837111) ^ (y * 689287499)) >>> 0) % imgs.length]; const iw = im.lw || im.width, ih = im.lh || im.height;
+      let k = 1, jx = 0, jy = 0;
+      if (m.hd && key === 'mountain') { // a range, not a grid: big peaks at the back, small foothills in front, each shifted a little
+        const front = base(x, y + 1) !== 'mountain' && base(x, y + 1) !== 'caveIcon', back = base(x, y - 1) !== 'mountain';
+        k = (front ? 0.72 : back ? 1.05 : 0.9) + thash(x, y, 31) * (front ? 0.3 : 0.62); jx = Math.round((thash(x, y, 37) - 0.5) * 9); jy = Math.round((thash(x, y, 41) - 0.5) * 4);
+      } else if (m.hd && key === 'forest') { k = 0.9 + thash(x, y, 31) * 0.3; jx = Math.round((thash(x, y, 37) - 0.5) * 4); }
+      ux.drawImage(im, sx + Math.round((16 - iw * k) / 2) + jx, sy + 16 - ih * k + jy, iw * k, ih * k); continue; }
     if (m.hd && key === 'tree') { const im = HD.tall.tree[(x + y) % 2]; ux.drawImage(im, sx - 4, sy + 16 - 28, 24, 33); continue; }
     ux.drawImage(hdTile(m, key, x, y) || TILE_IMG[key][0], sx, sy, T, T);
     if (key.endsWith('Top')) { const fam = key.slice(0, -3); ux.fillStyle = 'rgba(0,0,0,.45)'; if (base(x - 1, y) !== fam) ux.fillRect(sx, sy, 1, 16); if (base(x + 1, y) !== fam) ux.fillRect(sx + 15, sy, 1, 16); if (base(x, y - 1) !== fam) { ux.fillStyle = 'rgba(255,255,255,.12)'; ux.fillRect(sx, sy, 16, 1); } }

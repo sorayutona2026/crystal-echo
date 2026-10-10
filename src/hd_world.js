@@ -68,6 +68,15 @@ function hdShrine() {
   x.strokeStyle = '#3e7a4a'; x.lineWidth = 1.2; for (const [vx, vy] of [[8, 14], [31, 16], [9, 30]]) { x.beginPath(); x.moveTo(vx, vy); x.quadraticCurveTo(vx + 2, vy + 6, vx - 1, vy + 11); x.stroke(); }
   return pixelize(c, '#1a2420');
 }
+function hdRockGround(seed) {
+  const [c, x] = hdc(); const r = mulberry(seed * 71 + 5);
+  fillNoise(x, '#5a4c3c', '#7a6a54', seed + 11);
+  for (let i = 0; i < 6; i++) patch(x, r() * HS, r() * HS, 5 + r() * 7, r() < 0.5 ? 'rgba(20,12,6,.32)' : 'rgba(210,190,150,.2)');
+  x.strokeStyle = 'rgba(30,20,10,.55)'; x.lineWidth = 1; for (let i = 0; i < 5; i++) { x.beginPath(); let px_ = r() * HS, py_ = r() * HS; x.moveTo(px_, py_); for (let k = 0; k < 3; k++) { px_ += (r() - 0.5) * 9; py_ += 3 + r() * 5; x.lineTo(px_, py_); } x.stroke(); }
+  for (let i = 0; i < 70; i++) { x.fillStyle = r() < 0.5 ? 'rgba(255,235,190,.35)' : 'rgba(25,15,8,.4)'; x.fillRect(Math.floor(r() * HS), Math.floor(r() * HS), 1, 1); }
+  for (let i = 0; i < 3; i++) { const px_ = r() * 28, py_ = r() * 26, s2 = 1.4 + r() * 1.4; x.fillStyle = 'rgba(0,0,0,.3)'; x.beginPath(); x.ellipse(px_ + 1, py_ + 2, 3 * s2, 1.6 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#8e7a62'; x.beginPath(); x.ellipse(px_, py_, 2.8 * s2, 1.9 * s2, 0, 0, 7); x.fill(); x.fillStyle = '#c2ad8c'; x.beginPath(); x.ellipse(px_ - 0.8, py_ - 0.7, 1.4 * s2, 0.9 * s2, 0, 0, 7); x.fill(); }
+  return c;
+}
 function hdSand(seed) {
   const [c, x] = hdc(); const r = mulberry(seed * 313 + 9);
   fillNoise(x, '#dcc482', '#efdca0', seed + 5);
@@ -144,6 +153,7 @@ function hdBarrel() {
 }
 function buildHDWorld() {
   HD.grassW = []; for (let v = 0; v < 12; v++) HD.grassW.push(hdGrass(20 + v, 0, true)); // quieter lawn for the open world map
+  HD.rock = [hdRockGround(1), hdRockGround(2), hdRockGround(3), hdRockGround(4)];
   HD.sand = [hdSand(1), hdSand(2), hdSand(3), hdSand(4)];
   HD.paving = [hdPaving(1), hdPaving(2), hdPaving(3), hdPaving(4)];
   Object.assign(HD.tile, { hills: hdHills(), townIcon: hdTownIcon(false), townIcon2: hdTownIcon(true), bridge: hdBridge(false), bridgeV: hdBridge(true), lamp: hdLamp(), barrel: hdBarrel() });
