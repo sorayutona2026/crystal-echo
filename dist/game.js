@@ -1355,15 +1355,15 @@ function hdHero(id, poseName) {
     if (P.face === 'hurt') { line(ex - 3, ey - 3, ex + 3, ey + 3, '#2a1a1a', 1.5); line(ex - 3, ey + 3, ex + 3, ey - 3, '#2a1a1a', 1.5); return; }
     if (P.face === 'happy') { x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.6; x.beginPath(); x.arc(ex, ey + 2.2, 3.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); return; }
     // big glossy anime eye: tall iris filling the eye, dark top, bright bottom, large catch-light
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 5.2, 6.6, 0, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 4.0, 5.2, 0, 0, 7); x.fill();
     const g = x.createLinearGradient(0, ey - 7, 0, ey + 7); g.addColorStop(0, shd(L.iris, 0.7)); g.addColorStop(0.4, L.iris); g.addColorStop(1, shd(L.iris, 1.8));
-    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.8, 4.3, 5.6, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.8, 2.2, 3.2, 0, 0, 7); x.fill();
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 2, ey - 2.6, 2, 2.4, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(ex + 2, ey + 3.6, 1, 1, 0, 0, 7); x.fill();
-    x.strokeStyle = '#1e1018'; x.lineWidth = 1.3; x.beginPath(); x.moveTo(ex - 5.4, ey - 0.6); x.quadraticCurveTo(ex, ey - 9.6, ex + 5.4, ey - 0.6); x.stroke();
+    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.6, 3.5, 4.6, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.8, 1.7, 2.5, 0, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 1.4, ey - 2, 1.5, 1.8, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(ex + 2, ey + 3.6, 1, 1, 0, 0, 7); x.fill();
+    x.strokeStyle = '#1e1018'; x.lineWidth = 1.3; x.beginPath(); x.moveTo(ex - 4.2, ey - 0.4); x.quadraticCurveTo(ex, ey - 7.6, ex + 4.2, ey - 0.4); x.stroke();
   };
   // three-quarter view facing left: the near eye is wide, the far eye narrower, and the face sits toward the left edge
   const eyeAt = (ex, ey, k) => { x.save(); x.translate(ex, ey); x.scale(k, 1); x.translate(-ex, -ey); eyeDraw(ex, ey); x.restore(); };
-  const ey0 = hy + 5.4; eyeAt(hx - 9.4, ey0, 1); eyeAt(hx + 3.4, ey0, 0.72);
+  const ey0 = hy + 5.6; eyeAt(hx - 9, ey0, 1); eyeAt(hx + 3.4, ey0, 0.74);
   if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 5, hy + 12, 2.4, 1.9, 0, 0, 7); x.fill(); }
   else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx - 5, hy + 10.4, 2.6, 0, Math.PI); x.fill(); }
   else if (P.face === 'hurt') line(hx - 7.4, hy + 12, hx - 2.6, hy + 12, '#8a3a3a', 1.2);
