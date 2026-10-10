@@ -18,6 +18,7 @@ function render() {
       ctx.strokeStyle = `rgba(240,207,134,${0.5 * (1 - G.fadeLevel)})`; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(Field.ps.x, Field.ps.y, Math.max(0.1, r), 0, Math.PI * 2); ctx.stroke();
     } else { ctx.fillStyle = `rgba(0,0,0,${G.fadeLevel})`; ctx.fillRect(0, 0, SW, SH); }
   }
+  if (G.scene === Field) { resetT(); drawDialog(); }
 }
 let last = 0, acc = 0, booted = false;
 function loop(ts) {

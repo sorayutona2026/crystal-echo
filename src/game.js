@@ -343,7 +343,7 @@ const Field = {
     }
     if (G.menu) Menu.draw();
     if (Shop.active) Shop.draw();
-    drawDialog();
+    // dialog is drawn by render() after the fade, so scenes told on a black screen stay readable
   },
   drawChar(pal, dir, frame, x, y) {
     if (pal === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest, im = A.frames[(G.frame >> 4) % 4]; ctx.fillStyle = 'rgba(10,6,20,.3)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 15, 14, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(im, x + 8 - 22, y + 16 - 36 + Math.round(Math.sin(G.frame / 16) * 2), 44, 34); addLight(x + 8, y, 60, '#8affd8', 0.6); return; }
