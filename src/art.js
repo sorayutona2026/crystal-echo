@@ -148,7 +148,7 @@ const TILE_DRAW = {
 // tileset definitions: char -> [drawKey, solid, encounterMult]
 const TILESETS = {
   world: { '.': ['grass', 0, 1], 'T': ['forest', 0, 1.6], 'h': ['hills', 0, 1.3], 'M': ['mountain', 1], '~': ['water', 1], '=': ['bridge', 0, 0], 'I': ['bridgeV', 0, 0], 's': ['sand', 0, 0.8],
-    'V': ['townIcon', 0, 0], 'R': ['townIcon2', 0, 0], 'C': ['caveIcon', 0, 0], 'c': ['caveIcon', 0, 0], 'X': ['towerIcon', 0, 0] },
+    'V': ['townIcon', 0, 0], 'R': ['townIcon2', 0, 0], 'C': ['caveIcon', 0, 0], 'c': ['caveIcon', 0, 0], 'X': ['towerIcon', 0, 0], 'W': ['shrineIcon', 0, 0] },
   town: { 'g': ['grass', 0], 'p': ['path', 0], 'T': ['tree', 1], 'F': ['fence', 1], 'R': ['roof', 1], 'r': ['roofB', 1], 'W': ['wall', 1], 'N': ['window', 1], 'D': ['door', 0], '~': ['water', 1],
     'f': ['flowers', 0], 'w': ['well', 1], 'b': ['bridgeV', 0], 'S': ['sign', 1], 'P': ['paving', 0], 'x': ['barrel', 1], 'L': ['lamp', 1], 's': ['sand', 0] },
   inside: { '#': ['inWall', 1], '.': ['floor', 0], 'c': ['counter', 1], 'B': ['bed', 1], 'k': ['shelf', 1], 't': ['table', 1], 'r': ['rug', 0], 'p': ['plant', 1], 'f': ['fire', 1], 'e': ['exitMat', 0], 'x': ['barrelIn', 1] },
@@ -244,6 +244,7 @@ const PALS = {
   sailor: { H: '#f6f6f6', S: '#d8a070', E: '#1a1a2a', C: '#2a4a9a', A: '#f6f6f6', P: '#f6f6f6', B: '#2a2a3a' },
   gking: { H: '#e8c030', S: '#5aa040', E: '#ff3030', C: '#8a3a1a', A: '#c83030', P: '#5a2a10', B: '#2a1408' },
   garva: { H: '#1e1e2e', S: '#3a3a4e', E: '#ff3040', C: '#2a2a3c', A: '#a02040', P: '#1e1e2e', B: '#101018' },
+  bard: { H: '#7a2a9a', S: '#f2c8a0', E: '#1a1a2a', C: '#2e8a64', A: '#e8c040', P: '#4a3a2a', B: '#3a2414' },
   guardian: { H: '#7fe0ff', S: '#bff0ff', E: '#ff40a0', C: '#4aa0e0', A: '#ffffff', P: '#2a70b0', B: '#1a4a80' },
 };
 // small identifying details layered on the 16x16 field sprites

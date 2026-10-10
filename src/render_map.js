@@ -47,6 +47,16 @@ function towerSprite() {
   };
   return sprCanvas(16, 30, f, '#1a1a2a');
 }
+function shrineSprite() {
+  const f = (x, r) => {
+    px(x, '#8a8e8a', 1, 18, 18, 3); px(x, '#a8aca6', 1, 18, 18, 1); px(x, '#6a6e6a', 3, 16, 14, 2);
+    for (const cx of [4, 14]) { px(x, '#b8bcb4', cx, 7, 3, 9); px(x, '#d8dcd4', cx, 7, 1, 9); px(x, '#7a7e78', cx + 2, 7, 1, 9); }
+    px(x, '#2e6a4a', 2, 5, 16, 2); px(x, '#3e8a5a', 4, 3, 12, 2); px(x, '#56a870', 7, 1, 6, 2); px(x, '#1e4a34', 2, 6, 16, 1);
+    px(x, '#1a2a2a', 7, 9, 6, 7); px(x, '#8affd8', 9, 10, 2, 3); px(x, '#e8fff8', 9, 10, 1, 1);
+    px(x, '#4e8934', 0, 20, 3, 1); px(x, '#6aac46', 17, 20, 2, 1); px(x, '#4e8934', 6, 15, 1, 1);
+  };
+  return sprCanvas(20, 22, f, '#1a2420');
+}
 function treeSprite(v) {
   const f = (x, r) => {
     px(x, '#3a2414', 6, 15, 4, 7); px(x, '#6a4424', 7, 15, 1, 7); px(x, '#4e321a', 8, 15, 1, 6); px(x, '#3a2414', 5, 21, 6, 1);
@@ -68,6 +78,7 @@ function buildTallSprites() {
   TALL_SPR.mountain = { imgs: [0, 1, 2].map(mountainSprite), dy: -8, base: 'grass' };
   TALL_SPR.caveIcon = { imgs: [caveSprite()], dy: -8, base: 'grass' };
   TALL_SPR.towerIcon = { imgs: [towerSprite()], dy: -14, base: 'grass' };
+  TALL_SPR.shrineIcon = { imgs: [shrineSprite()], dy: -6, base: 'grass' };
   TALL_SPR.tree = { imgs: [0, 1].map(treeSprite), dy: -6, base: 'grass' };
   TALL_SPR.forest = { imgs: [0, 1, 2].map(forestSprite), dy: -4, base: 'grass' };
 }
@@ -94,7 +105,7 @@ function buildMapCache(m) {
   const upper = mkCanvas(W, H), ux = upper.getContext('2d');
   const base = (x, y) => { if (y < 0 || x < 0 || y >= m.h || x >= m.w) return null; const d = set[m.g[y][x]]; return d ? d[0] : null; };
   const isW = (x, y) => { const b = base(x, y); return b == null ? m.set === 'world' : WATERY.has(b); };
-  const lights = [], dyn = [], tall = [];
+  const lights = [], dyn = [], tall = [], smoke = [], flowers = [];
   const rnd2 = mulberry(m.w * 131 + m.h * 7 + m.id.length);
   // 1) ground
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
@@ -182,7 +193,7 @@ function buildMapCache(m) {
     if (key.endsWith('Top')) { const fam = key.slice(0, -3); ux.fillStyle = 'rgba(0,0,0,.45)'; if (base(x - 1, y) !== fam) ux.fillRect(sx, sy, 1, 16); if (base(x + 1, y) !== fam) ux.fillRect(sx + 15, sy, 1, 16); if (base(x, y - 1) !== fam) { ux.fillStyle = 'rgba(255,255,255,.12)'; ux.fillRect(sx, sy, 16, 1); } }
     if (key === 'roof' || key === 'roofB') {
       const up = base(x, y - 1), dn = base(x, y + 1);
-      if (up !== key) { ux.fillStyle = 'rgba(255,240,210,.35)'; ux.fillRect(sx, sy, 16, 1); if (thash(x, y, 21) < 0.35 && base(x - 1, y) === key && base(x + 1, y) === key) { ux.fillStyle = '#5a3a2a'; ux.fillRect(sx + 9, sy - 5, 4, 7); ux.fillStyle = '#7a5040'; ux.fillRect(sx + 9, sy - 5, 4, 1); ux.fillStyle = '#3a2418'; ux.fillRect(sx + 12, sy - 4, 1, 6); } }
+      if (up !== key) { ux.fillStyle = 'rgba(255,240,210,.35)'; ux.fillRect(sx, sy, 16, 1); if (thash(x, y, 21) < 0.35 && base(x - 1, y) === key && base(x + 1, y) === key) { smoke.push([sx + 11, sy - 6]); ux.fillStyle = '#5a3a2a'; ux.fillRect(sx + 9, sy - 5, 4, 7); ux.fillStyle = '#7a5040'; ux.fillRect(sx + 9, sy - 5, 4, 1); ux.fillStyle = '#3a2418'; ux.fillRect(sx + 12, sy - 4, 1, 6); } }
       if (dn !== key) { ux.fillStyle = 'rgba(30,10,10,.45)'; ux.fillRect(sx, sy + 14, 16, 2); }
     }
     if ((key === 'wall' || key === 'window' || key === 'door') && (base(x, y - 1) === 'roof' || base(x, y - 1) === 'roofB')) { ux.fillStyle = 'rgba(20,10,10,.35)'; ux.fillRect(sx, sy, 16, 3); }
@@ -197,10 +208,12 @@ function buildMapCache(m) {
     else if (key === 'savept') lights.push([cx, cy, 56, '#8ae8ff', 0.8, 'pulse']);
     else if (key === 'caveExit' || key === 'towerExit') lights.push([cx, cy, 80, '#fff2d0', 0.9, 'static']);
     else if (key === 'towerIcon') lights.push([cx, cy - 18, 26, '#7fe6ff', 0.9, 'pulse']);
+    else if (key === 'shrineIcon') lights.push([cx, cy - 2, 26, '#8affd8', 0.8, 'pulse']);
     else if (key === 'townIcon' || key === 'townIcon2') lights.push([cx, cy, 22, '#ffd38a', 0.5, 'static']);
     else if (key === 'window' && m.set === 'town') lights.push([cx, cy, 18, '#ffe0a0', 0.35, 'static']);
+    if (key === 'flowers') flowers.push([cx, cy]);
   }
-  m._cache = { ground, upper, lights, dyn };
+  m._cache = { ground, upper, lights, dyn, smoke, flowers };
 }
 function drawMapLayers(m, cx, cy) {
   if (!m._cache) buildMapCache(m);

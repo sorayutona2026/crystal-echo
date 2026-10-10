@@ -26,6 +26,9 @@
       if (low.length >= 2 && can('healall')) return act({ kind: 'skill', id: 'healall' });
       if (low.length && can('heal')) return act({ kind: 'skill', id: 'heal', target: { side: 'p', i: low[0] } });
       if (G.party.some(p => p.poison && p.hp > 0) && can('cure')) return act({ kind: 'skill', id: 'cure', target: { side: 'p', i: G.party.findIndex(p => p.poison && p.hp > 0) } });
+      if (boss && can('protect') && alive.some(i => !B.pb[i].prot)) return act({ kind: 'skill', id: 'protect' });
+      const fast = ['allen', 'zek'].map(id => G.party.findIndex(p => p.id === id)).find(i => i >= 0 && G.party[i].hp > 0 && !B.pb[i].haste);
+      if (boss && can('haste') && fast !== undefined && low.length === 0) return act({ kind: 'skill', id: 'haste', target: { side: 'p', i: fast } });
       if (m.mp < 6 && G.inv.ether && boss) return act({ kind: 'item', id: 'ether', target: { side: 'p', i: M.who } });
       if (boss && can('holy') && m.mp > 30) return act({ kind: 'skill', id: 'holy', target: tgtE() });
     }

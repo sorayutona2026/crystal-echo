@@ -2,6 +2,7 @@
 function fieldUseItem(id, m) {
   const it = ITEMS[id]; const s = stats(m);
   if (it.tent) { healAll(); return 'みんなの体力が回復した!'; }
+  if (it.target === 'allies') { let n = 0; for (const p of G.party) { const ps = stats(p); if (p.hp > 0 && p.hp < ps.maxhp) { p.hp = Math.min(ps.maxhp, p.hp + it.heal); n++; } } return n ? 'みんなのHPが回復した!' : null; }
   if (it.revive) { if (m.hp > 0) return null; m.hp = Math.max(1, Math.floor(s.maxhp * it.revive)); return `${HEROES[m.id].name}が復活した!`; }
   if (m.hp <= 0) return null;
   if (it.full) { m.hp = s.maxhp; m.mp = s.maxmp; return 'HPとMPが全回復した!'; }
@@ -55,7 +56,7 @@ const Menu = {
           const id = list[M.li]; const it = ITEMS[id];
           if (it.type !== 'use') { Audio8.sfx('error'); this.say('そうびから装備できます'); return; }
           Audio8.sfx('ok');
-          if (it.target === 'party') { const r = fieldUseItem(id, G.party[0]); removeItem(id); Audio8.sfx('heal'); this.say(r); return; }
+          if (it.target === 'party' || it.target === 'allies') { const r = fieldUseItem(id, G.party[0]); if (!r) { Audio8.sfx('error'); this.say('効果がない'); return; } removeItem(id); Audio8.sfx('heal'); this.say(r); return; }
           M.mode = 'itemTarget'; M.itemId = id; M.who = 0;
         }
         return;
@@ -304,9 +305,23 @@ function drawScene(t, dawn = 0) {
   // foreground hill
   ctx.fillStyle = dawn ? '#2a3a2a' : '#0c1418'; ctx.beginPath(); ctx.moveTo(0, SH); ctx.lineTo(0, 178); ctx.quadraticCurveTo(70, 158, 140, 170); ctx.quadraticCurveTo(200, 180, SW, 172); ctx.lineTo(SW, SH); ctx.fill();
   const r = mulberry(5); for (let i = 0; i < 40; i++) { const x = r() * SW, y = 172 + r() * 50; ctx.fillStyle = r() < 0.5 ? (dawn ? '#3a5a3a' : '#16242a') : (dawn ? '#4a6a40' : '#1c2e30'); ctx.fillRect(x, y, 1, 2 + r() * 2); }
-  ctx.drawImage(SPR.allen.up[0], 66, 148); ctx.drawImage(SPR.lina.up[0], 82, 150);
-  if (dawn) { ctx.drawImage(SPR.kai.up[0], 50, 152); ctx.drawImage(SPR.zek.up[0], 98, 152); }
+  const hero = (id, x, y) => ctx.drawImage(dawn ? SPR[id].up[0] : nightSprite(id), x, y);
+  hero('allen', 66, 148); hero('lina', 82, 150);
+  if (dawn) { hero('kai', 50, 152); hero('zek', 98, 152); }
+  else { // a shooting star every few seconds
+    const k = t % 240; if (k < 26) { const sx = 40 + ((t / 240) | 0) * 67 % 150, sy = 8 + ((t / 240) | 0) * 29 % 40, q = k / 26;
+      const g = ctx.createLinearGradient(sx + q * 60 - 18, sy + q * 22 - 7, sx + q * 60, sy + q * 22); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(255,250,230,${1 - q})`);
+      ctx.strokeStyle = g; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx + q * 60 - 18, sy + q * 22 - 7); ctx.lineTo(sx + q * 60, sy + q * 22); ctx.stroke(); } }
   postWorld(dawn ? { ...ENV.title, grade: ['#ffb070', 0.14] } : ENV.title);
+}
+// heroes seen from behind at night: shaded toward the sky colour so white clothes don't bloom out
+const NIGHT = {};
+function nightSprite(id) {
+  if (NIGHT[id]) return NIGHT[id];
+  const src = SPR[id].up[0], c = mkCanvas(src.width, src.height), x = c.getContext('2d');
+  x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-atop'; x.fillStyle = 'rgba(26,30,80,.72)'; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = 'rgba(160,200,255,.35)'; x.fillRect(0, 0, c.width, 2);
+  return (NIGHT[id] = c);
 }
 function drawCrystal(cx, cy, sc, t) {
   ctx.save(); ctx.translate(cx, cy); ctx.globalCompositeOperation = 'lighter';

@@ -10,7 +10,12 @@ function render() {
   resetT();
   G.scene.draw();
   if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, G.flash / 20)})`; ctx.fillRect(0, 0, SW, SH); }
-  if (G.fadeLevel > 0) { ctx.fillStyle = `rgba(0,0,0,${G.fadeLevel})`; ctx.fillRect(0, 0, SW, SH); }
+  if (G.fadeLevel > 0) {
+    if (G.scene === Field && Field.ps && !G.narr && G.fadeLevel < 1) { // iris wipe centred on the player
+      const r = Math.pow(1 - G.fadeLevel, 1.4) * 200; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.rect(0, 0, SW, SH); ctx.arc(Field.ps.x, Field.ps.y, Math.max(0.1, r), 0, Math.PI * 2, true); ctx.fill('evenodd');
+      ctx.strokeStyle = `rgba(240,207,134,${0.5 * (1 - G.fadeLevel)})`; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(Field.ps.x, Field.ps.y, Math.max(0.1, r), 0, Math.PI * 2); ctx.stroke();
+    } else { ctx.fillStyle = `rgba(0,0,0,${G.fadeLevel})`; ctx.fillRect(0, 0, SW, SH); }
+  }
 }
 let last = 0, acc = 0, booted = false;
 function loop(ts) {
@@ -36,7 +41,7 @@ function boot(saved) {
 }
 // debug / test hooks
 window.__rpg = { G, get B() { return B; }, MAPS: () => MAPS, Field, Battle, BMenu, Menu, Shop, Title, SCRIPTS, ENEMIES, ITEMS, SKILLS, HEROES, FORMATIONS, TILESETS,
-  newGame, startBattle, BattleTrans, GameOver, Ending, transitioning: () => !!transitionCb, stats, gainExp, joinParty, saveGame, loadGame, snapshot, setSeed, step, render, Input, expAt, addItem, healAll };
+  SPARKLES, newGame, startBattle, BattleTrans, GameOver, Ending, transitioning: () => !!transitionCb, stats, gainExp, joinParty, saveGame, loadGame, snapshot, setSeed, step, render, Input, expAt, addItem, healAll };
 const fontReady = (document.fonts && document.fonts.load) ? Promise.race([
   Promise.all([document.fonts.load('500 24px "Zen Kaku Gothic New"', GLYPHS), document.fonts.load('800 24px "Zen Kaku Gothic New"', '0123456789MISFULCREAT'), document.fonts.load('700 24px "Shippori Mincho B1"', GLYPHS), document.fonts.load('800 24px "Shippori Mincho B1"', 'CRYSTAL ECHO')]),
   new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();

@@ -88,7 +88,7 @@ function advance(val) {
   const c = s.cur = r.value;
   switch (c.t) {
     case 'say': {
-      const pk = null;
+      const pk = portraitFor(c.name);
       const lines = wrapText(c.text, pk ? 178 : 226, 8.5);
       G.dialog = { pages: [], name: c.name, portrait: pk, shown: 0, keep: c.keep };
       for (let i = 0; i < lines.length; i += 4) G.dialog.pages.push(lines.slice(i, i + 4).join('\n'));
@@ -139,10 +139,27 @@ function wrapText(str, maxW, size) {
   }
   return out;
 }
+// who gets a face in the dialog box (the front-facing field sprite, or a crop of the boss art)
+const SPEAKERS = { 'アレン': 'allen', 'リナ': 'lina', 'カイ': 'kai', 'ゼク': 'zek', '長老': 'elder', '町長': 'mayor', '宿屋': 'inn', 'マスター': 'inn', '店主': 'merchant', '鍛冶屋': 'man',
+  '船乗り': 'sailor', '衛兵': 'soldier', '村の衛兵': 'soldier', '魔導士': 'zek', 'ガルヴァ': 'garva', 'ゴブリンキング': 'gking', 'ガーディアン': 'guardian', '吟遊詩人': 'bard', 'テンペスト': 'tempest', '風の精': 'spirit' };
+function portraitFor(name) { const k = name && SPEAKERS[name]; if (!k) return null; if (k === 'kai' && !G.party.some(m => m.id === 'kai')) return null; return k; }
+function drawPortrait(k, x, y) {
+  win(x, y, 52, 56);
+  ctx.save(); ctx.beginPath(); ctx.rect(x + 3, y + 3, 46, 50); ctx.clip();
+  const g = ctx.createRadialGradient(x + 26, y + 24, 2, x + 26, y + 24, 34); g.addColorStop(0, 'rgba(120,140,220,.35)'); g.addColorStop(1, 'rgba(20,20,50,0)'); ctx.fillStyle = g; ctx.fillRect(x + 3, y + 3, 46, 50);
+  if (k === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest; ctx.drawImage(A.frames[(G.frame >> 4) % 4], 22, 0, 42, 34, x + 2, y + 6, 48, 39); }
+  else if (k === 'spirit') { drawSpirit(x + 26, y + 30, 2); }
+  else if (SPR[k]) { // the front-facing field sprite, cropped to head and shoulders
+    const bob = (G.frame >> 5) % 2; ctx.drawImage(SPR[k].down[0], 1, 0, 14, 13, x + 5, y + 8 + bob, 42, 39);
+    if ((G.frame % 200) < 6) { ctx.fillStyle = PALS[k] ? PALS[k].S : '#f0c8a0'; ctx.fillRect(x + 5 + 3 * 5, y + 8 + bob + 3 * 6, 3, 3); ctx.fillRect(x + 5 + 3 * 8, y + 8 + bob + 3 * 6, 3, 3); }
+  }
+  ctx.restore();
+}
 function drawDialog() {
   const d = G.dialog;
   if (d) {
     const y = 150; win(6, y, 244, 70);
+    if (d.portrait) drawPortrait(d.portrait, 10, y + 7);
     const tx = d.portrait ? 66 : 16;
     if (d.name) {
       const w = textW(d.name, 8, 't') + 22; win(12, y - 13, w, 17);
@@ -174,6 +191,7 @@ const Field = {
   npcs: [],
   enter(id, x, y, dir = 'down', silent) {
     G.mapId = id; G.map = MAPS[id]; const p = G.p; p.x = x; p.y = y; p.dir = dir; p.moving = 0; p.ox = p.oy = 0;
+    this.hist = Array.from({ length: 5 }, () => ({ x, y, dir }));
     this.npcs = (G.map.npcs || []).map(d => ({ d, x: d.x, y: d.y, dir: d.dir || 'down', mv: 0, ox: 0, oy: 0, tx: d.x, ty: d.y, timer: 60 + Math.floor(rnd() * 120) }));
     G.scene = Field; G.steps = 0;
     if (!silent) Audio8.play(G.map.music); else Audio8.play(G.map.music);
@@ -206,7 +224,7 @@ const Field = {
     if (d) {
       p.dir = d; const [dx, dy] = DIRS[d]; const nx = p.x + dx, ny = p.y + dy;
       if (nx < 0 || ny < 0 || nx >= G.map.w || ny >= G.map.h) { this.leave(); return; }
-      if (!this.solid(nx, ny)) { p.x = nx; p.y = ny; p.moving = 16; p.ox = -dx * 16; p.oy = -dy * 16; }
+      if (!this.solid(nx, ny)) { p.x = nx; p.y = ny; p.moving = 16; p.ox = -dx * 16; p.oy = -dy * 16; this.hist.unshift({ x: nx, y: ny, dir: d }); this.hist.length = 5; }
       else p.anim = 0;
     } else p.anim = 0;
   },
@@ -255,7 +273,14 @@ const Field = {
       else { addItem(c.item, c.n || 1); msg = `${ITEMS[c.item].name}${c.n > 1 ? '×' + c.n : ''}を手に入れた!`; }
       runScript(function* () { yield* say('宝箱を開けた!\n' + msg); }); return;
     }
-    if (G.map.signs && G.map.signs[key]) { const t = G.map.signs[key]; runScript(function* () { yield* say(t); }); }
+    if (G.map.signs && G.map.signs[key]) { const t = G.map.signs[key]; runScript(function* () { yield* say(t); }); return; }
+    for (const k of [key, p.x + ',' + p.y]) { const sp = this.sparkleAt(k); if (sp) { this.dig(k, sp); return; } }
+  },
+  sparkleAt(k) { const S = SPARKLES[G.mapId]; if (!S || !S[k] || G.flags[`spark:${G.mapId}:${k}`] || !G.party.some(m => m.id === 'kai')) return null; return S[k]; },
+  dig(k, sp) {
+    G.flags[`spark:${G.mapId}:${k}`] = 1; Audio8.sfx('sparkle');
+    let msg; if (sp.gil) { G.gil += sp.gil; msg = `${sp.gil}ギルを見つけた!`; } else { addItem(sp.item, sp.n || 1); msg = `${ITEMS[sp.item].name}${sp.n > 1 ? '×' + sp.n : ''}を見つけた!`; }
+    runScript(function* () { yield* say('おっ、なにか光ってるぞ…\nトレジャーハンターの勘ってやつさ!', 'カイ'); Audio8.sfx('chest'); yield* say(msg); });
   },
   updateNpcs() {
     for (const n of this.npcs) {
@@ -285,12 +310,27 @@ const Field = {
     if (m.set === 'inside') addLight(m.w * T / 2 - cx, m.h * T / 2 - cy - 8, 190, '#ffe2b0', 0.95);
     if (m.set === 'cave') addLight(px_ - cx + 8, py_ - cy + 6, 190, '#ffb868', fl);
     if (m.set === 'tower') addLight(px_ - cx + 8, py_ - cy + 6, 130, '#d8dcff', 0.55);
+    drawAmbientLow(m, cx, cy);
+    // hidden treasure glints
+    if (SPARKLES[G.mapId]) for (const k in SPARKLES[G.mapId]) { if (!this.sparkleAt(k)) continue; const [sx, sy] = k.split(',').map(Number); const ph = (G.frame + sx * 13 + sy * 7) % 90;
+      if (ph < 30) { const a = Math.sin(ph / 30 * Math.PI), X = sx * T - cx + 8, Y = sy * T - cy + 9; ctx.fillStyle = `rgba(255,250,200,${a})`; ctx.fillRect(X - 3 * a, Y, 6 * a + 1, 1); ctx.fillRect(X, Y - 3 * a, 1, 6 * a + 1); addLight(X, Y, 22, '#fff2b0', a * 0.8); } }
     // sprites
     const list = [];
     for (const n of this.npcs) { if (n.d.show && !n.d.show()) continue; list.push({ y: n.y * T + n.oy, draw: () => this.drawChar(n.d.pal, n.dir, n.mv ? ((G.frame >> 3) & 3) : 0, n.x * T + n.ox - cx, n.y * T + n.oy - cy) }); }
     const lead = G.party[0] ? G.party[0].id : 'allen';
-    list.push({ y: py_, draw: () => this.drawChar(lead, p.dir, p.moving ? ((p.anim >> 2) & 3) : 0, px_ - cx, py_ - cy) });
+    // party members walk in single file behind the leader
+    const prog = p.moving ? 1 - p.moving / 16 : 1;
+    for (let k = G.party.length - 1; k >= 1; k--) {
+      const a = this.hist[k + 1], b = this.hist[k];
+      const fx = (a.x + (b.x - a.x) * prog) * T, fy = (a.y + (b.y - a.y) * prog) * T;
+      if (Math.abs(fx - px_) < 2 && Math.abs(fy - py_) < 2) continue;
+      const moving = p.moving && (a.x !== b.x || a.y !== b.y); const dir = (a.x !== b.x || a.y !== b.y) ? b.dir : p.dir;
+      const id = G.party[k].id; list.push({ y: fy - 0.1 * k, draw: () => this.drawChar(id, dir, moving ? ((p.anim >> 2) + k) & 3 : 0, fx - cx, fy - cy) });
+    }
+    list.push({ y: py_ + 0.01, draw: () => this.drawChar(lead, p.dir, p.moving ? ((p.anim >> 2) & 3) : 0, px_ - cx, py_ - cy) });
     list.sort((a, b) => a.y - b.y).forEach(o => o.draw());
+    drawAmbientHigh(m, cx, cy);
+    this.ps = { x: px_ - cx + 8, y: py_ - cy + 8 };
     CAM.x = cx; CAM.y = cy;
     postWorld(envFor(G.mapId, m.set));
     if (G.banner && !Shop.active && !G.menu) {
@@ -306,11 +346,49 @@ const Field = {
     drawDialog();
   },
   drawChar(pal, dir, frame, x, y) {
+    if (pal === 'tempest' && ENEMY_ANIM.tempest) { const A = ENEMY_ANIM.tempest, im = A.frames[(G.frame >> 4) % 4]; ctx.fillStyle = 'rgba(10,6,20,.3)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 15, 14, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(im, x + 8 - 22, y + 16 - 36 + Math.round(Math.sin(G.frame / 16) * 2), 44, 34); addLight(x + 8, y, 60, '#8affd8', 0.6); return; }
+    if (pal === 'spirit') { drawSpirit(x + 8, y + 6, 1); addLight(x + 8, y + 6, 70, '#a8ffe0', 0.9); return; }
     const s = SPR[pal]; if (!s) return;
     ctx.fillStyle = 'rgba(10,6,20,.32)'; ctx.beginPath(); ctx.ellipse(x + 9, y + 15, 6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.drawImage(s[dir][frame], x, y - 2);
   },
 };
+
+// ---------- ambient life on the field ----------
+function drawSpirit(x, y, sc) {
+  const t = G.frame; const b = Math.sin(t / 14) * 2 * sc;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y + b, 0, x, y + b, 9 * sc); g.addColorStop(0, 'rgba(230,255,245,.95)'); g.addColorStop(0.4, 'rgba(120,255,200,.5)'); g.addColorStop(1, 'rgba(60,200,160,0)');
+  ctx.fillStyle = g; ctx.fillRect(x - 10 * sc, y + b - 10 * sc, 20 * sc, 20 * sc);
+  for (let i = 0; i < 3; i++) { const an = t / 20 + i * 2.1; ctx.fillStyle = 'rgba(200,255,230,.8)'; ctx.fillRect(Math.round(x + Math.cos(an) * 7 * sc), Math.round(y + b + Math.sin(an) * 3 * sc), sc, sc); }
+  ctx.restore();
+}
+// drawn under the characters: chimney smoke drifts, butterflies over flowers, bird shadows on the world map
+function drawAmbientLow(m, cx, cy) {
+  const t = G.frame, C = m._cache; if (!C) return;
+  if (C.smoke) for (const [sx0, sy0] of C.smoke) {
+    const X = sx0 - cx, Y = sy0 - cy; if (X < -20 || X > SW + 20 || Y < -40 || Y > SH + 10) continue;
+    for (let i = 0; i < 5; i++) { const age = (t * 0.6 + i * 32 + sx0) % 160, k = age / 160; const r = 1.5 + k * 4;
+      ctx.fillStyle = `rgba(220,220,230,${0.45 * (1 - k)})`; ctx.beginPath(); ctx.arc(X + Math.sin(age / 18 + i) * 2 + k * 10, Y - age * 0.22, r, 0, 7); ctx.fill(); }
+  }
+  if (m.set === 'world') { // flock shadows sliding over the ground
+    for (let i = 0; i < 3; i++) { const bx = ((t * 0.5 + i * 9) % 700) - 200 - cx % 700 + (i % 2) * 6, by = ((t * 0.18 + i * 5) % 500) - 100 - cy % 500 + i * 7;
+      ctx.fillStyle = 'rgba(10,20,30,.22)'; ctx.fillRect(Math.round(bx), Math.round(by) + 30, 3, 1); ctx.fillRect(Math.round(bx) + 1, Math.round(by) + 31, 1, 1); }
+  }
+}
+function drawAmbientHigh(m, cx, cy) {
+  const t = G.frame, C = m._cache; if (!C) return;
+  if (C.flowers && C.flowers.length) for (let i = 0; i < Math.min(4, C.flowers.length); i++) { // butterflies
+    const [fx, fy] = C.flowers[(i * 7) % C.flowers.length]; const X = fx - cx + Math.sin(t / 40 + i * 2) * 14, Y = fy - cy - 6 + Math.sin(t / 23 + i) * 6;
+    if (X < -8 || X > SW + 8 || Y < -8 || Y > SH + 8) continue; const w = (t >> 2) % 2;
+    ctx.fillStyle = ['#ffffff', '#ffe070', '#ff9ac8', '#a8d8ff'][i % 4]; ctx.fillRect(Math.round(X) - 1 - w, Math.round(Y), 1 + w, 1 + (1 - w)); ctx.fillRect(Math.round(X) + 1, Math.round(Y), 1 + w, 1 + (1 - w));
+    ctx.fillStyle = '#3a2a2a'; ctx.fillRect(Math.round(X), Math.round(Y), 1, 1);
+  }
+  if (m.set === 'world') for (let i = 0; i < 3; i++) { // the birds themselves, high above their shadows
+    const bx = ((t * 0.5 + i * 9) % 700) - 200 - cx % 700 + (i % 2) * 6 - 8, by = ((t * 0.18 + i * 5) % 500) - 100 - cy % 500 + i * 7; const f = ((t >> 3) + i) % 2;
+    ctx.fillStyle = '#f4f4f8'; ctx.fillRect(Math.round(bx), Math.round(by), 1, 1); ctx.fillRect(Math.round(bx) - 1, Math.round(by) - f, 1, 1); ctx.fillRect(Math.round(bx) + 1, Math.round(by) - f, 1, 1); ctx.fillRect(Math.round(bx) - 2, Math.round(by) - 1 + f, 1, 1); ctx.fillRect(Math.round(bx) + 2, Math.round(by) - 1 + f, 1, 1);
+  }
+}
 
 // ---------- transitions ----------
 let transitionCb = null;

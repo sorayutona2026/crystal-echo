@@ -50,6 +50,13 @@ const SEED = +(process.env.SEED || 11);
     const S = reach(w, 24, 17);
     if (!S.has('10,24')) out.push('world: Rosa unreachable from cave exit');
     if (!S.has('37,24')) out.push('world: tower unreachable from cave exit');
+    if (!S.has('4,23')) out.push('world: wind shrine unreachable from cave exit');
+    if (N.has('4,23')) out.push('world: wind shrine reachable before the cave');
+    // Kai's hidden treasure must sit on walkable, reachable ground
+    for (const id in R.SPARKLES) { const m = MAPS[id]; if (!m) { out.push('sparkle on missing map ' + id); continue; }
+      const ent = entries[id] || [[9, 7]]; const all = reach(m, ent[0][0], ent[0][1]);
+      for (const k in R.SPARKLES[id]) { const [x, y] = k.split(',').map(Number); if (solid(m, x, y)) out.push(`${id}: sparkle ${k} on solid tile`); else if (id !== 'world' && !all.has(k)) out.push(`${id}: sparkle ${k} unreachable`);
+        if (id === 'world' && !N.has(k) && !S.has(k)) out.push(`world: sparkle ${k} unreachable`); } }
     // formations reference real enemies
     for (const k in R.FORMATIONS) for (const f of R.FORMATIONS[k]) for (const e of f) if (!R.ENEMIES[e]) out.push('formation ' + k + ' bad enemy ' + e);
     for (const k in R.ENEMIES) { const ai = R.ENEMIES[k].ai; if (Array.isArray(ai)) for (const a of ai) if (!R.SKILLS[a[0]]) out.push('enemy ' + k + ' bad skill ' + a[0]); }

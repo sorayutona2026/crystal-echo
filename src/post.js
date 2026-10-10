@@ -31,16 +31,19 @@ const ENV = {
   inside: { grade: ['#ffb060', 0.12], ambient: '#6a5a6e', halo: 1.3, bloom: 0.5, thr: 190, dof: [0.6, 0.4], vignette: 0.55, parts: 'dust' },
   cave: { grade: ['#4060a0', 0.08], ambient: '#4a4568', halo: 1.6, bloom: 0.7, thr: 150, dof: [0.7, 0.5], vignette: 0.45, parts: 'dust', torch: true },
   tower: { grade: ['#8a70ff', 0.08], ambient: '#6a6496', halo: 1.3, bloom: 0.55, thr: 200, dof: [0.7, 0.5], vignette: 0.45, parts: 'sparks' },
+  shrine: { grade: ['#70ffc0', 0.16], ambient: '#7a9a8e', halo: 1.2, bloom: 0.5, thr: 200, dof: [0.7, 0.5], rays: 0.5, vignette: 0.45, parts: 'leaves' },
   tower3: { grade: ['#70c8ff', 0.12], ambient: '#4e5888', halo: 1.3, bloom: 0.65, thr: 200, dof: [0.6, 0.45], vignette: 0.55, parts: 'sparks' },
   battleDay: { grade: ['#ffd08a', 0.1], bloom: 0.3, thr: 232, vignette: 0.42, parts: 'motes' },
   battleCave: { grade: ['#4060a0', 0.12], bloom: 0.5, thr: 180, vignette: 0.6, parts: 'dust' },
   battleTower: { grade: ['#8a70ff', 0.12], bloom: 0.5, thr: 180, vignette: 0.55, parts: 'sparks' },
+  battleShrine: { grade: ['#70ffc0', 0.12], bloom: 0.45, thr: 190, vignette: 0.5, parts: 'leaves' },
   title: { grade: ['#6a80ff', 0.1], bloom: 1.0, thr: 110, dof: [0.9, 0.5], rays: 0.35, vignette: 0.6, parts: 'sparks' },
 };
 function envFor(mapId, set) {
   if (mapId === 'world') return G.p.y >= 14 ? ENV.worldS : ENV.world;
   if (mapId === 'rosa') return ENV.rosa;
   if (mapId === 'tower3') return ENV.tower3;
+  if (mapId === 'shrine') return ENV.shrine;
   return ENV[set] || ENV.town;
 }
 // cached gradients
@@ -145,14 +148,14 @@ function drawParticles(kind) {
   const M = MAIN;
   if (kind !== partKind) { PARTS.length = 0; partKind = kind; }
   if (!kind) return;
-  const max = { motes: 28, petals: 16, dust: 26, sparks: 30 }[kind] || 0;
+  const max = { motes: 28, petals: 16, dust: 26, sparks: 30, leaves: 18 }[kind] || 0;
   while (PARTS.length < max) PARTS.push(newPart(kind, PARTS.length < max * 0.8));
-  M.globalCompositeOperation = kind === 'petals' ? 'source-over' : 'lighter';
+  M.globalCompositeOperation = kind === 'petals' || kind === 'leaves' ? 'source-over' : 'lighter';
   for (let i = PARTS.length - 1; i >= 0; i--) {
     const p = PARTS[i]; p.t++; p.x += p.vx + Math.sin((p.t + p.ph) / 40) * p.sw; p.y += p.vy;
     if (p.t > p.life || p.y < -20 || p.y > H3 + 20 || p.x < -20 || p.x > W3 + 20) { PARTS[i] = newPart(kind, false); continue; }
     const a = Math.min(1, p.t / 30, (p.life - p.t) / 30) * p.a;
-    if (kind === 'petals') { M.globalAlpha = a; M.fillStyle = p.col; M.save(); M.translate(p.x, p.y); M.rotate(p.t / 20 + p.ph); M.fillRect(-3, -1.5, 6, 3); M.restore(); M.globalAlpha = 1; continue; }
+    if (kind === 'petals' || kind === 'leaves') { M.globalAlpha = a; M.fillStyle = p.col; M.save(); M.translate(p.x, p.y); M.rotate(p.t / 20 + p.ph); M.fillRect(-3, -1.5, 6, 3); M.restore(); M.globalAlpha = 1; continue; }
     const r = p.r * (kind === 'sparks' ? (0.7 + 0.3 * Math.sin(p.t / 6 + p.ph)) : 1);
     const g = M.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3); g.addColorStop(0, hexA(p.col, a)); g.addColorStop(0.3, hexA(p.col, a * 0.5)); g.addColorStop(1, hexA(p.col, 0));
     M.fillStyle = g; M.fillRect(p.x - r * 3, p.y - r * 3, r * 6, r * 6);
@@ -165,6 +168,7 @@ function newPart(kind, anywhere) {
   if (kind === 'motes') { p.vx = 0.15; p.vy = -0.25 - R() * 0.2; p.r = 1.6 + R() * 1.5; p.col = R() < 0.7 ? '#ffe6a8' : '#ffffff'; p.a = 0.55; }
   if (kind === 'dust') { p.vx = 0.05; p.vy = -0.12 - R() * 0.1; p.r = 1.2 + R() * 1.2; p.col = '#b8c8ff'; p.a = 0.35; }
   if (kind === 'sparks') { p.vy = -0.4 - R() * 0.4; p.r = 1.5 + R() * 1.6; p.col = R() < 0.6 ? '#8ae8ff' : '#d8b0ff'; p.a = 0.8; }
+  if (kind === 'leaves') { p.y = R() * H3; p.x = anywhere ? R() * W3 : -10; p.vx = 1.6 + R() * 1.2; p.vy = 0.15 + R() * 0.3; p.sw = 0.9; p.col = R() < 0.5 ? '#8ad070' : '#c8f0a0'; p.a = 0.8; }
   if (kind === 'petals') { p.y = anywhere ? R() * H3 : -10; p.x = anywhere ? R() * W3 : R() * W3 * 0.8; p.vx = 0.6 + R() * 0.4; p.vy = 0.7 + R() * 0.4; p.sw = 0.6; p.col = R() < 0.6 ? '#ffc6d8' : '#fff0f4'; p.a = 0.85; }
   return p;
 }

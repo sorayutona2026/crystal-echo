@@ -7,12 +7,14 @@ const ITEMS = {
   phoenix: { name: '不死鳥の羽', type: 'use', price: 250, revive: 0.3, target: 'ally', dead: true, desc: '戦闘不能から復活させる' },
   antidote: { name: '毒消し', type: 'use', price: 20, cure: true, target: 'ally', desc: '毒を治す' },
   elixir: { name: 'エリクサー', type: 'use', price: 0, full: true, target: 'ally', desc: 'HPとMPを全回復する' },
+  megapotion: { name: 'メガポーション', type: 'use', price: 600, heal: 150, target: 'allies', desc: '味方全員のHPを150回復する' },
   tent: { name: 'テント', type: 'use', price: 250, tent: true, field: 'only', target: 'party', desc: 'フィールドで使うと全員全回復' },
   // weapons
   copper: { name: '銅の剣', type: 'weapon', atk: 6, eq: ['allen'], price: 50 },
   iron: { name: '鉄の剣', type: 'weapon', atk: 14, eq: ['allen'], price: 240 },
   mythril: { name: 'ミスリルソード', type: 'weapon', atk: 26, eq: ['allen'], price: 900 },
   rune: { name: 'ルーンブレイド', type: 'weapon', atk: 40, mag: 4, eq: ['allen'], price: 0 },
+  windblade: { name: 'ウィンドブレード', type: 'weapon', atk: 50, mag: 6, spd: 3, eq: ['allen'], price: 0 },
   oakstaff: { name: '樫の杖', type: 'weapon', atk: 3, mag: 2, eq: ['lina', 'zek'], price: 40 },
   cleric: { name: 'クレリックロッド', type: 'weapon', atk: 7, mag: 7, eq: ['lina'], price: 420 },
   wizard: { name: 'ウィザードロッド', type: 'weapon', atk: 7, mag: 9, eq: ['zek'], price: 480 },
@@ -20,12 +22,16 @@ const ITEMS = {
   dagger: { name: 'ダガー', type: 'weapon', atk: 9, eq: ['kai'], price: 60 },
   mdagger: { name: 'ミスリルダガー', type: 'weapon', atk: 22, eq: ['kai'], price: 800 },
   assassin: { name: 'アサシンダガー', type: 'weapon', atk: 34, spd: 3, eq: ['kai'], price: 0 },
+  gale: { name: 'ゲイルダガー', type: 'weapon', atk: 40, spd: 5, eq: ['kai'], price: 0 },
+  zephyr: { name: 'ゼピュロスの杖', type: 'weapon', atk: 12, mag: 19, eq: ['lina', 'zek'], price: 0 },
   // armor
   cloth: { name: '旅人の服', type: 'armor', def: 3, mdf: 1, eq: ALL, price: 30 },
   chain: { name: '鎖かたびら', type: 'armor', def: 8, mdf: 2, eq: ['allen', 'kai'], price: 180 },
   silk: { name: '絹のローブ', type: 'armor', def: 5, mdf: 5, eq: ['lina', 'zek'], price: 200 },
   mmail: { name: 'ミスリルメイル', type: 'armor', def: 16, mdf: 5, eq: ['allen', 'kai'], price: 1000 },
   srobe: { name: '賢者のローブ', type: 'armor', def: 10, mdf: 13, eq: ['lina', 'zek'], price: 950 },
+  aerial: { name: 'エアリアルローブ', type: 'armor', def: 14, mdf: 18, eq: ['lina', 'zek'], price: 0 },
+  galemail: { name: '疾風の鎧', type: 'armor', def: 22, mdf: 9, eq: ['allen', 'kai'], price: 0 },
 };
 
 const HEROES = {
@@ -34,16 +40,16 @@ const HEROES = {
     skills: [['power', 1], ['whirl', 6], ['braver', 12]] },
   lina: { name: 'リナ', job: '白魔導士', cmd: '白魔法', crit: 0.04, weapon: 'oakstaff', armor: 'cloth',
     base: { hp: 46, mp: 20, str: 6, def: 5, mag: 11, mdf: 9, spd: 9 }, grow: { hp: 10, mp: 3.2, str: 0.8, def: 0.9, mag: 1.8, mdf: 1.4, spd: 0.5 },
-    skills: [['heal', 1], ['cure', 2], ['healall', 6], ['revive', 9], ['holy', 13]] },
+    skills: [['heal', 1], ['cure', 2], ['healall', 6], ['protect', 7], ['revive', 9], ['haste', 10], ['holy', 13]] },
   kai: { name: 'カイ', job: 'トレジャーハンター', cmd: 'わざ', crit: 0.15, weapon: 'dagger', armor: 'cloth',
     base: { hp: 54, mp: 8, str: 10, def: 6, mag: 5, mdf: 5, spd: 14 }, grow: { hp: 12, mp: 1.3, str: 2.0, def: 1.1, mag: 0.5, mdf: 0.8, spd: 0.9 },
-    skills: [['steal', 1], ['double', 4], ['shadow', 11]] },
+    skills: [['steal', 1], ['double', 4], ['mug', 7], ['shadow', 11]] },
   zek: { name: 'ゼク', job: '黒魔導士', cmd: '黒魔法', crit: 0.03, weapon: 'oakstaff', armor: 'cloth',
     base: { hp: 42, mp: 24, str: 5, def: 4, mag: 14, mdf: 9, spd: 8 }, grow: { hp: 9, mp: 3.6, str: 0.6, def: 0.8, mag: 2.1, mdf: 1.3, spd: 0.5 },
-    skills: [['fire', 1], ['frost', 1], ['bolt', 1], ['blaze', 9], ['meteor', 14]] },
+    skills: [['fire', 1], ['frost', 1], ['bolt', 1], ['drain', 5], ['blaze', 9], ['thundara', 10], ['meteor', 14]] },
 };
 
-// kind: phys | mag | heal | cure | revive | steal
+// kind: phys | mag | heal | cure | revive | steal | buff
 const SKILLS = {
   power: { name: '強撃', mp: 3, kind: 'phys', mult: 1.8, target: 'enemy', fx: 'slash2', desc: '渾身の一撃' },
   whirl: { name: '旋風斬', mp: 7, kind: 'phys', mult: 1.0, target: 'enemies', fx: 'whirl', desc: '敵全体を斬る' },
@@ -52,13 +58,18 @@ const SKILLS = {
   cure: { name: 'キュア', mp: 2, kind: 'cure', target: 'ally', fx: 'heal', desc: '毒を治す' },
   healall: { name: 'ヒールオール', mp: 9, kind: 'heal', power: 20, target: 'allies', fx: 'heal', field: true, desc: '味方全員のHP回復' },
   revive: { name: 'リバイブ', mp: 14, kind: 'revive', target: 'ally', dead: true, fx: 'holy', field: true, desc: '戦闘不能から復活' },
+  protect: { name: 'プロテス', mp: 8, kind: 'buff', buff: 'prot', target: 'allies', fx: 'barrier', desc: '味方全員の受ける物理ダメージを減らす' },
+  haste: { name: 'ヘイスト', mp: 10, kind: 'buff', buff: 'haste', target: 'ally', fx: 'haste', desc: '味方1人のATBを速くする' },
   holy: { name: 'ホーリー', mp: 18, kind: 'mag', power: 62, elem: 'holy', target: 'enemy', fx: 'holy', desc: '聖なる光で攻撃' },
   steal: { name: 'ぬすむ', mp: 0, kind: 'steal', target: 'enemy', fx: 'none', desc: '敵から盗む' },
   double: { name: '二連撃', mp: 4, kind: 'phys', mult: 0.9, hits: 2, target: 'enemy', fx: 'slash', desc: '素早く2回斬る' },
+  mug: { name: 'ぶんどる', mp: 3, kind: 'phys', mult: 1.1, steal: true, target: 'enemy', fx: 'slash', desc: '攻撃しながら道具を盗む' },
   shadow: { name: '影縫い', mp: 10, kind: 'phys', mult: 1.25, target: 'enemies', fx: 'dark', desc: '影の刃で敵全体を斬る' },
   fire: { name: 'フレイム', mp: 4, kind: 'mag', power: 16, elem: 'fire', target: 'enemy', fx: 'fire', desc: '炎で攻撃' },
   frost: { name: 'フロスト', mp: 4, kind: 'mag', power: 16, elem: 'ice', target: 'enemy', fx: 'ice', desc: '氷で攻撃' },
   bolt: { name: 'ボルト', mp: 4, kind: 'mag', power: 16, elem: 'bolt', target: 'enemy', fx: 'bolt', desc: '雷で攻撃' },
+  drain: { name: 'ドレイン', mp: 6, kind: 'mag', power: 18, elem: 'dark', drain: true, target: 'enemy', fx: 'dark', desc: '敵のHPを吸い取る' },
+  thundara: { name: 'サンダラ', mp: 12, kind: 'mag', power: 26, elem: 'bolt', target: 'enemies', fx: 'bolt', desc: '雷で敵全体を攻撃' },
   blaze: { name: 'ブレイズ', mp: 12, kind: 'mag', power: 26, elem: 'fire', target: 'enemies', fx: 'fire', desc: '炎で敵全体を攻撃' },
   meteor: { name: 'メテオ', mp: 28, kind: 'mag', power: 58, target: 'enemies', fx: 'meteor', desc: '隕石で敵全体を攻撃' },
   // enemy-only
@@ -70,6 +81,10 @@ const SKILLS = {
   quake: { name: '震撃', kind: 'phys', mult: 0.7, target: 'enemies', fx: 'quake' },
   darkblade: { name: '暗黒剣', kind: 'phys', mult: 1.9, target: 'enemy', fx: 'dark' },
   darkwave: { name: '闇の波動', kind: 'mag', power: 34, elem: 'dark', target: 'enemies', fx: 'dark' },
+  firebite: { name: '炎の牙', kind: 'mag', power: 26, elem: 'fire', target: 'enemy', fx: 'fire' },
+  gust: { name: 'エアロ', kind: 'mag', power: 30, target: 'enemy', fx: 'wind' },
+  tornado: { name: 'トルネード', kind: 'mag', power: 26, target: 'enemies', fx: 'wind' },
+  talon: { name: '鉤爪', kind: 'phys', mult: 1.6, target: 'enemy', fx: 'claw' },
 };
 
 const ENEMIES = {
@@ -85,8 +100,12 @@ const ENEMIES = {
   specter: { name: 'スペクター', img: 'specter', hp: 150, str: 14, def: 18, mag: 30, mdf: 18, spd: 12, exp: 52, gil: 50, weak: ['holy', 'fire'], undead: true, ai: [['attack', 1], ['frost', 2]], steal: 'ether' },
   darkmage: { name: 'ダークメイジ', img: 'darkmage', hp: 170, str: 14, def: 10, mag: 32, mdf: 18, spd: 11, exp: 62, gil: 80, ai: [['attack', 1], ['fire', 1], ['bolt', 1], ['frost', 1]], drop: ['ether', 0.2], steal: 'ether' },
   armor: { name: 'リビングアーマー', img: 'armor', hp: 300, str: 46, def: 26, mag: 4, mdf: 10, spd: 9, exp: 70, gil: 90, weak: ['bolt'], ai: [['attack', 3], ['smash', 1]], drop: ['hipotion', 0.2], steal: 'hipotion' },
+  windslime: { name: 'ウィンドスライム', img: 'windslime', hp: 150, str: 24, def: 12, mag: 32, mdf: 20, spd: 14, exp: 48, gil: 44, weak: ['fire'], ai: [['attack', 1], ['gust', 2]], drop: ['ether', 0.15], steal: 'ether' },
+  hellhound: { name: 'ヘルハウンド', img: 'hellhound', hp: 240, str: 46, def: 14, mag: 24, mdf: 10, spd: 18, exp: 64, gil: 58, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['firebite', 1]], steal: 'hipotion' },
+  boneknight: { name: 'ボーンナイト', img: 'boneknight', hp: 280, str: 46, def: 24, mag: 6, mdf: 12, spd: 10, exp: 76, gil: 70, weak: ['holy', 'fire'], undead: true, ai: [['attack', 3], ['smash', 1]], drop: ['megapotion', 0.12], steal: 'phoenix' },
   gking: { name: 'ゴブリンキング', img: 'gking', hp: 800, str: 27, def: 8, mag: 8, mdf: 6, spd: 9, exp: 160, gil: 400, boss: true, steal: 'hipotion', ai: 'gking' },
   guardian: { name: 'クリスタルガーディアン', img: 'guardian', hp: 3000, str: 44, def: 20, mag: 36, mdf: 18, spd: 11, exp: 700, gil: 1200, boss: true, weak: ['bolt'], steal: 'elixir', ai: 'guardian' },
+  tempest: { name: '嵐の魔鳥テンペスト', img: 'tempest', hp: 6400, str: 54, def: 24, mag: 46, mdf: 22, spd: 22, exp: 1200, gil: 2000, boss: true, weak: ['bolt'], steal: 'zephyr', ai: 'tempest' },
   garva: { name: '闇騎士ガルヴァ', img: 'garva', hp: 4200, str: 44, def: 24, mag: 35, mdf: 22, spd: 16, exp: 0, gil: 0, boss: true, weak: ['holy'], steal: 'elixir', ai: 'garva' },
 };
 
@@ -96,12 +115,13 @@ const FORMATIONS = {
   south: [['wolf'], ['wolf', 'wolf'], ['bee', 'bee'], ['gmage', 'goblin'], ['bee', 'wolf'], ['gmage', 'gmage'], ['skeleton', 'gmage']],
   east: [['wolf', 'wolf', 'bee'], ['gmage', 'wolf'], ['skeleton', 'gmage', 'bee'], ['redslime', 'wolf']],
   tower1: [['golem'], ['specter', 'specter'], ['armor'], ['darkmage', 'specter'], ['golem', 'darkmage']],
+  shrine: [['windslime', 'windslime'], ['hellhound'], ['boneknight'], ['hellhound', 'windslime'], ['boneknight', 'windslime'], ['hellhound', 'hellhound'], ['windslime', 'windslime', 'windslime']],
   tower2: [['armor', 'darkmage'], ['golem', 'specter'], ['specter', 'specter', 'darkmage'], ['armor', 'specter']],
 };
 
 const SHOPS = {
   elm: ['potion', 'antidote', 'phoenix', 'tent', 'iron', 'chain', 'silk'],
-  rosaItem: ['potion', 'hipotion', 'ether', 'antidote', 'phoenix', 'tent'],
+  rosaItem: ['potion', 'hipotion', 'megapotion', 'ether', 'antidote', 'phoenix', 'tent'],
   rosaSmith: ['mythril', 'mdagger', 'cleric', 'wizard', 'mmail', 'srobe'],
 };
 
@@ -123,18 +143,21 @@ function buildWorld() {
     const d = Math.min(x, y, W - 1 - x, H - 1 - y);
     if (d < 2 || (d < 3 && r() < 0.45)) g[y][x] = '~';
   }
+  // organic patches with ragged edges instead of rectangles
+  const blob = (cx, cy, rx, ry, ch) => { for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++) for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
+    if (!g[y] || g[y][x] === undefined || g[y][x] === '~' && ch !== '~') continue; const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2; if (d < 1 + (r() - 0.5) * 0.7) g[y][x] = ch; } };
   // forests & hills (north)
-  fillRect(g, 3, 3, 4, 3, 'T'); fillRect(g, 15, 4, 5, 4, 'T'); fillRect(g, 31, 3, 7, 3, 'T'); fillRect(g, 33, 6, 4, 2, 'T');
-  fillRect(g, 12, 9, 3, 3, 'h'); fillRect(g, 28, 9, 4, 2, 'h');
+  blob(5, 4, 2.6, 1.8, 'T'); blob(17.5, 5.5, 3, 2.2, 'T'); blob(34, 4, 4.2, 1.8, 'T'); blob(35, 7, 2.2, 1.2, 'T'); blob(28, 4.5, 1.6, 1.2, 'T');
+  blob(13, 10, 1.8, 1.7, 'h'); blob(30, 10, 2.4, 1.3, 'h'); blob(6, 11, 1.6, 1, 'h');
   // north lake
-  fillRect(g, 20, 8, 4, 3, '~'); fillRect(g, 21, 7, 2, 1, '~');
+  blob(21.5, 8.5, 2.4, 1.8, '~');
   // mountain ridge
   for (let x = 2; x < W - 2; x++) { for (let y = 14; y <= 16; y++) g[y][x] = 'M'; if (r() < 0.5) g[13][x] = 'M'; if (r() < 0.5) g[17][x] = 'M'; }
   // river in the south splits tower land
   for (let y = 17; y < H - 1; y++) { g[y][30] = '~'; if (y > 25) g[y][31] = '~'; }
   // south forests/hills/sand
-  fillRect(g, 3, 19, 4, 3, 'T'); fillRect(g, 16, 20, 6, 3, 'T'); fillRect(g, 34, 19, 5, 3, 'T'); fillRect(g, 22, 26, 4, 2, 'h');
-  fillRect(g, 6, 26, 10, 3, 's'); fillRect(g, 36, 26, 4, 2, 'h');
+  blob(5, 20, 2.6, 1.8, 'T'); blob(19, 21, 3.4, 1.8, 'T'); blob(36.5, 20, 3, 1.6, 'T'); blob(23.5, 26.5, 2.4, 1.2, 'h');
+  blob(10.5, 27.2, 5.2, 1.7, 's'); blob(38, 26.5, 2.2, 1.1, 'h'); blob(26, 21, 1.6, 1.2, 'h');
   // landmarks (ensure surroundings walkable)
   const clear = (x, y) => { for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ('MT~'.includes(g[y + j][x + i])) g[y + j][x + i] = '.'; };
   clear(9, 7); g[7][9] = 'V';
@@ -143,9 +166,11 @@ function buildWorld() {
   clear(10, 24); g[24][10] = 'R';
   g[22][30] = '=';
   clear(37, 24); g[24][37] = 'X';
+  clear(4, 23); g[23][4] = 'W';
   return { id: 'world', name: 'ワールドマップ', set: 'world', music: 'field', w: W, h: H, g,
     warps: { '9,7': { map: 'elm', x: 12, y: 18, dir: 'up' }, '24,13': { map: 'cave', x: 2, y: 2, dir: 'down' }, '24,17': { map: 'cave', x: 27, y: 17, dir: 'left' },
-      '10,24': { map: 'rosa', x: 13, y: 1, dir: 'down' }, '37,24': { map: 'tower1', x: 8, y: 13, dir: 'up', cond: 'zek', script: 'towerSeal' } },
+      '10,24': { map: 'rosa', x: 13, y: 1, dir: 'down' }, '37,24': { map: 'tower1', x: 8, y: 13, dir: 'up', cond: 'zek', script: 'towerSeal' },
+      '4,23': { map: 'shrine', x: 10, y: 13, dir: 'up' } },
     enc: (x, y) => y < 14 ? 'north' : x < 30 ? 'south' : 'east', rate: 22, npcs: [] };
 }
 
@@ -183,7 +208,7 @@ function buildRosa() {
   for (const [x, y] of [[11, 6], [16, 6], [11, 14], [16, 14]]) g[y][x] = 'L';
   g[16][24] = 'x'; g[16][25] = 'x'; g[16][2] = 'x'; fillRect(g, 9, 3, 3, 2, 'f'); fillRect(g, 15, 11, 2, 2, 'f');
   g[8][15] = 'S';
-  return { id: 'rosa', name: '港町ローザ', set: 'town', music: 'town', w: W, h: H, g, exit: { map: 'world', x: 10, y: 24 },
+  return { id: 'rosa', name: '港町ローザ', set: 'town', music: 'port', w: W, h: H, g, exit: { map: 'world', x: 10, y: 24 },
     warps: { '5,4': { map: 'innRosa', x: 5, y: 6, dir: 'up' }, '20,4': { map: 'itemRosa', x: 4, y: 6, dir: 'up' }, '5,13': { map: 'smithRosa', x: 4, y: 6, dir: 'up' }, '20,13': { map: 'pub', x: 5, y: 7, dir: 'up' } },
     signs: { '15,8': '港町ローザ\n左上:宿屋 右上:道具屋\n左下:武具屋 右下:酒場' },
     npcs: [
@@ -193,6 +218,7 @@ function buildRosa() {
       { id: 'rosaMan', x: 22, y: 16, pal: 'man', wander: true, talk: 'rosaMan' },
       { id: 'rosaChild', x: 8, y: 16, pal: 'child', wander: true, talk: 'rosaChild' },
       { id: 'rosaGuard', x: 12, y: 1, pal: 'soldier', talk: 'rosaGuard' },
+      { id: 'bard', x: 24, y: 8, pal: 'bard', dir: 'left', talk: 'bard' },
     ] };
 }
 function room(id, name, rows, back, npcs, music = 'town') {
@@ -309,27 +335,67 @@ function buildTower3() {
     npcs: [{ id: 'garva', x: 9, y: 3, pal: 'garva', dir: 'down', talk: 'garva', show: () => !G.flags.garva }] };
 }
 
+// optional dungeon: an open-air ruin where the wind crystal's guardian beast nests
+function buildShrine() {
+  const g = fromRows([
+    '####################',
+    '#~~~~~~~..X..~~~~~~#',
+    '#~~~~~~P.....P~~~~~#',
+    '#B.~~~~...c...~~~..#',
+    '#..~~~~...c...~~~..#',
+    '#.....P...c...P....#',
+    '#.~~~.....c.......B#',
+    '#.~~~..P.ccc.P.~~~.#',
+    '#........c*c.......#',
+    '#..P.....ccc....P..#',
+    '#~~~~~....c.....~~~#',
+    '#~~~~~....c.....~~~#',
+    '#B........c........#',
+    '#....P....c....P...#',
+    '#.........E........#',
+    '####################',
+  ]);
+  return { id: 'shrine', name: '風の祠', set: 'tower', music: 'shrine', w: 20, h: 16, g,
+    warps: { '10,14': { map: 'world', x: 4, y: 24, dir: 'down' } },
+    chests: { '1,3': { item: 'gale' }, '18,6': { item: 'aerial' }, '1,12': { item: 'megapotion', n: 2 } },
+    signs: {}, enc: () => 'shrine', rate: 18,
+    npcs: [
+      { id: 'tempest', x: 10, y: 3, pal: 'tempest', dir: 'down', talk: 'tempest', show: () => !G.flags.tempest },
+      { id: 'shrineSpirit', x: 10, y: 2, pal: 'spirit', dir: 'down', talk: 'shrineSpirit', show: () => !!G.flags.tempest },
+    ] };
+}
+
 const INN_ROWS = ['##########', '#B.B.B.kk#', '#........#', '#ccc.....#', '#........#', '#.t...p..#', '#........#', '#####e####'];
 const SHOP_ROWS = ['##########', '#kkk..kkk#', '#........#', '#cccccc..#', '#........#', '#x......x#', '#........#', '####e#####'];
 let MAPS = {};
 function buildMaps() {
   MAPS = {
-    world: buildWorld(), elm: buildElm(), rosa: buildRosa(), cave: buildCave(), tower1: buildTower1(), tower2: buildTower2(), tower3: buildTower3(),
+    world: buildWorld(), elm: buildElm(), rosa: buildRosa(), cave: buildCave(), tower1: buildTower1(), tower2: buildTower2(), tower3: buildTower3(), shrine: buildShrine(),
     elder: room('elder', '長老の家', ['##########', '#kk..f.kk#', '#........#', '#.t....B.#', '#........#', '#.p....p.#', '#...rr...#', '####e#####'],
       { map: 'elm', x: 5, y: 6, dir: 'down' }, [{ id: 'elder', x: 6, y: 2, pal: 'elder', talk: 'elder' }]),
     innElm: room('innElm', '宿屋', INN_ROWS, { map: 'elm', x: 19, y: 6, dir: 'down' }, [{ id: 'innElm', x: 2, y: 2, pal: 'inn', talk: 'innElm' }]),
     shopElm: room('shopElm', 'よろず屋', SHOP_ROWS, { map: 'elm', x: 5, y: 14, dir: 'down' }, [{ id: 'shopElm', x: 3, y: 2, pal: 'merchant', talk: 'shopElm' }]),
-    innRosa: room('innRosa', '宿屋', INN_ROWS, { map: 'rosa', x: 5, y: 5, dir: 'down' }, [{ id: 'innRosa', x: 2, y: 2, pal: 'inn', talk: 'innRosa' }]),
-    itemRosa: room('itemRosa', '道具屋', SHOP_ROWS, { map: 'rosa', x: 20, y: 5, dir: 'down' }, [{ id: 'itemRosa', x: 3, y: 2, pal: 'merchant', talk: 'itemRosa' }]),
-    smithRosa: room('smithRosa', '武具屋', SHOP_ROWS, { map: 'rosa', x: 5, y: 14, dir: 'down' }, [{ id: 'smithRosa', x: 3, y: 2, pal: 'man', talk: 'smithRosa' }]),
+    innRosa: room('innRosa', '宿屋', INN_ROWS, { map: 'rosa', x: 5, y: 5, dir: 'down' }, [{ id: 'innRosa', x: 2, y: 2, pal: 'inn', talk: 'innRosa' }], 'port'),
+    itemRosa: room('itemRosa', '道具屋', SHOP_ROWS, { map: 'rosa', x: 20, y: 5, dir: 'down' }, [{ id: 'itemRosa', x: 3, y: 2, pal: 'merchant', talk: 'itemRosa' }], 'port'),
+    smithRosa: room('smithRosa', '武具屋', SHOP_ROWS, { map: 'rosa', x: 5, y: 14, dir: 'down' }, [{ id: 'smithRosa', x: 3, y: 2, pal: 'man', talk: 'smithRosa' }], 'port'),
     pub: room('pub', '酒場「海猫亭」', ['############', '#kkk.f..xxx#', '#..........#', '#ccccc.....#', '#..........#', '#.t..t..t..#', '#..........#', '#..........#', '#####e######'],
       { map: 'rosa', x: 20, y: 14, dir: 'down' }, [
         { id: 'barkeep', x: 2, y: 2, pal: 'inn', talk: 'barkeep' },
         { id: 'zekNpc', x: 9, y: 5, pal: 'zek', dir: 'left', talk: 'zek', show: () => !G.flags.zek },
         { id: 'patron', x: 3, y: 6, pal: 'sailor', wander: true, talk: 'patron' },
-      ]),
+      ], 'port'),
   };
 }
+
+// hidden treasure: glints that only appear once Kai (treasure hunter) is in the party
+const SPARKLES = {
+  elm: { '22,2': { item: 'ether' }, '2,8': { gil: 300 } },
+  world: { '33,23': { item: 'hipotion', n: 2 }, '7,29': { item: 'phoenix' }, '36,11': { gil: 500 } },
+  rosa: { '26,1': { item: 'megapotion' }, '1,16': { item: 'ether', n: 2 } },
+  cave: { '18,3': { gil: 400 } },
+  shrine: { '18,13': { item: 'elixir' } },
+  tower1: { '18,1': { item: 'galemail' } },
+};
 
 // ===================== STORY SCRIPTS =====================
 const SCRIPTS = {
@@ -365,7 +431,11 @@ const SCRIPTS = {
   *elmChild() { yield* say(G.flags.cave_boss ? 'ゴブリンの王様をやっつけたって\nほんと!? すっげー!' : 'MENUボタンでメニューを開けるよ!\nセーブはこまめにね!'); },
   *elmMan() { yield* say('戦闘では、キャラクターの\nATBゲージがたまったら行動できる。\nわざや魔法を上手に使うんだぞ。'); },
   *elmGuard() { yield* say('村の外には魔物が出る。\n森や丘では魔物に遭いやすいぞ。\n気をつけてな!', '村の衛兵'); },
-  *elmOld() { yield* say('むかし、この世界には\n「光の戦士」がいたそうな。\nあんたたちのような若者じゃったよ。'); },
+  *elmOld() {
+    if (G.flags.tempest) { yield* say('なんと、祠の魔鳥を鎮めたとな!\n風の音が、前よりやさしく聞こえるわい。'); return; }
+    yield* say('むかし、この世界には\n「光の戦士」がいたそうな。\nあんたたちのような若者じゃったよ。');
+    yield* say('そうそう、ローザの西の森には\n「風の祠」という古い遺跡がある。\n嵐の魔鳥が棲みついて、誰も近づかんのじゃ。');
+  },
   *innElm() { yield* inn(20); },
   *innRosa() { yield* inn(40); },
   *shopElm() { yield* say('いらっしゃい! よろず屋へようこそ。', '店主'); yield { t: 'shop', id: 'elm' }; },
@@ -383,7 +453,7 @@ const SCRIPTS = {
     G.flags.cave_boss = 1;
     yield* say('ふぅ、助かったぜ!\nオレはカイ。トレジャーハンターさ。', 'カイ');
     yield* say('洞窟の宝を狙ってたら、あのデカブツに\nつかまっちまってな。\n…ローザに行くのか? 道案内してやるよ!', 'カイ');
-    joinParty('kai'); Audio8.sfx('levelup');
+    joinParty('kai'); Audio8.play('fanfare', G.map.music);
     yield* say('カイが仲間に加わった!\n(「ぬすむ」で敵から道具を盗める)');
   },
   *mayor() {
@@ -395,6 +465,23 @@ const SCRIPTS = {
   *rosaWoman() { yield* say('塔のてっぺんには、\n風のクリスタルが祀られているの。\nとてもきれいな光なんですって。'); },
   *rosaMan() { yield* say('塔の魔物は手ごわいぞ。\nゴーレムには雷、亡霊には炎や聖なる力が\n効くって話だ。'); },
   *rosaChild() { yield* say('アサシンダガーっていう\nすごい短剣が塔に眠ってるって\nカイ兄ちゃんが言ってた!'); },
+  *bard() {
+    yield* say('♪ 西の森の 古き祠に\n嵐をまとう 魔鳥ひとつ\n風の宝を 守りつづける ♪', '吟遊詩人');
+    yield* say('…魔鳥は雷を嫌うそうだよ。\nもっとも、腕に覚えがないなら\n近づかないほうがいいけどね。', '吟遊詩人');
+  },
+  *tempest() {
+    if (G.flags.tempest) return;
+    yield* say('…風がうなっている。\n祭壇の上で、巨大な鳥が翼を広げた!');
+    Audio8.sfx('boss'); G.shake = 24;
+    yield* say('キィィィィ——ッ!!', 'テンペスト');
+    const r = yield { t: 'battle', ids: ['tempest'], boss: true, music: 'boss' };
+    if (r !== 'win') return;
+    G.flags.tempest = 1;
+    yield* say('嵐の魔鳥は光の粒となって消えた…');
+    Audio8.play('fanfare', G.map.music);
+    addItem('windblade'); yield* say('祭壇に「ウィンドブレード」が残されていた!\n(アレン専用の剣)');
+  },
+  *shrineSpirit() { yield* say('ありがとう、旅の人。\nこれで風はまた、自由に吹けます。\nあなたたちの旅に、追い風を…', '風の精'); healAll(); Audio8.sfx('heal'); G.flash = 12; yield* say('不思議な風に包まれ、全回復した!'); },
   *rosaGuard() { yield* say('ようこそ港町ローザへ。\n宿屋で休めば、HPもMPも全快するぞ。', '衛兵'); },
   *barkeep() { yield* say('いらっしゃい。…奥の魔導士かい?\nずっと塔の古文書をにらんでるよ。', 'マスター'); },
   *patron() { yield* say('ヒック…ガルヴァってのは\nもともと立派な魔導士だったらしいぜ…'); },
@@ -403,7 +490,7 @@ const SCRIPTS = {
     yield* say('僕はゼク。塔の封印を研究している。\nガルヴァは…かつての僕の兄弟子だ。', 'ゼク');
     yield* say('あいつはクリスタルの力に魅入られ、\n闇に堕ちた。止められるのは僕だけだ。', 'ゼク');
     yield* say('…君たちと行こう。\n封印は僕が解く。', 'ゼク');
-    joinParty('zek'); G.flags.zek = 1; Audio8.sfx('levelup');
+    joinParty('zek'); G.flags.zek = 1; Audio8.play('fanfare', G.map.music);
     yield* say('ゼクが仲間に加わった!\n(黒魔法で敵の弱点を突こう)');
   },
   *towerSeal() {
@@ -432,7 +519,7 @@ const SCRIPTS = {
     yield* say('そんなこと、させるもんか!', 'アレン');
     Audio8.sfx('boss'); G.shake = 30;
     yield* say('ならば…闇に沈め!', 'ガルヴァ');
-    const r = yield { t: 'battle', ids: ['garva'], boss: true, music: 'boss', final: true };
+    const r = yield { t: 'battle', ids: ['garva'], boss: true, music: 'final', final: true };
     if (r !== 'win') return;
     G.flags.garva = 1;
     yield* say('バカな…この、私が……\nゼク…お前は…光を……', 'ガルヴァ');

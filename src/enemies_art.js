@@ -253,6 +253,42 @@ const ENEMY_ART2 = {
     }, '#0a0a12');
   },
 };
+// the storm bird of the wind shrine, seen head-on with wings spread (wing beat follows phase a)
+ENEMY_ART2.tempest = function (a) {
+  return E2(86, 66, x => {
+    const f = Math.sin(a), cx = 43;
+    const wing = ['#f0fff8', '#a8ecd0', '#5cc4a4', '#348a7c', '#1e5656'];
+    // tail fan
+    for (let i = -2; i <= 2; i++) pl(x, [cx + i * 3 - 3, 42, cx + i * 8, 64 - Math.abs(i) * 4, cx + i * 3 + 3, 42], i % 2 ? wing[3] : wing[2]);
+    for (let i = -2; i <= 2; i++) ln(x, cx + i * 3, 44, cx + i * 7.5, 60 - Math.abs(i) * 4, wing[1], 1);
+    for (const side of [-1, 1]) {
+      const tipY = 4 - f * 9, midY = 18 - f * 4, X = v => cx + side * v;
+      const pts = [X(7), 24, X(20), midY - 4, X(42), tipY];
+      for (let k = 0; k < 5; k++) pts.push(X(41 - k * 6.5), tipY + 12 + k * 4.5 + f * k * 0.8, X(37 - k * 6.5), tipY + 8 + k * 4.5 + f * k * 0.8);
+      pts.push(X(9), 36);
+      pl(x, pts, bandL(x, cx, 0, X(44), 0, [wing[3], wing[2], wing[2], wing[1], wing[0]]));
+      pl(x, [X(8), 25, X(20), midY - 2, X(30), midY + 2, X(12), 32], wing[3]);
+      for (let k = 0; k < 5; k++) ln(x, X(12), 28, X(39 - k * 6.5), tipY + 10 + k * 4.5 + f * k * 0.8, wing[k % 2 ? 3 : 4], 1);
+      dot(x, '#f0d060', X(20) - (side > 0 ? 0 : 1), midY - 3, 2, 2);
+    }
+    oval(x, cx, 32, 10, 13, bandR(x, cx - 3, 26, 16, [wing[1], wing[2], wing[3], wing[4]]));
+    oval(x, cx, 35, 6, 8.5, bandR(x, cx - 2, 31, 10, ['#ffffff', wing[0], wing[1]]));
+    for (let r = 0; r < 3; r++) for (let i = -1; i <= 1; i++) { dot(x, wing[2], cx + i * 3 - 1, 31 + r * 4, 1, 1); dot(x, wing[2], cx + i * 3, 32 + r * 4, 1, 1); }
+    // head and crest
+    tri(x, cx - 3, 11, cx - 10, -1 - f, cx - 1, 9, '#f0d060'); tri(x, cx + 3, 11, cx + 10, -1 - f, cx + 1, 9, '#e0b040'); tri(x, cx - 1, 10, cx, 1 - f, cx + 1, 10, '#fff0a0');
+    oval(x, cx, 16, 7, 6.5, bandR(x, cx - 2, 13, 9, [wing[1], wing[2], wing[3]]));
+    tri(x, cx - 3, 18, cx + 3, 18, cx, 25, '#f0c040'); ln(x, cx, 19, cx, 23, '#8a5a10', 1);
+    glowEye(x, cx - 5, 14, '#ff3050', '#ffe0e8', 2, 1); glowEye(x, cx + 2, 14, '#ff3050', '#ffe0e8', 2, 1);
+    // talons
+    for (const tx of [cx - 6, cx + 4]) { dot(x, '#c8a040', tx, 43, 3, 4); for (let k = 0; k < 3; k++) dot(x, '#2a2a2a', tx - 1 + k * 2, 47, 1, 2); }
+  }, '#0c1c20');
+};
+// palette variants: remap every pixel's hue/saturation/lightness
+function recolor(c, f) {
+  const x = c.getContext('2d', { willReadFrequently: true }); const d = x.getImageData(0, 0, c.width, c.height); const p = d.data;
+  for (let i = 0; i < p.length; i += 4) { if (!p[i + 3]) continue; const [h, s2, l] = f(...rgb2hsl(p[i], p[i + 1], p[i + 2])); const [r, g, b] = hsl2rgb((h + 1) % 1, clamp(s2, 0, 1), clamp(l, 0, 1)); p[i] = r; p[i + 1] = g; p[i + 2] = b; }
+  x.putImageData(d, 0, 0); return c;
+}
 const ENEMY_ANIM = {}; // name -> { frames, flash, float, period }
 function buildEnemyArt() {
   const defs = {
@@ -260,11 +296,17 @@ function buildEnemyArt() {
     bat: [p => ENEMY_ART2.bat(p), 1, 4], goblin: [p => ENEMY_ART2.goblin(p), 0, 12], gmage: [p => ENEMY_ART2.goblin(p, true), 0, 12],
     wolf: [p => ENEMY_ART2.wolf(p), 0, 12], bee: [p => ENEMY_ART2.bee(p), 1, 3], skeleton: [p => ENEMY_ART2.skeleton(p), 0, 14],
     golem: [p => ENEMY_ART2.golem(p), 0, 16], specter: [p => ENEMY_ART2.specter(p), 1, 12], darkmage: [p => ENEMY_ART2.darkmage(p), 1, 12],
+    windslime: [p => ENEMY_ART2.slime(p, { lite: '#e0fff6', main: '#62e2cc', mid: '#3cbcaa', dark: '#248a8a', deep: '#145a62', fire: false }), 0, 7],
+    hellhound: [p => recolor(ENEMY_ART2.wolf(p), (h, s2, l) => l > 0.82 ? [h, s2, l] : [0.99 + (h - 0.6) * 0.15, s2 * 1.6 + 0.4, l * 0.82]), 0, 10],
+    boneknight: [p => recolor(ENEMY_ART2.skeleton(p), (h, s2, l) => (s2 > 0.45 && l > 0.35) ? [0.0, 0.9, l] : [0.62, 0.22 + s2 * 0.3, l * 0.74]), 0, 14],
+    tempest: [p => ENEMY_ART2.tempest(p), 1, 10],
     armor: [p => ENEMY_ART2.armor(p), 0, 14], gking: [p => ENEMY_ART2.gking(p), 0, 14], guardian: [p => ENEMY_ART2.guardian(p), 1, 12], garva: [p => ENEMY_ART2.garva(p), 0, 13],
   };
+  const FACE_PARTY = new Set(['wolf', 'hellhound']); // drawn facing left; the party stands on the right
+  const flip = c => { const o = mkCanvas(c.width, c.height), x = o.getContext('2d'); x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(c, 0, 0); return o; };
   for (const k in defs) {
     const [fn, float, period] = defs[k];
-    const frames = [0, 1, 2, 3].map(i => fn(i / 4 * Math.PI * 2));
+    const frames = [0, 1, 2, 3].map(i => fn(i / 4 * Math.PI * 2)).map(c => FACE_PARTY.has(k) ? flip(c) : c);
     ENEMY_ANIM[k] = { frames, flash: frames.map(f => silhouette(f)), dz: frames.map(f => silhouette(f, '#a050e8')), float: !!float, period };
     ENEMY_IMG[k] = frames[0]; ENEMY_IMG[k + ':flash'] = ENEMY_ANIM[k].flash[0];
   }
