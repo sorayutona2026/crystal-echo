@@ -503,7 +503,7 @@ const Battle = {
       if (pb.haste && m.hp > 0 && !pb.dashing && (B.t >> 2) % 3 === 0) { ctx.globalAlpha = 0.25; ctx.drawImage(img, x + 3, y - 8, HB_W, HB_H); ctx.globalAlpha = 1; }
       const sh = pb.hitT ? (pb.hitT % 2 ? 2 : -2) : 0;
       if (pose === 'ko') ctx.drawImage(img, x - 4 + sh, p.y, HB_H, HB_W);
-      else { ctx.drawImage(img, x + sh, y - 8 + breathe, HB_W, HB_H - breathe); }
+      else { const hop = pose === 'win' ? Math.round(Math.abs(Math.sin((B.t + i * 9) / 7)) * 4) : 0; ctx.drawImage(img, x + sh, y - 8 + breathe - hop, HB_W, HB_H - breathe); } // winners hop on the spot
       if (active) addLight(x + 16, y + 16, 60, '#ffe2a0', 0.6);
     });
     ctx.restore();

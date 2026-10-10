@@ -223,7 +223,7 @@ function applyBattleArt(id, S) {
       const sx = o.sx || 1, sy = o.sy || 1; g.translate(32 + (o.dx || 0), 79 + (o.dy || 0)); g.rotate(o.rot || 0); g.scale(sx, sy); g.drawImage(im, -32, -79); g.restore();
       if (o.tint) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = o.tint; g.fillRect(0, 0, c.width, c.height); g.globalCompositeOperation = 'source-over'; }
     };
-    put('idle'); put('walk', { dy: -1 }); put('strike', { dx: -2, rot: -0.12 }); put('cast', { dy: -2 }); put('win', { dy: -3 });
+    put('idle'); put('walk'); put('strike', { dx: -2, rot: -0.14 }); put('cast', { rot: -0.05 }); put('win');
     put('hurt', { dx: 3, rot: 0.1, tint: 'rgba(255,60,60,.28)' }); put('kneel', { sy: 0.82 });
     const k = S.ko.getContext('2d'); k.setTransform(1, 0, 0, 1, 0, 0); k.clearRect(0, 0, S.ko.width, S.ko.height); k.imageSmoothingEnabled = false; k.save(); k.translate(0, HW); k.rotate(-Math.PI / 2); k.drawImage(S.hurt, 0, 0); k.restore();
     for (const p in S) if (p !== 'flash') S.flash[p] = silhouette(S[p]);

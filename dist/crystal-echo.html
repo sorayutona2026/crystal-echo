@@ -1594,7 +1594,7 @@ function applyBattleArt(id, S) {
       const sx = o.sx || 1, sy = o.sy || 1; g.translate(32 + (o.dx || 0), 79 + (o.dy || 0)); g.rotate(o.rot || 0); g.scale(sx, sy); g.drawImage(im, -32, -79); g.restore();
       if (o.tint) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = o.tint; g.fillRect(0, 0, c.width, c.height); g.globalCompositeOperation = 'source-over'; }
     };
-    put('idle'); put('walk', { dy: -1 }); put('strike', { dx: -2, rot: -0.12 }); put('cast', { dy: -2 }); put('win', { dy: -3 });
+    put('idle'); put('walk'); put('strike', { dx: -2, rot: -0.14 }); put('cast', { rot: -0.05 }); put('win');
     put('hurt', { dx: 3, rot: 0.1, tint: 'rgba(255,60,60,.28)' }); put('kneel', { sy: 0.82 });
     const k = S.ko.getContext('2d'); k.setTransform(1, 0, 0, 1, 0, 0); k.clearRect(0, 0, S.ko.width, S.ko.height); k.imageSmoothingEnabled = false; k.save(); k.translate(0, HW); k.rotate(-Math.PI / 2); k.drawImage(S.hurt, 0, 0); k.restore();
     for (const p in S) if (p !== 'flash') S.flash[p] = silhouette(S[p]);
@@ -4231,7 +4231,7 @@ const Battle = {
       if (pb.haste && m.hp > 0 && !pb.dashing && (B.t >> 2) % 3 === 0) { ctx.globalAlpha = 0.25; ctx.drawImage(img, x + 3, y - 8, HB_W, HB_H); ctx.globalAlpha = 1; }
       const sh = pb.hitT ? (pb.hitT % 2 ? 2 : -2) : 0;
       if (pose === 'ko') ctx.drawImage(img, x - 4 + sh, p.y, HB_H, HB_W);
-      else { ctx.drawImage(img, x + sh, y - 8 + breathe, HB_W, HB_H - breathe); }
+      else { const hop = pose === 'win' ? Math.round(Math.abs(Math.sin((B.t + i * 9) / 7)) * 4) : 0; ctx.drawImage(img, x + sh, y - 8 + breathe - hop, HB_W, HB_H - breathe); } // winners hop on the spot
       if (active) addLight(x + 16, y + 16, 60, '#ffe2a0', 0.6);
     });
     ctx.restore();
