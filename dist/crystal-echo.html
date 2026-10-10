@@ -1451,16 +1451,22 @@ function hdHero(id, poseName) {
   const eyeDraw = (ex, ey) => {
     if (P.face === 'hurt') { line(ex - 3, ey - 3, ex + 3, ey + 3, '#2a1a1a', 1.5); line(ex - 3, ey + 3, ex + 3, ey - 3, '#2a1a1a', 1.5); return; }
     if (P.face === 'happy') { x.strokeStyle = '#2a1a1a'; x.lineWidth = 1.6; x.beginPath(); x.arc(ex, ey + 2.2, 3.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); return; }
-    // big glossy anime eye: tall iris filling the eye, dark top, bright bottom, large catch-light
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex, ey, 4.9, 4.5, 0, 0, 7); x.fill();
-    const g = x.createLinearGradient(0, ey - 7, 0, ey + 7); g.addColorStop(0, shd(L.iris, 0.7)); g.addColorStop(0.4, L.iris); g.addColorStop(1, shd(L.iris, 1.8));
-    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.5, 3.9, 4.0, 0, 0, 7); x.fill(); x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.7, 1.8, 2.2, 0, 0, 7); x.fill();
-    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 1.4, ey - 2, 1.5, 1.8, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(ex + 2, ey + 3.6, 1, 1, 0, 0, 7); x.fill();
-    x.strokeStyle = '#1e1018'; x.lineWidth = 1.3; x.beginPath(); x.moveTo(ex - 5.3, ey - 0.2); x.quadraticCurveTo(ex, ey - 7.8, ex + 5.3, ey - 0.2); x.stroke();
+    // wide anime eye: the iris is clipped by the eye shape and tucked under a heavy upper lid so it reads as part of the face, not a sticker
+    const W = 5.8, Hh = 4.6;
+    x.save(); x.beginPath(); x.ellipse(ex, ey, W, Hh, 0, 0, 7); x.clip();
+    x.fillStyle = shd(L.skin, 1.02); x.fillRect(ex - W, ey - Hh, W * 2, Hh * 2);
+    const g = x.createLinearGradient(0, ey - Hh, 0, ey + Hh); g.addColorStop(0, shd(L.iris, 0.6)); g.addColorStop(0.45, L.iris); g.addColorStop(1, shd(L.iris, 1.7));
+    x.fillStyle = g; x.beginPath(); x.ellipse(ex, ey + 0.3, 4.9, 5.6, 0, 0, 7); x.fill();
+    x.fillStyle = '#10101c'; x.beginPath(); x.ellipse(ex, ey + 0.5, 2.1, 2.9, 0, 0, 7); x.fill();
+    x.fillStyle = '#fff'; x.beginPath(); x.ellipse(ex - 1.5, ey - 1.2, 1.4, 1.4, 0, 0, 7); x.fill(); x.fillRect(ex + 1.4, ey + 1.6, 1, 1);
+    x.fillStyle = 'rgba(30,16,30,.55)'; x.fillRect(ex - W, ey - Hh, W * 2, 1.6); // shadow of the upper lid on the eyeball
+    x.restore();
+    x.strokeStyle = '#1e1018'; x.lineWidth = 1.8; x.beginPath(); x.ellipse(ex, ey - 0.2, W, Hh, 0, Math.PI * 1.04, Math.PI * 1.96); x.stroke();
+    x.lineWidth = 1.1; x.beginPath(); x.moveTo(ex - W, ey - 0.6); x.lineTo(ex - W - 1.6, ey - 1.8); x.stroke();
   };
   // three-quarter view facing left: the near eye is wide, the far eye narrower, and the face sits toward the left edge
   const eyeAt = (ex, ey, k) => { x.save(); x.translate(ex, ey); x.scale(k, 1); x.translate(-ex, -ey); eyeDraw(ex, ey); x.restore(); };
-  const ey0 = hy + 6; eyeAt(hx - 9.4, ey0, 1); eyeAt(hx + 3.6, ey0, 0.74);
+  const ey0 = hy + 6; eyeAt(hx - 9.6, ey0, 1); eyeAt(hx + 3.8, ey0, 0.76);
   if (P.face === 'shout') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.ellipse(hx - 5, hy + 12, 2.4, 1.9, 0, 0, 7); x.fill(); }
   else if (P.face === 'happy') { x.fillStyle = '#7a2a2a'; x.beginPath(); x.arc(hx - 5, hy + 10.4, 2.6, 0, Math.PI); x.fill(); }
   else if (P.face === 'hurt') line(hx - 7.4, hy + 12, hx - 2.6, hy + 12, '#8a3a3a', 1.2);
