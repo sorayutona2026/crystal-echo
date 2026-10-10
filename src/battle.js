@@ -89,6 +89,7 @@ const Battle = {
     B = { cfg, cb, enemies: es, pb: G.party.map(() => ({ atb: 0, defend: false, offx: 0, offy: 0, hitT: 0, ready: false, trail: [], prot: false, haste: false })), queue: [], ready: [], menu: null,
       gen: null, wait: 0, waitKey: false, popups: [], fx: [], parts: [], flashFx: null, banner: null, phase: 'intro', t: 0, msg: null, slide: 1, cheer: false, flee: false,
       hold: 0, stop: 0, result: null, clouds: null, echo: 0, voice: null };
+    B.snap = { party: JSON.stringify(G.party), inv: { ...G.inv }, gil: G.gil };
     G.party.forEach((m, i) => { const s = stats(m); B.pb[i].atb = m.hp > 0 ? 20 + rnd() * 60 + s.spd * 2 : 0; });
     G.scene = Battle; Audio8.play(cfg.music || 'battle');
   },
@@ -418,7 +419,8 @@ const Battle = {
     G.gil += gil; G.party.forEach(m => m.poison = false);
     for (const d of drops) addItem(d);
     const lines = [];
-    for (const m of G.party) { const ms = gainExp(m, exp); if (ms.length) { lines.push(...ms); } }
+    // early levels level up faster (x1.5 up to Lv6, x1.25 up to Lv10)
+    for (const m of G.party) { const ms = gainExp(m, Math.round(exp * (m.lv <= 6 ? 1.5 : m.lv <= 10 ? 1.25 : 1))); if (ms.length) { lines.push(...ms); } }
     B.result = { exp, gil, drops, t: 0 };
     yield 'key';
     for (const l of lines) { B.msg = l; if (l.includes('レベル')) Audio8.sfx('levelup'); yield 'key'; }
@@ -427,7 +429,8 @@ const Battle = {
   },
   *defeat() {
     yield 40; Audio8.play('gameover'); B.msg = '全滅してしまった…'; yield 'key'; B.msg = null;
-    B = null; GameOver.start();
+    const retry = { cfg: B.cfg, cb: B.cb, snap: B.snap, script: G.script };
+    B = null; GameOver.start(retry);
   },
   finish(result) {
     const cb = B.cb; const cfg = B.cfg;
@@ -980,13 +983,14 @@ const BMenu = {
     const M = B.menu;
     // command window
     win(0, 150, 96, 74);
-    M.cmds.forEach((c, i) => text(c, 20, 157 + i * 13, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink));
+    M.cmds.forEach((c, i) => { text(c, 20, 157 + i * 13, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink); if (M.stage === 'cmd') Touch.add(0, 153 + i * 13, 96, 13, () => { M.ci = i; Input.tapA(); }); });
     if (M.stage === 'cmd') cursor(7, 158 + M.ci * 13);
     if (M.stage === 'list' || (M.stage === 'target' && M.prev === 'list')) {
       win(0, 150, 256, 74);
       for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
         const idx = (M.scroll + r) * 2 + c; const e = M.list[idx]; if (!e) continue;
         const x = 18 + c * 124, y = 157 + r * 15;
+        if (M.stage === 'list') Touch.add(x - 14, y - 3, 118, 15, () => { M.li = idx; Input.tapA(); });
         text(e.label, x, y, e.ok ? UI.ink : UI.dim); text(e.right, x + 100, y, e.ok ? UI.mp : UI.dim, 7, 'right');
       }
       if (M.stage === 'list') { const r = Math.floor(M.li / 2) - M.scroll, c = M.li % 2; cursor(5 + c * 124, 158 + r * 15); const e = M.list[M.li]; if (e && e.desc) { win(4, 4, 248, 20); text(e.desc, 12, 10); } }
@@ -994,6 +998,9 @@ const BMenu = {
     }
     if (M.stage === 'target') {
       const ts = M.tmode === 'enemies' ? Battle.aliveE().map(e => ({ side: 'e', i: e.i })) : M.tmode === 'allies' ? G.party.map((_, i) => ({ side: 'p', i })) : [{ side: M.tSide, i: M.ti }];
+      // tap an enemy (or a party member for healing) to pick it
+      if (M.tmode === 'enemy') for (const e of Battle.aliveE()) Touch.add(e.x - 3, e.y - 3, e.w + 6, e.h + 6, () => { M.tSide = 'e'; M.ti = e.i; Input.tapA(); });
+      if (M.tmode === 'ally') G.party.forEach((_, i) => { const p = PARTY_POS(i); Touch.add(p.x - 6, p.y - 8, 40, 40, () => { M.tSide = 'p'; M.ti = i; Input.tapA(); }); });
       if ((M.tmode === 'enemies' || M.tmode === 'allies') && (G.frame >> 3) % 2) return;
       for (const t of ts) {
         if (t.side === 'e') { const e = B.enemies[t.i]; cursor(e.x - 10, e.y + e.h / 2 - 4); }

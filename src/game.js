@@ -57,7 +57,7 @@ function applySnapshot(d) {
 function loadGame() { try { const s = Store.get(SAVE_KEY); if (!s) return false; applySnapshot(JSON.parse(s)); return true; } catch (e) { console.warn(e); return false; } }
 
 function newGame() {
-  G.flags = {}; G.inv = { potion: 3, antidote: 1 }; G.gil = 200; G.time = 0;
+  G.flags = {}; G.inv = { potion: 5, antidote: 2 }; G.gil = 300; G.time = 0;
   G.party = [newMember('allen'), newMember('lina')];
   Field.enter('elm', 12, 12, 'up', true);
   runScript(SCRIPTS.intro);
@@ -174,7 +174,7 @@ function drawDialog() {
   }
   if (G.choice) {
     const ch = G.choice; const w = 74, h = ch.opts.length * 14 + 12; const x = 172, y = 134 - h;
-    win(x, y, w, h); ch.opts.forEach((o, i) => text(o, x + 20, y + 7 + i * 14, ch.i === i ? UI.gold : UI.ink));
+    win(x, y, w, h); ch.opts.forEach((o, i) => { text(o, x + 20, y + 7 + i * 14, ch.i === i ? UI.gold : UI.ink); Touch.add(x, y + 4 + i * 14, w, 14, () => { ch.i = i; Input.tapA(); }); });
     cursor(x + 7, y + 8 + ch.i * 14);
   }
   if (G.narr) {
@@ -249,7 +249,7 @@ const Field = {
     // random encounters
     if (m.enc && !G.debug.noEnc) {
       const mult = this.tdef(ch)[2] || 0; G.steps++;
-      if (mult > 0 && G.steps > 5 && rnd() < mult / m.rate) {
+      if (mult > 0 && G.steps > 5 && rnd() < mult / (m.rateAt ? m.rateAt(p.x, p.y) : m.rate)) {
         const ids = pick(FORMATIONS[m.enc(p.x, p.y)]);
         startBattle({ ids, music: 'battle' }, () => { });
       }

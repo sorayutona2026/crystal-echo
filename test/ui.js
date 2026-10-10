@@ -16,15 +16,19 @@ const path = require('path'); const OUT = 'test-out/shots';
   await page.waitForTimeout(1500);
   const sc = await page.evaluate(() => [__rpg.G.mapId, !!__rpg.G.script, !!__rpg.G.narr]);
   console.log('after tap A on title:', sc);
-  for (let i = 0; i < 25; i++) await tapBtn('#btnA', 60);
+  // advance the opening cutscene until the player can walk
+  for (let i = 0; i < 150 && await page.evaluate(() => !!(__rpg.G.script || __rpg.G.narr || __rpg.G.dialog || __rpg.G.fadeLevel > 0)); i++) await tapBtn('#btnA', 60);
   await page.waitForTimeout(800);
   const before = await page.evaluate(() => ({ ...__rpg.G.p, script: !!__rpg.G.script }));
   // hold d-pad left
+  console.log('d-pad hidden by default:', !(await page.locator('#dpad').isVisible()));
+  await page.click('#padToggle'); await page.waitForTimeout(200);
   const d = await page.locator('#dpad').boundingBox();
   await page.mouse.move(d.x + 20, d.y + d.height / 2); await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
   await page.waitForTimeout(300);
   const after = await page.evaluate(() => ({ ...__rpg.G.p }));
   console.log('dpad move:', before.x, before.y, before.script, '->', after.x, after.y);
+  await page.click('#padToggle'); await page.waitForTimeout(200);
   // swipe on the game screen with a real touch: drag right and hold, the hero walks right
   const cdp = await ctx.newCDPSession(page); const scr = await page.locator('#screen').boundingBox();
   const sx = scr.x + scr.width / 2, sy = scr.y + scr.height / 2;
@@ -36,6 +40,17 @@ const path = require('path'); const OUT = 'test-out/shots';
   console.log('swipe move:', sw0.x, sw0.y, '->', sw1.x, sw1.y, 'held right', sw1.joy, sw1.x > sw0.x ? 'OK' : 'FAILED');
   // a quick tap on the screen acts as A: tap the menu open via button, then tap screen does not break anything
   await page.touchscreen.tap(sx, sy); await page.waitForTimeout(200);
+  // the tap may have started a conversation with a villager; close it before testing the menu
+  for (let i = 0; i < 30 && await page.evaluate(() => !!(__rpg.G.script || __rpg.G.dialog)); i++) await tapBtn('#btnA', 60);
+  await page.waitForTimeout(200);
+  // tap a row directly: open the field menu with MENU, then tap the 4th command (ステータス) on the canvas itself
+  await tapBtn('#menuBtn'); await page.waitForTimeout(200);
+  const cvb = await page.locator('#screen').boundingBox();
+  const lx = (x, y) => [cvb.x + x * cvb.width / 256, cvb.y + y * cvb.height / 224];
+  await page.touchscreen.tap(...lx(220, 3 + 3 * 13 + 6)); await page.waitForTimeout(250);
+  const tapSel = await page.evaluate(() => ({ mode: __rpg.G.menu && __rpg.G.menu.mode, i: __rpg.G.menu && __rpg.G.menu.i }));
+  console.log('tap on menu row:', JSON.stringify(tapSel), tapSel.mode === 'pickStatus' ? 'OK' : 'FAILED');
+  await tapBtn('#btnB'); await tapBtn('#btnB'); await page.waitForTimeout(200);
   await tapBtn('#menuBtn'); await page.waitForTimeout(200);
   console.log('menu open via button:', await page.evaluate(() => !!__rpg.G.menu));
   await tapBtn('#btnB'); await page.waitForTimeout(200);

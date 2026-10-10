@@ -1,4 +1,4 @@
-const GLYPHS = '×π—…→▲▶▼◀◆♪\u3000、。々「」』〜あいぅうえおかがきぎくぐけげこごさざしじすずせぜそぞただちっつづてでとどなにぬねのはばひびふぶへべぺほぼぽまみむめもゃやゆょよらりるれろわをんァアィイウエオカガキギクグケゲコゴサザシジスズセゼソタダチッテデトドナニネハバヒビピフブプヘベペホボポマミムメモャュョラリルレロワンヴ・ー一丈三上下不世丘並中主乗乾二亡亭人今仕付代仲休会似体何余作使供個倒値側備傷僕元兄先光入全六共兵具内再冒冶出刃分切刻前剣力加助効動勘包北十南印去取受口古叩叫右合同名君吟吸吹味呼命和員商器四回図地場塔墓増壁壇士声売変夕外夜夢大天夫失奥女妹始嫌子学守定宝宮家宿封専導小届屋嵐川左巨帆帰年広店度引弟弱張強当影彼待後御復必志忘快怖思急恐息悪想意慢慣懐戦戻所手技抜押拒拾持捕掛探接描撃攻放故救教散敵文斬新方旅旋日早明映時晩暗書替最服朝本村杖束来東果枯染案森棲楽様横樫次止武死残母毎毒気水氷永求決沈治泊法波泣洗洞活派流海消減渡港渾満滅激濯灯炎点無照爪父牙物猫獲王理生用由町界番疲疾痛白盗目直眠短石研砕破示祀祠祭私秘移究空突窓窟立笑答箱粒精約素経絵絹続編縫置羽翼老考者耳聖聞育背胸能腕膨自航船花若英茶荒葉血行術衛裂装製西要見覚親解言詩話詳誇誰議賢起越足跡身車輝輪辺込近迷追逃通速連進遊道遠遭遺郷酒金針鉄鉤銅鍛鎖鎧鎮長開間闇闘防阻険隕雄離雷震霊静音頼顔風飛食飯騎験骸高魔鳥鳴黒！）？～';
+const GLYPHS = '×π—…→▲▶▼◀◆♪\u3000、。々「」』〜あいぅうえおかがきぎくぐけげこごさざしじすずせぜそぞただちっつづてでとどなにぬねのはばひびふぶへべぺほぼぽまみむめもゃやゆょよらりるれろわをんァアィイウエオカガキギクグケゲコゴサザシジスズセゼソタダチッテデトドナニネハバヒビピフブプヘベペホボポマミムメモャュョラリルレロワンヴ・ー一丈三上下不世丘並中主乗乾二亡亭人今仕付代仲休会似体何余作使供個倒値側備傷僕元兄先光入全六共兵具内再冒冶出刃分切刻前剣力加助効動勘包北十南印去取受口古叩叫右合同名君吟吸吹味呼命和員商器四回図地場塔墓増壁壇士声売変夕外夜夢大天夫失奥女妹始嫌子字学守定宝宮家宿封専導小届屋嵐川左巨帆帰年広店度引弟弱張強当影彼待後御復必志忘快怖思急恐息悪想意慢慣懐戦戻所手技抜押拒拾持捕掛探接描撃攻放故救教散敵文斬新方旅旋日早明映時晩暗書替最服朝本村杖束来東果枯染案森棲楽様横樫次止武死残母毎毒気水氷永求決沈治泊法波泣洗洞活派流海消減渡港渾満滅激濯灯炎点無照爪父牙物猫獲王理生用由町界番疲疾痛白盗目直眠短石研砕破示祀祠祭私秘移究空突窓窟立笑答箱粒精約素経絵絹続編縫置羽翼老考者耳聖聞育背胸能腕膨自航船花若英茶荒葉血行術衛裂装製西要見覚親解言詩話詳誇誰議賢起越足跡身車輝輪辺込近迷追逃通速連進遊道遠遭遺郷酒金針鉄鉤銅鍛鎖鎧鎮長開間闇闘防阻険隕雄離雷震霊静音頼顔風飛食飯騎験骸高魔鳥鳴黒！）？～';
 'use strict';
 // ===================== ENGINE =====================
 const SW = 256, SH = 224, SCALE = 3;
@@ -121,6 +121,13 @@ bindBtn('btnA', 'a'); bindBtn('btnB', 'b'); bindBtn('menuBtn', 'menu');
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 })();
 
+Input.tapA = function () { Input.set('a', true); setTimeout(() => Input.set('a', false), 80); };
+// ---- tap targets: windows register the rows a finger can touch directly (logical 256x224 coordinates), cleared every frame ----
+const Touch = {
+  rects: [],
+  add(x, y, w, h, fn) { this.rects.push({ x, y, w, h, fn }); },
+  hit(px, py) { for (let i = this.rects.length - 1; i >= 0; i--) { const r = this.rects[i]; if (px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h) { r.fn(); return true; } } return false; },
+};
 // ---- swipe on the game screen: a floating joystick wherever the finger lands; a quick tap is the A button ----
 const Swipe = { id: null, ox: 0, oy: 0, x: 0, y: 0, t0: 0, moved: false, dir: null };
 (function swipe() {
@@ -131,16 +138,24 @@ const Swipe = { id: null, ox: 0, oy: 0, x: 0, y: 0, t0: 0, moved: false, dir: nu
     Swipe.id = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch (_) { }
     [Swipe.ox, Swipe.oy] = at(e); Swipe.x = Swipe.ox; Swipe.y = Swipe.oy; Swipe.t0 = performance.now(); Swipe.moved = false;
   });
+  // in menus a swipe moves the cursor one step per 12px of drag instead of running away while the finger is down
+  const menuMode = () => !(G.scene === Field && !G.menu && !Shop.active && !G.script);
+  const pulse = d => { Input.set(d, true); setTimeout(() => Input.set(d, false), 50); };
   cv.addEventListener('pointermove', e => {
     if (e.pointerId !== Swipe.id) return; e.preventDefault();
     const [x, y] = at(e); Swipe.x = x; Swipe.y = y; const dx = x - Swipe.ox, dy = y - Swipe.oy, d = Math.hypot(dx, dy);
+    if (menuMode()) {
+      if (d > 6) Swipe.moved = true;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) >= 12) { const k = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); Swipe.ox += k === 'right' ? 12 : k === 'left' ? -12 : 0; Swipe.oy += k === 'down' ? 12 : k === 'up' ? -12 : 0; pulse(k); }
+      return;
+    }
     if (d > 6) Swipe.moved = true;
     if (d > 24) { Swipe.ox = x - dx / d * 24; Swipe.oy = y - dy / d * 24; } // the anchor follows the finger, so turning is easy
     setDir(d < 6 ? null : Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
   });
   const end = e => {
     if (e.pointerId !== Swipe.id) return; Swipe.id = null; setDir(null);
-    if (!Swipe.moved && performance.now() - Swipe.t0 < 300) { Input.set('a', true); setTimeout(() => Input.set('a', false), 70); }
+    if (!Swipe.moved && performance.now() - Swipe.t0 < 300) { const [x, y] = at(e); if (!Touch.hit(x, y)) Input.tapA(); }
   };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 })();
@@ -163,6 +178,7 @@ function fit() {
   cv.style.width = Math.floor(w) + 'px'; cv.style.height = Math.floor(w * SH / SW) + 'px';
 }
 addEventListener('resize', fit);
+
 
 // ---- offscreen sprite helper ----
 function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -195,6 +211,14 @@ const Store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
 };
+// d-pad on/off (default off: swipe the screen instead); remembered per device
+(function () {
+  const btn = document.getElementById('padToggle'); if (!btn) return;
+  const apply = on => { document.body.classList.toggle('nodpad', !on); btn.textContent = on ? '十字キー ON' : '十字キー OFF'; try { Store.set('crystal-echo-dpad', on ? '1' : '0'); } catch (e) { } fit(); };
+  let on = false; try { on = Store.get('crystal-echo-dpad') === '1'; } catch (e) { }
+  btn.addEventListener('click', e => { on = !on; apply(on); e.currentTarget.blur(); });
+  apply(on);
+})();
 
 // ===================== AUDIO (WebAudio chiptune) =====================
 const NOTE_IDX = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
@@ -1840,14 +1864,14 @@ const SKILLS = {
 };
 
 const ENEMIES = {
-  slime: { name: 'スライム', img: 'slime', hp: 22, str: 8, def: 3, mag: 2, mdf: 3, spd: 6, exp: 5, gil: 6, weak: ['fire'], drop: ['potion', 0.12], steal: 'potion' },
-  bat: { name: '吸血コウモリ', img: 'bat', hp: 17, str: 10, def: 2, mag: 2, mdf: 2, spd: 14, exp: 6, gil: 5, weak: ['bolt'], steal: 'potion' },
-  goblin: { name: 'ゴブリン', img: 'goblin', hp: 32, str: 12, def: 4, mag: 2, mdf: 2, spd: 8, exp: 9, gil: 14, drop: ['antidote', 0.15], steal: 'potion' },
-  skeleton: { name: 'スケルトン', img: 'skeleton', hp: 80, str: 20, def: 9, mag: 4, mdf: 6, spd: 9, exp: 22, gil: 24, weak: ['fire', 'holy'], undead: true, steal: 'antidote' },
-  redslime: { name: 'レッドスライム', img: 'redslime', hp: 54, str: 18, def: 6, mag: 11, mdf: 8, spd: 8, exp: 18, gil: 20, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['fire', 1]], steal: 'potion' },
-  wolf: { name: 'ウルフ', img: 'wolf', hp: 80, str: 24, def: 6, mag: 3, mdf: 4, spd: 15, exp: 20, gil: 16, weak: ['fire'], steal: 'potion' },
-  bee: { name: 'キラービー', img: 'bee', hp: 60, str: 23, def: 5, mag: 3, mdf: 5, spd: 17, exp: 18, gil: 14, weak: ['ice'], ai: [['attack', 2], ['sting', 1]], steal: 'antidote' },
-  gmage: { name: 'ゴブリンメイジ', img: 'gmage', hp: 70, str: 9, def: 5, mag: 18, mdf: 10, spd: 9, exp: 24, gil: 30, ai: [['attack', 1], ['fire', 2]], drop: ['ether', 0.08], steal: 'ether' },
+  slime: { name: 'スライム', img: 'slime', hp: 18, str: 6, def: 3, mag: 2, mdf: 3, spd: 6, exp: 5, gil: 6, weak: ['fire'], drop: ['potion', 0.12], steal: 'potion' },
+  bat: { name: '吸血コウモリ', img: 'bat', hp: 14, str: 8, def: 2, mag: 2, mdf: 2, spd: 14, exp: 6, gil: 5, weak: ['bolt'], steal: 'potion' },
+  goblin: { name: 'ゴブリン', img: 'goblin', hp: 26, str: 9, def: 4, mag: 2, mdf: 2, spd: 8, exp: 9, gil: 14, drop: ['antidote', 0.15], steal: 'potion' },
+  skeleton: { name: 'スケルトン', img: 'skeleton', hp: 66, str: 16, def: 9, mag: 4, mdf: 6, spd: 9, exp: 22, gil: 24, weak: ['fire', 'holy'], undead: true, steal: 'antidote' },
+  redslime: { name: 'レッドスライム', img: 'redslime', hp: 46, str: 15, def: 6, mag: 9, mdf: 8, spd: 8, exp: 18, gil: 20, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['fire', 1]], steal: 'potion' },
+  wolf: { name: 'ウルフ', img: 'wolf', hp: 72, str: 21, def: 6, mag: 3, mdf: 4, spd: 15, exp: 20, gil: 16, weak: ['fire'], steal: 'potion' },
+  bee: { name: 'キラービー', img: 'bee', hp: 54, str: 20, def: 5, mag: 3, mdf: 5, spd: 17, exp: 18, gil: 14, weak: ['ice'], ai: [['attack', 2], ['sting', 1]], steal: 'antidote' },
+  gmage: { name: 'ゴブリンメイジ', img: 'gmage', hp: 64, str: 9, def: 5, mag: 18, mdf: 10, spd: 9, exp: 24, gil: 30, ai: [['attack', 1], ['fire', 2]], drop: ['ether', 0.08], steal: 'ether' },
   golem: { name: 'ゴーレム', img: 'golem', hp: 260, str: 42, def: 24, mag: 4, mdf: 8, spd: 6, exp: 60, gil: 60, weak: ['bolt'], ai: [['attack', 3], ['quake', 1]], steal: 'hipotion' },
   specter: { name: 'スペクター', img: 'specter', hp: 150, str: 14, def: 18, mag: 30, mdf: 18, spd: 12, exp: 52, gil: 50, weak: ['holy', 'fire'], undead: true, ai: [['attack', 1], ['frost', 2]], steal: 'ether' },
   darkmage: { name: 'ダークメイジ', img: 'darkmage', hp: 170, str: 14, def: 10, mag: 32, mdf: 18, spd: 11, exp: 62, gil: 80, ai: [['attack', 1], ['fire', 1], ['bolt', 1], ['frost', 1]], drop: ['ether', 0.2], steal: 'ether' },
@@ -1855,7 +1879,7 @@ const ENEMIES = {
   windslime: { name: 'ウィンドスライム', img: 'windslime', hp: 150, str: 24, def: 12, mag: 32, mdf: 20, spd: 14, exp: 48, gil: 44, weak: ['fire'], ai: [['attack', 1], ['gust', 2]], drop: ['ether', 0.15], steal: 'ether' },
   hellhound: { name: 'ヘルハウンド', img: 'hellhound', hp: 240, str: 46, def: 14, mag: 24, mdf: 10, spd: 18, exp: 64, gil: 58, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['firebite', 1]], steal: 'hipotion' },
   boneknight: { name: 'ボーンナイト', img: 'boneknight', hp: 280, str: 46, def: 24, mag: 6, mdf: 12, spd: 10, exp: 76, gil: 70, weak: ['holy', 'fire'], undead: true, ai: [['attack', 3], ['smash', 1]], drop: ['megapotion', 0.12], steal: 'phoenix' },
-  gking: { name: 'ゴブリンキング', img: 'gking', hp: 800, str: 27, def: 8, mag: 8, mdf: 6, spd: 9, exp: 160, gil: 400, boss: true, steal: 'hipotion', ai: 'gking' },
+  gking: { name: 'ゴブリンキング', img: 'gking', hp: 680, str: 23, def: 8, mag: 8, mdf: 6, spd: 9, exp: 160, gil: 400, boss: true, steal: 'hipotion', ai: 'gking' },
   guardian: { name: 'クリスタルガーディアン', img: 'guardian', hp: 3000, str: 44, def: 20, mag: 36, mdf: 18, spd: 11, exp: 700, gil: 1200, boss: true, weak: ['bolt'], steal: 'elixir', ai: 'guardian' },
   tempest: { name: '嵐の魔鳥テンペスト', img: 'tempest', hp: 6400, str: 54, def: 24, mag: 46, mdf: 22, spd: 22, exp: 1200, gil: 2000, boss: true, weak: ['bolt'], steal: 'zephyr', ai: 'tempest' },
   garva: { name: '闇騎士ガルヴァ', img: 'garva', hp: 4200, str: 44, def: 24, mag: 35, mdf: 22, spd: 16, exp: 0, gil: 0, boss: true, weak: ['holy'], steal: 'elixir', ai: 'garva' },
@@ -1923,7 +1947,7 @@ function buildWorld() {
     warps: { '9,7': { map: 'elm', x: 12, y: 18, dir: 'up' }, '24,13': { map: 'cave', x: 2, y: 2, dir: 'down' }, '24,17': { map: 'cave', x: 27, y: 17, dir: 'left' },
       '10,24': { map: 'rosa', x: 13, y: 1, dir: 'down' }, '37,24': { map: 'tower1', x: 8, y: 13, dir: 'up', cond: 'zek', script: 'towerSeal' },
       '4,23': { map: 'shrine', x: 10, y: 13, dir: 'up' } },
-    enc: (x, y) => y < 14 ? 'north' : x < 30 ? 'south' : 'east', rate: 22, npcs: [] };
+    enc: (x, y) => y < 14 ? 'north' : x < 30 ? 'south' : 'east', rate: 22, rateAt: (x, y) => y < 14 ? 34 : 24, npcs: [] };
 }
 
 function buildElm() {
@@ -2013,7 +2037,7 @@ function buildCave() {
   return { id: 'cave', name: '北の洞窟', set: 'cave', music: 'dungeon', w: g[0].length, h: g.length, g,
     warps: { '2,1': { map: 'world', x: 24, y: 13, dir: 'down' }, '28,17': { map: 'world', x: 24, y: 17, dir: 'down' } },
     chests: { '27,1': { item: 'chain' }, '27,11': { item: 'phoenix' }, '1,19': { gil: 250 } },
-    triggers: trig, enc: () => 'cave', rate: 20,
+    triggers: trig, enc: () => 'cave', rate: 28,
     npcs: [
       { id: 'gking', x: 27, y: 17, pal: 'gking', dir: 'left', talk: 'caveBoss', show: () => !G.flags.cave_boss },
       { id: 'kaiCaged', x: 25, y: 19, pal: 'kai', dir: 'left', talk: 'kaiCaged', show: () => !G.flags.cave_boss },
@@ -2197,9 +2221,9 @@ const SCRIPTS = {
       G.flags.echo = 1;
       yield* say('塔の入口には外側の封印も残っておる。\n港町ローザで、封印に詳しい魔導士を\n探すのじゃ。', '長老');
       yield* say('ローザへは、村の東にある\n北の洞窟を抜けねばならん。\nこれを持っていきなさい。', '長老');
-      addItem('potion', 3); addItem('phoenix', 1); G.gil += 200; G.flags.quest = 1;
+      addItem('potion', 5); addItem('phoenix', 1); G.gil += 300; G.flags.quest = 1;
       Audio8.sfx('chest');
-      yield* say('ポーション×3、不死鳥の羽、200ギルを\n受け取った!');
+      yield* say('ポーション×5、不死鳥の羽、300ギルを\n受け取った!');
       yield* say('(戦闘で仲間が傷つくと「ECHO」がたまり\n満タンになるとリナが「エコー」を使える)');
       yield* say('レオンは最後までこの村を守った。\nアレン、お前の剣にもその血が流れておる。\n…出かける前に、母さんに顔を見せてやれ。', '長老');
       yield* say('…行こう、リナ。\n父さんが守ったものを、今度はおれが守る。', 'アレン');
@@ -2479,7 +2503,7 @@ function applySnapshot(d) {
 function loadGame() { try { const s = Store.get(SAVE_KEY); if (!s) return false; applySnapshot(JSON.parse(s)); return true; } catch (e) { console.warn(e); return false; } }
 
 function newGame() {
-  G.flags = {}; G.inv = { potion: 3, antidote: 1 }; G.gil = 200; G.time = 0;
+  G.flags = {}; G.inv = { potion: 5, antidote: 2 }; G.gil = 300; G.time = 0;
   G.party = [newMember('allen'), newMember('lina')];
   Field.enter('elm', 12, 12, 'up', true);
   runScript(SCRIPTS.intro);
@@ -2596,7 +2620,7 @@ function drawDialog() {
   }
   if (G.choice) {
     const ch = G.choice; const w = 74, h = ch.opts.length * 14 + 12; const x = 172, y = 134 - h;
-    win(x, y, w, h); ch.opts.forEach((o, i) => text(o, x + 20, y + 7 + i * 14, ch.i === i ? UI.gold : UI.ink));
+    win(x, y, w, h); ch.opts.forEach((o, i) => { text(o, x + 20, y + 7 + i * 14, ch.i === i ? UI.gold : UI.ink); Touch.add(x, y + 4 + i * 14, w, 14, () => { ch.i = i; Input.tapA(); }); });
     cursor(x + 7, y + 8 + ch.i * 14);
   }
   if (G.narr) {
@@ -2671,7 +2695,7 @@ const Field = {
     // random encounters
     if (m.enc && !G.debug.noEnc) {
       const mult = this.tdef(ch)[2] || 0; G.steps++;
-      if (mult > 0 && G.steps > 5 && rnd() < mult / m.rate) {
+      if (mult > 0 && G.steps > 5 && rnd() < mult / (m.rateAt ? m.rateAt(p.x, p.y) : m.rate)) {
         const ids = pick(FORMATIONS[m.enc(p.x, p.y)]);
         startBattle({ ids, music: 'battle' }, () => { });
       }
@@ -2921,6 +2945,7 @@ const Battle = {
     B = { cfg, cb, enemies: es, pb: G.party.map(() => ({ atb: 0, defend: false, offx: 0, offy: 0, hitT: 0, ready: false, trail: [], prot: false, haste: false })), queue: [], ready: [], menu: null,
       gen: null, wait: 0, waitKey: false, popups: [], fx: [], parts: [], flashFx: null, banner: null, phase: 'intro', t: 0, msg: null, slide: 1, cheer: false, flee: false,
       hold: 0, stop: 0, result: null, clouds: null, echo: 0, voice: null };
+    B.snap = { party: JSON.stringify(G.party), inv: { ...G.inv }, gil: G.gil };
     G.party.forEach((m, i) => { const s = stats(m); B.pb[i].atb = m.hp > 0 ? 20 + rnd() * 60 + s.spd * 2 : 0; });
     G.scene = Battle; Audio8.play(cfg.music || 'battle');
   },
@@ -3250,7 +3275,8 @@ const Battle = {
     G.gil += gil; G.party.forEach(m => m.poison = false);
     for (const d of drops) addItem(d);
     const lines = [];
-    for (const m of G.party) { const ms = gainExp(m, exp); if (ms.length) { lines.push(...ms); } }
+    // early levels level up faster (x1.5 up to Lv6, x1.25 up to Lv10)
+    for (const m of G.party) { const ms = gainExp(m, Math.round(exp * (m.lv <= 6 ? 1.5 : m.lv <= 10 ? 1.25 : 1))); if (ms.length) { lines.push(...ms); } }
     B.result = { exp, gil, drops, t: 0 };
     yield 'key';
     for (const l of lines) { B.msg = l; if (l.includes('レベル')) Audio8.sfx('levelup'); yield 'key'; }
@@ -3259,7 +3285,8 @@ const Battle = {
   },
   *defeat() {
     yield 40; Audio8.play('gameover'); B.msg = '全滅してしまった…'; yield 'key'; B.msg = null;
-    B = null; GameOver.start();
+    const retry = { cfg: B.cfg, cb: B.cb, snap: B.snap, script: G.script };
+    B = null; GameOver.start(retry);
   },
   finish(result) {
     const cb = B.cb; const cfg = B.cfg;
@@ -3812,13 +3839,14 @@ const BMenu = {
     const M = B.menu;
     // command window
     win(0, 150, 96, 74);
-    M.cmds.forEach((c, i) => text(c, 20, 157 + i * 13, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink));
+    M.cmds.forEach((c, i) => { text(c, 20, 157 + i * 13, M.stage === 'cmd' && M.ci === i ? UI.gold : UI.ink); if (M.stage === 'cmd') Touch.add(0, 153 + i * 13, 96, 13, () => { M.ci = i; Input.tapA(); }); });
     if (M.stage === 'cmd') cursor(7, 158 + M.ci * 13);
     if (M.stage === 'list' || (M.stage === 'target' && M.prev === 'list')) {
       win(0, 150, 256, 74);
       for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
         const idx = (M.scroll + r) * 2 + c; const e = M.list[idx]; if (!e) continue;
         const x = 18 + c * 124, y = 157 + r * 15;
+        if (M.stage === 'list') Touch.add(x - 14, y - 3, 118, 15, () => { M.li = idx; Input.tapA(); });
         text(e.label, x, y, e.ok ? UI.ink : UI.dim); text(e.right, x + 100, y, e.ok ? UI.mp : UI.dim, 7, 'right');
       }
       if (M.stage === 'list') { const r = Math.floor(M.li / 2) - M.scroll, c = M.li % 2; cursor(5 + c * 124, 158 + r * 15); const e = M.list[M.li]; if (e && e.desc) { win(4, 4, 248, 20); text(e.desc, 12, 10); } }
@@ -3826,6 +3854,9 @@ const BMenu = {
     }
     if (M.stage === 'target') {
       const ts = M.tmode === 'enemies' ? Battle.aliveE().map(e => ({ side: 'e', i: e.i })) : M.tmode === 'allies' ? G.party.map((_, i) => ({ side: 'p', i })) : [{ side: M.tSide, i: M.ti }];
+      // tap an enemy (or a party member for healing) to pick it
+      if (M.tmode === 'enemy') for (const e of Battle.aliveE()) Touch.add(e.x - 3, e.y - 3, e.w + 6, e.h + 6, () => { M.tSide = 'e'; M.ti = e.i; Input.tapA(); });
+      if (M.tmode === 'ally') G.party.forEach((_, i) => { const p = PARTY_POS(i); Touch.add(p.x - 6, p.y - 8, 40, 40, () => { M.tSide = 'p'; M.ti = i; Input.tapA(); }); });
       if ((M.tmode === 'enemies' || M.tmode === 'allies') && (G.frame >> 3) % 2) return;
       for (const t of ts) {
         if (t.side === 'e') { const e = B.enemies[t.i]; cursor(e.x - 10, e.y + e.h / 2 - 4); }
@@ -4027,6 +4058,7 @@ const Menu = {
     win(x, y, w, 224 - y);
     G.party.forEach((m, i) => {
       const yy = y + 8 + i * 52; const s = stats(m); const h = HEROES[m.id];
+      if (sel != null) Touch.add(x, yy - 3, w, 50, () => { G.menu.who = i; Input.tapA(); });
       if (sel === i) { ctx.fillStyle = 'rgba(240,207,134,.12)'; ctx.fillRect(x + 4, yy - 3, w - 8, 50); }
       if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 18, yy + 2); else ctx.drawImage(SPR[m.id].hb.ko, x + 12, yy + 12);
       text(h.name, x + 58, yy, m.hp <= 0 ? '#ff7080' : UI.ink, 8.5, 'left', 't'); text(h.job, x + 102, yy, UI.muted, 7);
@@ -4044,7 +4076,7 @@ const Menu = {
     const pickMode = ['itemTarget', 'pickMagic', 'pickEquip', 'pickStatus', 'magicTarget'].includes(M.mode);
     if (M.mode === 'main' || pickMode) {
       this.drawParty(0, 0, 182, pickMode ? M.who : null);
-      win(182, 0, 74, 92); this.cmds.forEach((c, i) => text(c, 196, 7 + i * 13));
+      win(182, 0, 74, 92); this.cmds.forEach((c, i) => { text(c, 196, 7 + i * 13); if (M.mode === 'main') Touch.add(182, 3 + i * 13, 74, 13, () => { M.i = i; Input.tapA(); }); });
       if (M.mode === 'main') cursor(186, 8 + M.i * 13);
       win(182, 172, 74, 52); text('ギル', 190, 179, UI.label, 7); text(String(G.gil), 248, 189, UI.ink, 8, 'right');
       const sec = Math.floor(G.time / 60); text('じかん', 190, 201, UI.label, 7); text(`${Math.floor(sec / 3600)}:${String(Math.floor(sec / 60) % 60).padStart(2, '0')}`, 248, 210, UI.ink, 8, 'right');
@@ -4056,14 +4088,14 @@ const Menu = {
       win(0, 0, 256, 24); text('アイテム', 10, 7, UI.gold);
       const l = this.itemList();
       win(0, 24, 256, 156);
-      l.slice(M.scroll, M.scroll + 9).forEach((id, k) => { const it = ITEMS[id]; text(it.name, 22, 32 + k * 16, it.type === 'use' ? UI.ink : UI.muted); text('×' + G.inv[id], 240, 32 + k * 16, UI.muted, 8, 'right'); });
+      l.slice(M.scroll, M.scroll + 9).forEach((id, k) => { Touch.add(0, 28 + k * 16, 256, 16, () => { M.li = M.scroll + k; Input.tapA(); }); const it = ITEMS[id]; text(it.name, 22, 32 + k * 16, it.type === 'use' ? UI.ink : UI.muted); text('×' + G.inv[id], 240, 32 + k * 16, UI.muted, 8, 'right'); });
       cursor(8, 33 + (M.li - M.scroll) * 16);
       win(0, 180, 256, 44); const it = ITEMS[l[M.li]]; if (it) text(it.desc || this.eqDesc(it), 10, 188);
     }
     if (M.mode === 'magic') {
       const c = G.party[M.caster]; win(0, 0, 256, 24); text(`${HEROES[c.id].name} の${HEROES[c.id].cmd}    MP ${c.mp}/${stats(c).maxmp}`, 10, 7, UI.gold);
       win(0, 24, 256, 156); const l = skillsOf(c);
-      l.forEach((id, k) => { const sk = SKILLS[id]; text(sk.name, 22, 32 + k * 16, sk.field ? UI.ink : UI.dim); text(sk.mp ? 'MP ' + sk.mp : '', 240, 32 + k * 16, UI.muted, 8, 'right'); });
+      l.forEach((id, k) => { Touch.add(0, 28 + k * 16, 256, 16, () => { M.li = k; Input.tapA(); }); const sk = SKILLS[id]; text(sk.name, 22, 32 + k * 16, sk.field ? UI.ink : UI.dim); text(sk.mp ? 'MP ' + sk.mp : '', 240, 32 + k * 16, UI.muted, 8, 'right'); });
       cursor(8, 33 + M.li * 16); win(0, 180, 256, 44); const sk = SKILLS[l[M.li]]; if (sk) text(sk.desc + (sk.field ? '' : '(戦闘中のみ)'), 10, 188);
     }
     if (M.mode === 'equip' || M.mode === 'equipPick') {
@@ -4075,7 +4107,7 @@ const Menu = {
       const l = this.equipList(); let pv = null;
       win(0, 70, 140, 154);
       if (!l.length) text('なし', 22, 80, UI.dim);
-      l.forEach((id, k) => text(`${ITEMS[id].name}`, 22, 78 + k * 15));
+      l.forEach((id, k) => { text(`${ITEMS[id].name}`, 22, 78 + k * 15); if (M.mode === 'equipPick') Touch.add(0, 75 + k * 15, 140, 15, () => { M.li = k; Input.tapA(); }); });
       if (M.mode === 'equipPick') { cursor(8, 79 + M.li * 15); const id = l[M.li]; const tmp = { ...m }; tmp[M.slot ? 'armor' : 'weapon'] = id; pv = stats(tmp); }
       win(140, 70, 116, 154);
       [['こうげき', 'atk'], ['ぼうぎょ', 'def'], ['まりょく', 'mag'], ['まほうぼうぎょ', 'mdf'], ['すばやさ', 'spd']].forEach(([lb, k], j) => {
@@ -4143,7 +4175,7 @@ const Shop = {
   draw() {
     ctx.fillStyle = 'rgba(4,4,14,.55)'; ctx.fillRect(0, 0, SW, SH);
     win(0, 0, 256, 24); text(this.msg, 10, 7);
-    win(0, 24, 256, 22); ['かう', 'うる', 'やめる'].forEach((c, i) => text(c, 24 + i * 70, 30)); if (this.mode === 'top') cursor(10 + this.i * 70, 31);
+    win(0, 24, 256, 22); ['かう', 'うる', 'やめる'].forEach((c, i) => { text(c, 24 + i * 70, 30); if (this.mode === 'top') Touch.add(8 + i * 70, 25, 64, 18, () => { this.i = i; Input.tapA(); }); }); if (this.mode === 'top') cursor(10 + this.i * 70, 31);
     win(0, 46, 176, 22); text(this.mode === 'top' ? '何をしますか?' : this.mode.startsWith('buy') ? 'かう' : 'うる', 10, 52, UI.muted);
     win(176, 46, 80, 22); text(G.gil + ' G', 248, 52, UI.ink, 8, 'right');
     if (this.mode === 'top') return;
@@ -4151,6 +4183,7 @@ const Shop = {
     win(0, 68, 256, 108);
     const scroll = Math.max(0, this.li - 5);
     list.slice(scroll, scroll + 6).forEach((id, k) => {
+      if (this.mode === 'buy' || this.mode === 'sell') Touch.add(0, 72 + k * 16, 256, 16, () => { this.li = scroll + k; Input.tapA(); });
       const it = ITEMS[id]; const price = buy ? it.price : this.sellPrice(id);
       const y = 76 + k * 16; const afford = !buy || G.gil >= price;
       text(it.name, 22, y, afford ? UI.ink : UI.dim); text(price + 'G', 196, y, afford ? UI.ink : UI.dim, 8, 'right'); text('所持 ' + (G.inv[id] || 0), 248, y, UI.muted, 7, 'right');
@@ -4255,26 +4288,39 @@ const Title = {
     drawScene(this.t);
     drawLogo(40, Math.min(1, this.t / 60));
     const opts = ['はじめから', 'つづきから'];
-    opts.forEach((o, i) => text(o, 114, 104 + i * 15, i === 1 && !hasSave() ? UI.dim : this.i === i ? UI.gold : UI.ink, 8.5, 'left', 't'));
+    opts.forEach((o, i) => { text(o, 114, 104 + i * 15, i === 1 && !hasSave() ? UI.dim : this.i === i ? UI.gold : UI.ink, 8.5, 'left', 't'); Touch.add(84, 99 + i * 15, 100, 15, () => { this.i = i; Input.tapA(); }); });
     cursor(100, 105 + this.i * 15);
     text(TOUCH ? 'スワイプで移動・タップで決定　音が出ます' : 'A / Z で決定　　音が出ます', 128, 210, 'rgba(230,220,200,.55)', 6.5, 'center');
   },
 };
 const GameOver = {
-  i: 0, t: 0,
-  start() { G.scene = GameOver; this.t = 0; this.i = 0; G.fadeLevel = 0; G.fadeTarget = 0; G.script = null; G.dialog = null; G.menu = null; },
+  i: 0, t: 0, retry: null, opts: [],
+  start(retry) {
+    G.scene = GameOver; this.t = 0; this.i = 0; G.fadeLevel = 0; G.fadeTarget = 0; G.dialog = null; G.menu = null; this.retry = retry || null;
+    if (!this.retry) G.script = null;
+    this.opts = [];
+    if (this.retry) this.opts.push(['もう一度たたかう(全回復)', 'retry']);
+    this.opts.push([hasSave() ? 'セーブした所から' : 'はじめから', 'load'], ['タイトルへ', 'title']);
+  },
   update() {
     this.t++; if (this.t < 60) return;
-    if (Input.rep('up') || Input.rep('down')) { this.i ^= 1; Audio8.sfx('cursor'); }
+    const n = this.opts.length;
+    if (Input.rep('up')) { this.i = (this.i + n - 1) % n; Audio8.sfx('cursor'); }
+    if (Input.rep('down')) { this.i = (this.i + 1) % n; Audio8.sfx('cursor'); }
     if (Input.pressed.a) {
-      Audio8.sfx('ok');
-      if (this.i === 0 && hasSave()) transition(() => loadGame()); else transition(() => Title.start());
+      Audio8.sfx('ok'); const act = this.opts[this.i][1];
+      if (act === 'retry') {
+        // start the same fight again with the party as it was, fully healed
+        const r = this.retry; G.party = JSON.parse(r.snap.party); G.inv = { ...r.snap.inv }; G.gil = r.snap.gil; healAll(); G.script = r.script; G.scene = Field; Field.enter(G.mapId, G.p.x, G.p.y, G.p.dir, true);
+        startBattle(r.cfg, r.cb);
+      } else if (act === 'load' && hasSave()) { G.script = null; transition(() => loadGame()); }
+      else { G.script = null; transition(() => Title.start()); }
     }
   },
   draw() {
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, SW, SH);
     ctx.globalAlpha = Math.min(1, this.t / 60); text('GAME OVER', 128, 76, '#e06070', 18, 'center', 't'); ctx.globalAlpha = 1;
-    if (this.t >= 60) { text(hasSave() ? 'セーブした所から' : 'はじめから', 112, 130, this.i === 0 ? UI.gold : UI.ink); text('タイトルへ', 112, 145, this.i === 1 ? UI.gold : UI.ink); cursor(98, 131 + this.i * 15); }
+    if (this.t >= 60) { this.opts.forEach((o, i) => { text(o[0], 82, 118 + i * 16, this.i === i ? UI.gold : UI.ink); Touch.add(60, 115 + i * 16, 150, 16, () => { this.i = i; Input.tapA(); }); }); cursor(68, 119 + this.i * 16); }
   },
 };
 const ENDING_LINES = [
@@ -4317,6 +4363,7 @@ function step() {
   if (G.shake > 0) G.shake--;
 }
 function render() {
+  Touch.rects.length = 0;
   resetT();
   G.scene.draw(); resetT(); drawSwipe();
   if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, G.flash / 20)})`; ctx.fillRect(0, 0, SW, SH); }

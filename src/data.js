@@ -89,14 +89,14 @@ const SKILLS = {
 };
 
 const ENEMIES = {
-  slime: { name: 'スライム', img: 'slime', hp: 22, str: 8, def: 3, mag: 2, mdf: 3, spd: 6, exp: 5, gil: 6, weak: ['fire'], drop: ['potion', 0.12], steal: 'potion' },
-  bat: { name: '吸血コウモリ', img: 'bat', hp: 17, str: 10, def: 2, mag: 2, mdf: 2, spd: 14, exp: 6, gil: 5, weak: ['bolt'], steal: 'potion' },
-  goblin: { name: 'ゴブリン', img: 'goblin', hp: 32, str: 12, def: 4, mag: 2, mdf: 2, spd: 8, exp: 9, gil: 14, drop: ['antidote', 0.15], steal: 'potion' },
-  skeleton: { name: 'スケルトン', img: 'skeleton', hp: 80, str: 20, def: 9, mag: 4, mdf: 6, spd: 9, exp: 22, gil: 24, weak: ['fire', 'holy'], undead: true, steal: 'antidote' },
-  redslime: { name: 'レッドスライム', img: 'redslime', hp: 54, str: 18, def: 6, mag: 11, mdf: 8, spd: 8, exp: 18, gil: 20, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['fire', 1]], steal: 'potion' },
-  wolf: { name: 'ウルフ', img: 'wolf', hp: 80, str: 24, def: 6, mag: 3, mdf: 4, spd: 15, exp: 20, gil: 16, weak: ['fire'], steal: 'potion' },
-  bee: { name: 'キラービー', img: 'bee', hp: 60, str: 23, def: 5, mag: 3, mdf: 5, spd: 17, exp: 18, gil: 14, weak: ['ice'], ai: [['attack', 2], ['sting', 1]], steal: 'antidote' },
-  gmage: { name: 'ゴブリンメイジ', img: 'gmage', hp: 70, str: 9, def: 5, mag: 18, mdf: 10, spd: 9, exp: 24, gil: 30, ai: [['attack', 1], ['fire', 2]], drop: ['ether', 0.08], steal: 'ether' },
+  slime: { name: 'スライム', img: 'slime', hp: 18, str: 6, def: 3, mag: 2, mdf: 3, spd: 6, exp: 5, gil: 6, weak: ['fire'], drop: ['potion', 0.12], steal: 'potion' },
+  bat: { name: '吸血コウモリ', img: 'bat', hp: 14, str: 8, def: 2, mag: 2, mdf: 2, spd: 14, exp: 6, gil: 5, weak: ['bolt'], steal: 'potion' },
+  goblin: { name: 'ゴブリン', img: 'goblin', hp: 26, str: 9, def: 4, mag: 2, mdf: 2, spd: 8, exp: 9, gil: 14, drop: ['antidote', 0.15], steal: 'potion' },
+  skeleton: { name: 'スケルトン', img: 'skeleton', hp: 66, str: 16, def: 9, mag: 4, mdf: 6, spd: 9, exp: 22, gil: 24, weak: ['fire', 'holy'], undead: true, steal: 'antidote' },
+  redslime: { name: 'レッドスライム', img: 'redslime', hp: 46, str: 15, def: 6, mag: 9, mdf: 8, spd: 8, exp: 18, gil: 20, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['fire', 1]], steal: 'potion' },
+  wolf: { name: 'ウルフ', img: 'wolf', hp: 72, str: 21, def: 6, mag: 3, mdf: 4, spd: 15, exp: 20, gil: 16, weak: ['fire'], steal: 'potion' },
+  bee: { name: 'キラービー', img: 'bee', hp: 54, str: 20, def: 5, mag: 3, mdf: 5, spd: 17, exp: 18, gil: 14, weak: ['ice'], ai: [['attack', 2], ['sting', 1]], steal: 'antidote' },
+  gmage: { name: 'ゴブリンメイジ', img: 'gmage', hp: 64, str: 9, def: 5, mag: 18, mdf: 10, spd: 9, exp: 24, gil: 30, ai: [['attack', 1], ['fire', 2]], drop: ['ether', 0.08], steal: 'ether' },
   golem: { name: 'ゴーレム', img: 'golem', hp: 260, str: 42, def: 24, mag: 4, mdf: 8, spd: 6, exp: 60, gil: 60, weak: ['bolt'], ai: [['attack', 3], ['quake', 1]], steal: 'hipotion' },
   specter: { name: 'スペクター', img: 'specter', hp: 150, str: 14, def: 18, mag: 30, mdf: 18, spd: 12, exp: 52, gil: 50, weak: ['holy', 'fire'], undead: true, ai: [['attack', 1], ['frost', 2]], steal: 'ether' },
   darkmage: { name: 'ダークメイジ', img: 'darkmage', hp: 170, str: 14, def: 10, mag: 32, mdf: 18, spd: 11, exp: 62, gil: 80, ai: [['attack', 1], ['fire', 1], ['bolt', 1], ['frost', 1]], drop: ['ether', 0.2], steal: 'ether' },
@@ -104,7 +104,7 @@ const ENEMIES = {
   windslime: { name: 'ウィンドスライム', img: 'windslime', hp: 150, str: 24, def: 12, mag: 32, mdf: 20, spd: 14, exp: 48, gil: 44, weak: ['fire'], ai: [['attack', 1], ['gust', 2]], drop: ['ether', 0.15], steal: 'ether' },
   hellhound: { name: 'ヘルハウンド', img: 'hellhound', hp: 240, str: 46, def: 14, mag: 24, mdf: 10, spd: 18, exp: 64, gil: 58, weak: ['ice'], absorb: ['fire'], ai: [['attack', 2], ['firebite', 1]], steal: 'hipotion' },
   boneknight: { name: 'ボーンナイト', img: 'boneknight', hp: 280, str: 46, def: 24, mag: 6, mdf: 12, spd: 10, exp: 76, gil: 70, weak: ['holy', 'fire'], undead: true, ai: [['attack', 3], ['smash', 1]], drop: ['megapotion', 0.12], steal: 'phoenix' },
-  gking: { name: 'ゴブリンキング', img: 'gking', hp: 800, str: 27, def: 8, mag: 8, mdf: 6, spd: 9, exp: 160, gil: 400, boss: true, steal: 'hipotion', ai: 'gking' },
+  gking: { name: 'ゴブリンキング', img: 'gking', hp: 680, str: 23, def: 8, mag: 8, mdf: 6, spd: 9, exp: 160, gil: 400, boss: true, steal: 'hipotion', ai: 'gking' },
   guardian: { name: 'クリスタルガーディアン', img: 'guardian', hp: 3000, str: 44, def: 20, mag: 36, mdf: 18, spd: 11, exp: 700, gil: 1200, boss: true, weak: ['bolt'], steal: 'elixir', ai: 'guardian' },
   tempest: { name: '嵐の魔鳥テンペスト', img: 'tempest', hp: 6400, str: 54, def: 24, mag: 46, mdf: 22, spd: 22, exp: 1200, gil: 2000, boss: true, weak: ['bolt'], steal: 'zephyr', ai: 'tempest' },
   garva: { name: '闇騎士ガルヴァ', img: 'garva', hp: 4200, str: 44, def: 24, mag: 35, mdf: 22, spd: 16, exp: 0, gil: 0, boss: true, weak: ['holy'], steal: 'elixir', ai: 'garva' },
@@ -172,7 +172,7 @@ function buildWorld() {
     warps: { '9,7': { map: 'elm', x: 12, y: 18, dir: 'up' }, '24,13': { map: 'cave', x: 2, y: 2, dir: 'down' }, '24,17': { map: 'cave', x: 27, y: 17, dir: 'left' },
       '10,24': { map: 'rosa', x: 13, y: 1, dir: 'down' }, '37,24': { map: 'tower1', x: 8, y: 13, dir: 'up', cond: 'zek', script: 'towerSeal' },
       '4,23': { map: 'shrine', x: 10, y: 13, dir: 'up' } },
-    enc: (x, y) => y < 14 ? 'north' : x < 30 ? 'south' : 'east', rate: 22, npcs: [] };
+    enc: (x, y) => y < 14 ? 'north' : x < 30 ? 'south' : 'east', rate: 22, rateAt: (x, y) => y < 14 ? 34 : 24, npcs: [] };
 }
 
 function buildElm() {
@@ -262,7 +262,7 @@ function buildCave() {
   return { id: 'cave', name: '北の洞窟', set: 'cave', music: 'dungeon', w: g[0].length, h: g.length, g,
     warps: { '2,1': { map: 'world', x: 24, y: 13, dir: 'down' }, '28,17': { map: 'world', x: 24, y: 17, dir: 'down' } },
     chests: { '27,1': { item: 'chain' }, '27,11': { item: 'phoenix' }, '1,19': { gil: 250 } },
-    triggers: trig, enc: () => 'cave', rate: 20,
+    triggers: trig, enc: () => 'cave', rate: 28,
     npcs: [
       { id: 'gking', x: 27, y: 17, pal: 'gking', dir: 'left', talk: 'caveBoss', show: () => !G.flags.cave_boss },
       { id: 'kaiCaged', x: 25, y: 19, pal: 'kai', dir: 'left', talk: 'kaiCaged', show: () => !G.flags.cave_boss },
@@ -446,9 +446,9 @@ const SCRIPTS = {
       G.flags.echo = 1;
       yield* say('塔の入口には外側の封印も残っておる。\n港町ローザで、封印に詳しい魔導士を\n探すのじゃ。', '長老');
       yield* say('ローザへは、村の東にある\n北の洞窟を抜けねばならん。\nこれを持っていきなさい。', '長老');
-      addItem('potion', 3); addItem('phoenix', 1); G.gil += 200; G.flags.quest = 1;
+      addItem('potion', 5); addItem('phoenix', 1); G.gil += 300; G.flags.quest = 1;
       Audio8.sfx('chest');
-      yield* say('ポーション×3、不死鳥の羽、200ギルを\n受け取った!');
+      yield* say('ポーション×5、不死鳥の羽、300ギルを\n受け取った!');
       yield* say('(戦闘で仲間が傷つくと「ECHO」がたまり\n満タンになるとリナが「エコー」を使える)');
       yield* say('レオンは最後までこの村を守った。\nアレン、お前の剣にもその血が流れておる。\n…出かける前に、母さんに顔を見せてやれ。', '長老');
       yield* say('…行こう、リナ。\n父さんが守ったものを、今度はおれが守る。', 'アレン');

@@ -9,6 +9,7 @@ function step() {
   if (G.shake > 0) G.shake--;
 }
 function render() {
+  Touch.rects.length = 0;
   resetT();
   G.scene.draw(); resetT(); drawSwipe();
   if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, G.flash / 20)})`; ctx.fillRect(0, 0, SW, SH); }

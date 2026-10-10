@@ -135,6 +135,7 @@ const Menu = {
     win(x, y, w, 224 - y);
     G.party.forEach((m, i) => {
       const yy = y + 8 + i * 52; const s = stats(m); const h = HEROES[m.id];
+      if (sel != null) Touch.add(x, yy - 3, w, 50, () => { G.menu.who = i; Input.tapA(); });
       if (sel === i) { ctx.fillStyle = 'rgba(240,207,134,.12)'; ctx.fillRect(x + 4, yy - 3, w - 8, 50); }
       if (m.hp > 0) ctx.drawImage(SPR[m.id].hb.idle, x + 18, yy + 2); else ctx.drawImage(SPR[m.id].hb.ko, x + 12, yy + 12);
       text(h.name, x + 58, yy, m.hp <= 0 ? '#ff7080' : UI.ink, 8.5, 'left', 't'); text(h.job, x + 102, yy, UI.muted, 7);
@@ -152,7 +153,7 @@ const Menu = {
     const pickMode = ['itemTarget', 'pickMagic', 'pickEquip', 'pickStatus', 'magicTarget'].includes(M.mode);
     if (M.mode === 'main' || pickMode) {
       this.drawParty(0, 0, 182, pickMode ? M.who : null);
-      win(182, 0, 74, 92); this.cmds.forEach((c, i) => text(c, 196, 7 + i * 13));
+      win(182, 0, 74, 92); this.cmds.forEach((c, i) => { text(c, 196, 7 + i * 13); if (M.mode === 'main') Touch.add(182, 3 + i * 13, 74, 13, () => { M.i = i; Input.tapA(); }); });
       if (M.mode === 'main') cursor(186, 8 + M.i * 13);
       win(182, 172, 74, 52); text('ギル', 190, 179, UI.label, 7); text(String(G.gil), 248, 189, UI.ink, 8, 'right');
       const sec = Math.floor(G.time / 60); text('じかん', 190, 201, UI.label, 7); text(`${Math.floor(sec / 3600)}:${String(Math.floor(sec / 60) % 60).padStart(2, '0')}`, 248, 210, UI.ink, 8, 'right');
@@ -164,14 +165,14 @@ const Menu = {
       win(0, 0, 256, 24); text('アイテム', 10, 7, UI.gold);
       const l = this.itemList();
       win(0, 24, 256, 156);
-      l.slice(M.scroll, M.scroll + 9).forEach((id, k) => { const it = ITEMS[id]; text(it.name, 22, 32 + k * 16, it.type === 'use' ? UI.ink : UI.muted); text('×' + G.inv[id], 240, 32 + k * 16, UI.muted, 8, 'right'); });
+      l.slice(M.scroll, M.scroll + 9).forEach((id, k) => { Touch.add(0, 28 + k * 16, 256, 16, () => { M.li = M.scroll + k; Input.tapA(); }); const it = ITEMS[id]; text(it.name, 22, 32 + k * 16, it.type === 'use' ? UI.ink : UI.muted); text('×' + G.inv[id], 240, 32 + k * 16, UI.muted, 8, 'right'); });
       cursor(8, 33 + (M.li - M.scroll) * 16);
       win(0, 180, 256, 44); const it = ITEMS[l[M.li]]; if (it) text(it.desc || this.eqDesc(it), 10, 188);
     }
     if (M.mode === 'magic') {
       const c = G.party[M.caster]; win(0, 0, 256, 24); text(`${HEROES[c.id].name} の${HEROES[c.id].cmd}    MP ${c.mp}/${stats(c).maxmp}`, 10, 7, UI.gold);
       win(0, 24, 256, 156); const l = skillsOf(c);
-      l.forEach((id, k) => { const sk = SKILLS[id]; text(sk.name, 22, 32 + k * 16, sk.field ? UI.ink : UI.dim); text(sk.mp ? 'MP ' + sk.mp : '', 240, 32 + k * 16, UI.muted, 8, 'right'); });
+      l.forEach((id, k) => { Touch.add(0, 28 + k * 16, 256, 16, () => { M.li = k; Input.tapA(); }); const sk = SKILLS[id]; text(sk.name, 22, 32 + k * 16, sk.field ? UI.ink : UI.dim); text(sk.mp ? 'MP ' + sk.mp : '', 240, 32 + k * 16, UI.muted, 8, 'right'); });
       cursor(8, 33 + M.li * 16); win(0, 180, 256, 44); const sk = SKILLS[l[M.li]]; if (sk) text(sk.desc + (sk.field ? '' : '(戦闘中のみ)'), 10, 188);
     }
     if (M.mode === 'equip' || M.mode === 'equipPick') {
@@ -183,7 +184,7 @@ const Menu = {
       const l = this.equipList(); let pv = null;
       win(0, 70, 140, 154);
       if (!l.length) text('なし', 22, 80, UI.dim);
-      l.forEach((id, k) => text(`${ITEMS[id].name}`, 22, 78 + k * 15));
+      l.forEach((id, k) => { text(`${ITEMS[id].name}`, 22, 78 + k * 15); if (M.mode === 'equipPick') Touch.add(0, 75 + k * 15, 140, 15, () => { M.li = k; Input.tapA(); }); });
       if (M.mode === 'equipPick') { cursor(8, 79 + M.li * 15); const id = l[M.li]; const tmp = { ...m }; tmp[M.slot ? 'armor' : 'weapon'] = id; pv = stats(tmp); }
       win(140, 70, 116, 154);
       [['こうげき', 'atk'], ['ぼうぎょ', 'def'], ['まりょく', 'mag'], ['まほうぼうぎょ', 'mdf'], ['すばやさ', 'spd']].forEach(([lb, k], j) => {
@@ -251,7 +252,7 @@ const Shop = {
   draw() {
     ctx.fillStyle = 'rgba(4,4,14,.55)'; ctx.fillRect(0, 0, SW, SH);
     win(0, 0, 256, 24); text(this.msg, 10, 7);
-    win(0, 24, 256, 22); ['かう', 'うる', 'やめる'].forEach((c, i) => text(c, 24 + i * 70, 30)); if (this.mode === 'top') cursor(10 + this.i * 70, 31);
+    win(0, 24, 256, 22); ['かう', 'うる', 'やめる'].forEach((c, i) => { text(c, 24 + i * 70, 30); if (this.mode === 'top') Touch.add(8 + i * 70, 25, 64, 18, () => { this.i = i; Input.tapA(); }); }); if (this.mode === 'top') cursor(10 + this.i * 70, 31);
     win(0, 46, 176, 22); text(this.mode === 'top' ? '何をしますか?' : this.mode.startsWith('buy') ? 'かう' : 'うる', 10, 52, UI.muted);
     win(176, 46, 80, 22); text(G.gil + ' G', 248, 52, UI.ink, 8, 'right');
     if (this.mode === 'top') return;
@@ -259,6 +260,7 @@ const Shop = {
     win(0, 68, 256, 108);
     const scroll = Math.max(0, this.li - 5);
     list.slice(scroll, scroll + 6).forEach((id, k) => {
+      if (this.mode === 'buy' || this.mode === 'sell') Touch.add(0, 72 + k * 16, 256, 16, () => { this.li = scroll + k; Input.tapA(); });
       const it = ITEMS[id]; const price = buy ? it.price : this.sellPrice(id);
       const y = 76 + k * 16; const afford = !buy || G.gil >= price;
       text(it.name, 22, y, afford ? UI.ink : UI.dim); text(price + 'G', 196, y, afford ? UI.ink : UI.dim, 8, 'right'); text('所持 ' + (G.inv[id] || 0), 248, y, UI.muted, 7, 'right');
@@ -363,26 +365,39 @@ const Title = {
     drawScene(this.t);
     drawLogo(40, Math.min(1, this.t / 60));
     const opts = ['はじめから', 'つづきから'];
-    opts.forEach((o, i) => text(o, 114, 104 + i * 15, i === 1 && !hasSave() ? UI.dim : this.i === i ? UI.gold : UI.ink, 8.5, 'left', 't'));
+    opts.forEach((o, i) => { text(o, 114, 104 + i * 15, i === 1 && !hasSave() ? UI.dim : this.i === i ? UI.gold : UI.ink, 8.5, 'left', 't'); Touch.add(84, 99 + i * 15, 100, 15, () => { this.i = i; Input.tapA(); }); });
     cursor(100, 105 + this.i * 15);
     text(TOUCH ? 'スワイプで移動・タップで決定　音が出ます' : 'A / Z で決定　　音が出ます', 128, 210, 'rgba(230,220,200,.55)', 6.5, 'center');
   },
 };
 const GameOver = {
-  i: 0, t: 0,
-  start() { G.scene = GameOver; this.t = 0; this.i = 0; G.fadeLevel = 0; G.fadeTarget = 0; G.script = null; G.dialog = null; G.menu = null; },
+  i: 0, t: 0, retry: null, opts: [],
+  start(retry) {
+    G.scene = GameOver; this.t = 0; this.i = 0; G.fadeLevel = 0; G.fadeTarget = 0; G.dialog = null; G.menu = null; this.retry = retry || null;
+    if (!this.retry) G.script = null;
+    this.opts = [];
+    if (this.retry) this.opts.push(['もう一度たたかう(全回復)', 'retry']);
+    this.opts.push([hasSave() ? 'セーブした所から' : 'はじめから', 'load'], ['タイトルへ', 'title']);
+  },
   update() {
     this.t++; if (this.t < 60) return;
-    if (Input.rep('up') || Input.rep('down')) { this.i ^= 1; Audio8.sfx('cursor'); }
+    const n = this.opts.length;
+    if (Input.rep('up')) { this.i = (this.i + n - 1) % n; Audio8.sfx('cursor'); }
+    if (Input.rep('down')) { this.i = (this.i + 1) % n; Audio8.sfx('cursor'); }
     if (Input.pressed.a) {
-      Audio8.sfx('ok');
-      if (this.i === 0 && hasSave()) transition(() => loadGame()); else transition(() => Title.start());
+      Audio8.sfx('ok'); const act = this.opts[this.i][1];
+      if (act === 'retry') {
+        // start the same fight again with the party as it was, fully healed
+        const r = this.retry; G.party = JSON.parse(r.snap.party); G.inv = { ...r.snap.inv }; G.gil = r.snap.gil; healAll(); G.script = r.script; G.scene = Field; Field.enter(G.mapId, G.p.x, G.p.y, G.p.dir, true);
+        startBattle(r.cfg, r.cb);
+      } else if (act === 'load' && hasSave()) { G.script = null; transition(() => loadGame()); }
+      else { G.script = null; transition(() => Title.start()); }
     }
   },
   draw() {
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, SW, SH);
     ctx.globalAlpha = Math.min(1, this.t / 60); text('GAME OVER', 128, 76, '#e06070', 18, 'center', 't'); ctx.globalAlpha = 1;
-    if (this.t >= 60) { text(hasSave() ? 'セーブした所から' : 'はじめから', 112, 130, this.i === 0 ? UI.gold : UI.ink); text('タイトルへ', 112, 145, this.i === 1 ? UI.gold : UI.ink); cursor(98, 131 + this.i * 15); }
+    if (this.t >= 60) { this.opts.forEach((o, i) => { text(o[0], 82, 118 + i * 16, this.i === i ? UI.gold : UI.ink); Touch.add(60, 115 + i * 16, 150, 16, () => { this.i = i; Input.tapA(); }); }); cursor(68, 119 + this.i * 16); }
   },
 };
 const ENDING_LINES = [

@@ -120,6 +120,13 @@ bindBtn('btnA', 'a'); bindBtn('btnB', 'b'); bindBtn('menuBtn', 'menu');
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 })();
 
+Input.tapA = function () { Input.set('a', true); setTimeout(() => Input.set('a', false), 80); };
+// ---- tap targets: windows register the rows a finger can touch directly (logical 256x224 coordinates), cleared every frame ----
+const Touch = {
+  rects: [],
+  add(x, y, w, h, fn) { this.rects.push({ x, y, w, h, fn }); },
+  hit(px, py) { for (let i = this.rects.length - 1; i >= 0; i--) { const r = this.rects[i]; if (px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h) { r.fn(); return true; } } return false; },
+};
 // ---- swipe on the game screen: a floating joystick wherever the finger lands; a quick tap is the A button ----
 const Swipe = { id: null, ox: 0, oy: 0, x: 0, y: 0, t0: 0, moved: false, dir: null };
 (function swipe() {
@@ -130,16 +137,24 @@ const Swipe = { id: null, ox: 0, oy: 0, x: 0, y: 0, t0: 0, moved: false, dir: nu
     Swipe.id = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch (_) { }
     [Swipe.ox, Swipe.oy] = at(e); Swipe.x = Swipe.ox; Swipe.y = Swipe.oy; Swipe.t0 = performance.now(); Swipe.moved = false;
   });
+  // in menus a swipe moves the cursor one step per 12px of drag instead of running away while the finger is down
+  const menuMode = () => !(G.scene === Field && !G.menu && !Shop.active && !G.script);
+  const pulse = d => { Input.set(d, true); setTimeout(() => Input.set(d, false), 50); };
   cv.addEventListener('pointermove', e => {
     if (e.pointerId !== Swipe.id) return; e.preventDefault();
     const [x, y] = at(e); Swipe.x = x; Swipe.y = y; const dx = x - Swipe.ox, dy = y - Swipe.oy, d = Math.hypot(dx, dy);
+    if (menuMode()) {
+      if (d > 6) Swipe.moved = true;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) >= 12) { const k = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); Swipe.ox += k === 'right' ? 12 : k === 'left' ? -12 : 0; Swipe.oy += k === 'down' ? 12 : k === 'up' ? -12 : 0; pulse(k); }
+      return;
+    }
     if (d > 6) Swipe.moved = true;
     if (d > 24) { Swipe.ox = x - dx / d * 24; Swipe.oy = y - dy / d * 24; } // the anchor follows the finger, so turning is easy
     setDir(d < 6 ? null : Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
   });
   const end = e => {
     if (e.pointerId !== Swipe.id) return; Swipe.id = null; setDir(null);
-    if (!Swipe.moved && performance.now() - Swipe.t0 < 300) { Input.set('a', true); setTimeout(() => Input.set('a', false), 70); }
+    if (!Swipe.moved && performance.now() - Swipe.t0 < 300) { const [x, y] = at(e); if (!Touch.hit(x, y)) Input.tapA(); }
   };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 })();
@@ -162,6 +177,7 @@ function fit() {
   cv.style.width = Math.floor(w) + 'px'; cv.style.height = Math.floor(w * SH / SW) + 'px';
 }
 addEventListener('resize', fit);
+
 
 // ---- offscreen sprite helper ----
 function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -194,3 +210,11 @@ const Store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
 };
+// d-pad on/off (default off: swipe the screen instead); remembered per device
+(function () {
+  const btn = document.getElementById('padToggle'); if (!btn) return;
+  const apply = on => { document.body.classList.toggle('nodpad', !on); btn.textContent = on ? '十字キー ON' : '十字キー OFF'; try { Store.set('crystal-echo-dpad', on ? '1' : '0'); } catch (e) { } fit(); };
+  let on = false; try { on = Store.get('crystal-echo-dpad') === '1'; } catch (e) { }
+  btn.addEventListener('click', e => { on = !on; apply(on); e.currentTarget.blur(); });
+  apply(on);
+})();
