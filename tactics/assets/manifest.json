@@ -422,11 +422,11 @@
     },
     "tile_fort": {
       "file": "tiles/fort.png",
-      "x": 7,
-      "y": 13,
-      "w": 16,
-      "h": 16,
-      "desc": "stone gatehouse wall with arched gate (crop of 30x29 sprite)"
+      "x": 0,
+      "y": 0,
+      "w": 30,
+      "h": 29,
+      "desc": "stone fort seen from above (30x29 sprite, drawn over a 2x2 block of fort tiles)"
     }
   }
 }
