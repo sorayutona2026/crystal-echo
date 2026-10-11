@@ -1,0 +1,432 @@
+{
+  "sheets": {
+    "characters": {
+      "tile": 16,
+      "layout": "columns: down, up, left, right; rows: 7 pose frames (row 0 = standard)",
+      "dirs_order": [
+        "down",
+        "up",
+        "left",
+        "right"
+      ]
+    },
+    "terrain": {
+      "tile": 16,
+      "layout": "grid of 16x16 tiles, origin top-left"
+    }
+  },
+  "units": {
+    "hero_knight": {
+      "file": "characters/15.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Knight (armored, helmet)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "hero_archer": {
+      "file": "characters/25.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Archer / ranger (brown hair, green vest)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "hero_mage": {
+      "file": "characters/9.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Mage (white-haired robed elder)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "hero_healer": {
+      "file": "characters/16.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Healer (pink hat, white trim)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "hero_thief": {
+      "file": "characters/12.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Thief (dark hood)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "enemy_goblin": {
+      "file": "characters/1.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Goblin (green)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "enemy_skeleton": {
+      "file": "characters/23.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Skeleton",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "enemy_slime": {
+      "file": "characters/2.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Slime (orange blob)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "enemy_darkmage": {
+      "file": "characters/24.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Dark mage (red robes)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    },
+    "enemy_boss": {
+      "file": "characters/20.png",
+      "w": 16,
+      "h": 16,
+      "desc": "Boss (gold armor)",
+      "dirs": {
+        "down": {
+          "x": 0,
+          "y": 0
+        },
+        "up": {
+          "x": 16,
+          "y": 0
+        },
+        "left": {
+          "x": 32,
+          "y": 0
+        },
+        "right": {
+          "x": 48,
+          "y": 0
+        }
+      },
+      "frames": 1,
+      "frameStep": {
+        "dx": 0,
+        "dy": 16
+      }
+    }
+  },
+  "faces": {
+    "face_hero_knight": {
+      "file": "faces/15.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_hero_archer": {
+      "file": "faces/25.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_hero_mage": {
+      "file": "faces/9.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_hero_healer": {
+      "file": "faces/16.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_hero_thief": {
+      "file": "faces/12.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_enemy_goblin": {
+      "file": "faces/1.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_enemy_skeleton": {
+      "file": "faces/23.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_enemy_slime": {
+      "file": "faces/2.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_enemy_darkmage": {
+      "file": "faces/24.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    },
+    "face_enemy_boss": {
+      "file": "faces/20.png",
+      "x": 0,
+      "y": 0,
+      "w": 38,
+      "h": 38
+    }
+  },
+  "tiles": {
+    "tile_grass": {
+      "file": "tiles/terrain.png",
+      "x": 16,
+      "y": 16,
+      "w": 16,
+      "h": 16,
+      "desc": "solid green grass interior"
+    },
+    "tile_forest": {
+      "file": "tiles/terrain.png",
+      "x": 208,
+      "y": 80,
+      "w": 16,
+      "h": 16,
+      "desc": "green tree"
+    },
+    "tile_mountain": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 272,
+      "y": 144,
+      "w": 16,
+      "h": 16,
+      "desc": "brown rock pile (ninja-adventure tileset)"
+    },
+    "tile_water": {
+      "file": "tiles/terrain.png",
+      "x": 272,
+      "y": 16,
+      "w": 16,
+      "h": 16,
+      "desc": "blue water"
+    },
+    "tile_road": {
+      "file": "tiles/terrain.png",
+      "x": 208,
+      "y": 16,
+      "w": 16,
+      "h": 16,
+      "desc": "beige stone floor path"
+    },
+    "tile_fort": {
+      "file": "tiles/fort.png",
+      "x": 7,
+      "y": 13,
+      "w": 16,
+      "h": 16,
+      "desc": "stone gatehouse wall with arched gate (crop of 30x29 sprite)"
+    }
+  }
+}
