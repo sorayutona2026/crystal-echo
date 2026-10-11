@@ -7,9 +7,9 @@ const { sleep, waitState } = require('./bot');
     const ctx = await b.newContext({ viewport: vp, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
     const page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     await page.goto(URL); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
-    const lg = async (x, y) => { const r = await page.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height }; }); return { x: r.l + x / 320 * r.w, y: r.t + y / 240 * r.h }; };
+    const lg = async (x, y) => { const r = await page.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh }; }); return { x: r.l + x / 320 * r.w, y: r.t + y / r.vh * r.h }; };
     const tap = async (x, y) => { const p = await lg(x, y); await page.touchscreen.tap(p.x, p.y); await sleep(60); };
-    const tapTile = async (tx, ty) => { const s = await st(page); await tap(s.ox + tx * 16 + 8, s.oy + ty * 16 + 8); };
+    const tapTile = async (tx, ty) => { const s = await st(page); await tap(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
     // canvas must fit inside the viewport and buttons must be on screen
     const geo = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cv'); return { c: [c.left, c.top, c.right, c.bottom], b: ['bCancel', 'bEnd', 'bInfo', 'bMute'].map(i => { const q = r(i); return [q.left, q.top, q.right, q.bottom]; }), w: innerWidth, h: innerHeight }; });
     for (const q of geo.b.concat([geo.c])) if (q[0] < -0.5 || q[1] < -0.5 || q[2] > geo.w + 0.5 || q[3] > geo.h + 0.5) throw new Error('element off screen ' + JSON.stringify(geo));
@@ -20,6 +20,13 @@ const { sleep, waitState } = require('./bot');
     for (let i = 0; i < 80; i++) { const s = await st(page); if (s.scene === 'battle' && s.ready) break; await tap(160, 120); }
     await page.evaluate(() => __tac.speed(1)); await sleep(200);
     let s = await st(page); const leon = s.units.find(u => u.key === 'leon');
+    if (vp.height > vp.width) { // portrait: zoomed map + camera; dragging pans, it must not select anything
+      if (s.zoom !== 2) throw new Error('portrait battle should use zoom 2, got ' + s.zoom);
+      const before = s.ox;
+      await page.evaluate(() => { const c = document.getElementById('cv'), r = c.getBoundingClientRect(), f = (t, x, y) => c.dispatchEvent(new PointerEvent(t, { clientX: x, clientY: y, pointerId: 7, bubbles: true }));
+        const x0 = r.left + r.width * 0.3, y0 = r.top + r.height * 0.5; f('pointerdown', x0, y0); for (let i = 1; i <= 6; i++) f('pointermove', x0 + i * 12, y0); f('pointerup', x0 + 72, y0); });
+      await sleep(300); const after = (await st(page)).ox; if (!(after > before + 10) || (await st(page)).mode !== 'idle') throw new Error('drag did not pan the camera: ' + before + ' -> ' + after);
+    }
     await tapTile(leon.x, leon.y); await waitState(page, () => __tac.state().mode === 'move');
     await page.tap('#bCancel'); await waitState(page, () => __tac.state().mode === 'idle');
     await tapTile(leon.x, leon.y); await waitState(page, () => __tac.state().mode === 'move');

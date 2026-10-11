@@ -48,7 +48,15 @@ function fit() {
   const w = window.innerWidth, h = window.innerHeight;
   const port = h > w * 1.05; let padsOff = false;
   let s;
-  if (port) { s = Math.min(w / W, (h - 64) / (H + INFO_H)); if (s >= 2) s = Math.floor(s); }
+  Engine.zoom = 1; Engine.vh = H;
+  if (port) {
+    s = Math.min(w / W, (h - 64) / (H + INFO_H)); if (s >= 2) s = Math.floor(s);
+    if (Engine.tall) { // battle on a portrait phone: bigger map (zoom 2) with a camera, filling the height above the panels
+      let s2 = w / W; if (s2 >= 2) s2 = Math.floor(s2);
+      const vh = Math.floor((h - 76 - INFO_H * s2) / s2);
+      if (vh >= H) { s = s2; Engine.vh = Math.min(vh, 600); Engine.zoom = 2; }
+    }
+  }
   else {
     let s0 = Math.min(w / W, h / H); if (s0 >= 2) s0 = Math.floor(s0);
     const mouse = window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches;
@@ -59,15 +67,15 @@ function fit() {
   s = Math.max(s, 0.5);
   appEl.className = (port ? 'port' : 'land') + (padsOff ? ' nopads' : '');
   K = Math.max(1, Math.min(6, Math.ceil(s)));
-  cv.width = W * K; cv.height = H * K;
+  cv.width = W * K; cv.height = Engine.vh * K;
   cv2.width = W * K; cv2.height = INFO_H * K; cv2.style.width = Math.round(W * s) + 'px'; cv2.style.height = Math.round(INFO_H * s) + 'px'; Engine.port = port;
-  cv.style.width = Math.round(W * s) + 'px'; cv.style.height = Math.round(H * s) + 'px';
+  cv.style.width = Math.round(W * s) + 'px'; cv.style.height = Math.round(Engine.vh * s) + 'px';
   cv.style.imageRendering = cv2.style.imageRendering = (s === Math.floor(s)) ? 'pixelated' : 'auto';
   Engine.scale = s;
 }
-const Engine = { scale: 1 };
+const Engine = { scale: 1, zoom: 1, vh: 240, tall: false, port: false };
 // ----- input -----
-const Input = { q: [], taps: [] };
+const Input = { q: [], taps: [], pans: [] };
 const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute' };
 function initInput() {
   window.addEventListener('contextmenu', e => { if (e.target === cv) { e.preventDefault(); Input.q.push('cancel'); } });
@@ -75,11 +83,16 @@ function initInput() {
     const a = KEYMAP[e.key]; if (!a) return;
     e.preventDefault(); if (Aud) Aud.unlock(); Input.q.push(a); if (Input.q.length > 40) Input.q.shift();
   });
-  cv.addEventListener('pointerdown', e => {
-    e.preventDefault(); if (Aud) Aud.unlock();
-    const r = cv.getBoundingClientRect();
-    Input.taps.push({ x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H });
+  // tap = pointer up without a drag; dragging pans the camera (portrait zoom)
+  let ptr = null; const lp = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * Engine.vh, r }; };
+  cv.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); ptr = { cx: e.clientX, cy: e.clientY, lx: e.clientX, ly: e.clientY, drag: false }; try { cv.setPointerCapture(e.pointerId); } catch (x) { } });
+  cv.addEventListener('pointermove', e => {
+    if (!ptr) return; if (!ptr.drag && Math.hypot(e.clientX - ptr.cx, e.clientY - ptr.cy) > 9) ptr.drag = true;
+    if (ptr.drag) { const r = cv.getBoundingClientRect(); if (Engine.zoom > 1) Input.pans.push({ dx: (e.clientX - ptr.lx) / r.width * W, dy: (e.clientY - ptr.ly) / r.height * Engine.vh }); ptr.lx = e.clientX; ptr.ly = e.clientY; }
   });
+  cv.addEventListener('pointerup', e => { if (ptr && !ptr.drag) { const p = lp(e); Input.taps.push({ x: p.x, y: p.y }); } ptr = null; });
+  cv2.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); const r = cv2.getBoundingClientRect(); if (window.minimapTap) window.minimapTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * INFO_H); });
+  cv.addEventListener('pointercancel', () => { ptr = null; });
   const b = (id, a) => document.getElementById(id).addEventListener('click', () => { if (Aud) Aud.unlock(); Input.q.push(a); });
   b('bCancel', 'cancel'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute');
 }
@@ -589,9 +602,9 @@ const CHAPTERS = [
       '..=T.......^..=..TT.', '..=..PT..====..T....', '..==.TT.==..........', '...=.......T....T...',
       '.===....T.....^^....', '.=......T..T........', '.=..................']),
     party: [['leon', 2, 12], ['mira', 3, 13], ['luka', 1, 13], ['sophia', 3, 11], ['jin', 4, 12]],
-    enemies: [['goblin', 9, 9, 3, 'aggro'], ['goblin', 12, 6, 3, 'aggro'], ['slime', 13, 10, 3, 'aggro'], ['slime', 11, 5, 3, 'wait'],
-      ['skeleton', 10, 7, 3, 'wait'], ['skeleton', 14, 7, 3, 'wait'], ['skeleton', 15, 5, 3, 'wait'],
-      ['darkmage', 13, 3, 3, 'wait'], ['darkmage', 16, 5, 3, 'wait'], ['boss', 16, 2, 4, 'hold']],
+    enemies: [['goblin', 9, 9, 3, 'aggro'], ['goblin', 12, 6, 3, 'aggro'], ['slime', 13, 10, 3, 'aggro'], ['slime', 11, 5, 3, 'aggro'],
+      ['skeleton', 10, 7, 3, 'aggro'], ['skeleton', 14, 7, 3, 'aggro'], ['skeleton', 16, 3, 3, 'wait'],
+      ['darkmage', 13, 3, 3, 'aggro'], ['darkmage', 16, 5, 3, 'aggro'], ['goblin', 11, 9, 3, 'aggro'], ['skeleton', 12, 4, 3, 'aggro'], ['darkmage', 15, 4, 3, 'wait'], ['boss', 16, 2, 4, 'hold']],
     join: [],
     pre: [
       [null, '丘の上の古い砦。黄金の旗が、重い風にはためいている。'],
@@ -864,6 +877,8 @@ function chooseAction(S, u, opts) {
         const give = Math.min(t.hp, f.a.dmg * f.a.n) * f.a.hit / 100, take = f.d.can ? f.d.dmg * f.d.n * f.d.hit / 100 : 0;
         const kill = f.a.dmg * f.a.n >= t.hp && f.a.hit >= 60;
         score = 20 + give - take * (care ? 1.2 : 1) + (kill ? 15 : 0) + (t.boss ? 4 : 0) + tb - th * 0.5 - s.cost * 0.05;
+        // bot safety: never walk the lord (or anyone) into a likely death (counter-attack plus enemies that can reach the tile)
+        if (care && !kill) { const danger = (f.d.can ? f.d.dmg * f.d.n * f.d.hit / 100 : 0) + threatAt(S, u, s.x, s.y); if (danger >= u.hp - 1) score -= u.lord ? 100 : 12; }
       }
       if (!best || score > best.score) best = { unit: u, dest: { x: s.x, y: s.y }, target: t, score, kind: healer ? 'heal' : 'attack' };
     }
@@ -891,7 +906,7 @@ function chooseAction(S, u, opts) {
       }
     }
   }
-  if (best) return best;
+  if (best && !opts.noAttack) return best;
   if (u.ai === 'wait' && !opts.player) return { unit: u, dest: { x: u.x, y: u.y }, target: null, score: -1, kind: 'wait' };
   if (hold && !opts.player) return { unit: u, dest: { x: u.x, y: u.y }, target: null, score: -1, kind: 'wait' };
   // approach: closest to foes (healer: closest to hurt ally / lord)
@@ -907,7 +922,10 @@ function chooseAction(S, u, opts) {
     if (goal) sc = -dist(s.x, s.y, goal.x, goal.y) * 1.2;
     else { const dd = dmap.get(kk(s.x, s.y)); sc = -(dd == null ? 99 : dd); }
     sc += (T.def + T.avo / 15) * 0.15;
-    if (care) sc -= threatAt(S, u, s.x, s.y) * care * (u.lord ? 1.5 : 1) * 0.35 * (healer ? 1.5 : 1);
+    if (care) {
+      const tha = threatAt(S, u, s.x, s.y); sc -= tha * care * (u.lord ? 1.5 : 1) * 0.35 * (healer ? 1.5 : 1); if (u.lord && tha >= u.hp - 1) sc -= 100;
+      if (u.lord && u.hp < u.maxhp * 0.5 && !goal) { const dd = dmap.get(kk(s.x, s.y)); sc = -tha * 2 + (dd == null ? 0 : dd) * 0.4 + (T.def + T.avo / 15) * 0.15; } // wounded lord retreats
+    }
     if (healer && care) { /* keep away from foes */ }
     if (!bm || sc > bm.score) bm = { unit: u, dest: { x: s.x, y: s.y }, target: null, score: sc, kind: 'move' };
   }
@@ -922,7 +940,10 @@ function suggestAction(S) {
     const a = chooseAction(S, u, { careful: 0.6, player: true });
     (a.target || a.sp ? acts : moves).push(a);
   }
-  if (acts.length) { acts.sort((a, b) => b.score - a.score); return acts[0]; }
+  // an attack that scored badly (the bot's lord would likely die) is dropped in favour of retreating/moving
+  const okActs = acts.filter(a => a.score > 0 || !a.unit.lord);
+  for (const a of acts) if (!okActs.includes(a)) { const m = chooseAction(S, a.unit, { careful: 0.6, player: true, noAttack: true }); moves.push(m); }
+  if (okActs.length) { okActs.sort((a, b) => b.score - a.score); return okActs[0]; }
   // movers: front-most first (smallest distance to foes)
   const dm = distToFoes(S, 0);
   moves.sort((a, b) => (dm.get(kk(a.unit.x, a.unit.y)) || 0) - (dm.get(kk(b.unit.x, b.unit.y)) || 0));
@@ -936,7 +957,23 @@ const G = {
   menu: null, targets: [], ti: 0, fc: null, busy: 0, banner: null, fx: [], shake: 0, infoBig: false, showRange: null, endTurn: false, modal: null,
   dlg: null, speed: 1, title: { idx: 0 }, card: null, over: null, ending: null, lvl: null, phase: 0, hasSave: false
 };
-const OX = () => Math.floor((W - G.S.w * TS) / 2), OY = () => Math.floor((H - G.S.h * TS) / 2);
+const OX = () => Engine.zoom > 1 ? 0 : Math.floor((W - G.S.w * TS) / 2), OY = () => Engine.zoom > 1 ? 0 : Math.floor((H - G.S.h * TS) / 2);
+// camera (portrait zoom): world px of the view's top-left; follows the cursor smoothly, can be panned by dragging
+const Cam = { x: 0, y: 0, tx: 0, ty: 0, key: null, snap: true };
+function camClamp() {
+  const z = Engine.zoom, vw = W / z, vh = Engine.vh / z, mw = G.S.w * TS, mh = G.S.h * TS;
+  Cam.tx = mw <= vw ? (mw - vw) / 2 : Math.max(0, Math.min(mw - vw, Cam.tx)); Cam.ty = mh <= vh ? (mh - vh) / 2 : Math.max(0, Math.min(mh - vh, Cam.ty));
+}
+function camUpdate() {
+  if (!G.S || Engine.zoom <= 1) { Cam.x = Cam.y = Cam.tx = Cam.ty = 0; Cam.key = null; return; }
+  const z = Engine.zoom, c = G.cursor, k = c.x + ',' + c.y;
+  for (const p of Input.pans) { Cam.tx -= p.dx / z; Cam.ty -= p.dy / z; camClamp(); Cam.x = Cam.tx; Cam.y = Cam.ty; }
+  Input.pans.length = 0;
+  if (k !== Cam.key) { Cam.key = k; Cam.tx = c.x * TS + 8 - W / z / 2; Cam.ty = c.y * TS + 8 - Engine.vh / z / 2; camClamp(); }
+  if (Cam.snap) { camClamp(); Cam.x = Cam.tx; Cam.y = Cam.ty; Cam.snap = false; }
+  Cam.x += (Cam.tx - Cam.x) * 0.2; Cam.y += (Cam.ty - Cam.y) * 0.2;
+}
+function tileScreen(x, y) { return { x: (OX() + x * TS - Cam.x) * Engine.zoom, y: (OY() + y * TS - Cam.y) * Engine.zoom }; }
 const TEAMCOL = ['#4a90ff', '#ff4a4a'];
 const NOSTART = '、。，．！？!?）」』】〕…ー・ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ:;,.';
 const NOEND = '（「『【〔';
@@ -960,8 +997,8 @@ function hpBar(x, y, w, h, hp, max, ghost) {
 // ---------- map ----------
 function drawMap(S, tt) {
   const ox = OX(), oy = OY();
-  rect(0, 0, W, H, '#10131e');
-  drawBackdrop(ctx, ox, oy, S.w, S.h, S.ch.theme, tt);
+  if (Engine.zoom > 1) { ctx.fillStyle = '#10131e'; ctx.fillRect(Cam.x - 8, Cam.y - 8, W / Engine.zoom + 16, Engine.vh / Engine.zoom + 16); }
+  else { rect(0, 0, W, H, '#10131e'); drawBackdrop(ctx, ox, oy, S.w, S.h, S.ch.theme, tt); }
   drawMapLayer(ctx, S.rows, ox, oy, tt, S.ch.theme, S.ch.props);
 }
 function drawOverlay(S) {
@@ -1063,7 +1100,7 @@ function drawMenu(m) {
   });
 }
 function drawForecast(fc) {
-  const x = 44, w = 232, h = 56, y = fc.top ? 4 : H - h - 4; panel(x, y, w, h, 0.95);
+  const x = 44, w = 232, h = 56, y = fc.top ? 4 : VH() - h - 4; panel(x, y, w, h, 0.95);
   Touch.add(x, y, w, h, () => Input.q.push('ok'));
   const side = (S, cx) => {
     const u = S.u; text(u.name, cx, y + 4, { size: 9, bold: true, color: u.team === 0 ? '#9fc4ff' : '#ff9f9f' });
@@ -1078,12 +1115,13 @@ function drawForecast(fc) {
   side(fc.a, x + 6); rect(x + w / 2, y + 5, 1, h - 18, '#4a58a8'); side(fc.d, x + w / 2 + 6);
   text(G.spMode ? '決定:' + SP[G.sel.key].name + '  戻る:キャンセル' : '決定:攻撃  戻る:キャンセル', x + w / 2, y + h - 11, { size: 7, align: 'center', color: '#99a', shadow: false });
 }
+const VH = () => Engine.vh || H;
 function drawBanner() {
   const b = G.banner; if (!b) return; const t = b.t;
   const inT = Math.min(1, t / 12), outT = Math.min(1, (b.dur - t) / 12), k = Math.min(inT, outT), h = 32 * k;
-  ctx.fillStyle = b.color; ctx.globalAlpha = 0.9; ctx.fillRect(0, H / 2 - h / 2, W, h); ctx.globalAlpha = 1;
-  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(0, H / 2 - h / 2, W, 1); ctx.fillRect(0, H / 2 + h / 2 - 1, W, 1);
-  if (k > 0.8) { const off = (1 - Math.min(1, t / 16)) * 60; ctx.globalAlpha = Math.min(1, outT * 2); text(b.text, W / 2 + off, H / 2 - 10, { size: 18, bold: true, align: 'center' }); ctx.globalAlpha = 1; }
+  ctx.fillStyle = b.color; ctx.globalAlpha = 0.9; ctx.fillRect(0, VH() / 2 - h / 2, W, h); ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(0, VH() / 2 - h / 2, W, 1); ctx.fillRect(0, VH() / 2 + h / 2 - 1, W, 1);
+  if (k > 0.8) { const off = (1 - Math.min(1, t / 16)) * 60; ctx.globalAlpha = Math.min(1, outT * 2); text(b.text, W / 2 + off, VH() / 2 - 10, { size: 18, bold: true, align: 'center' }); ctx.globalAlpha = 1; }
 }
 function drawLevelUp(L) {
   const x = 50, y = 30, w = 220, h = 150; panel(x, y, w, h, 0.97);
@@ -1118,18 +1156,34 @@ function drawInfoCanvas() {
     text('味方 ' + alive(S).filter(u => u.team === 0).length + '  敵 ' + alive(S).filter(u => u.team === 1).length, 246, 8, { size: 8 });
     if (cu) {
       const rows = [['力', cu.str], ['魔力', cu.mag], ['技', cu.skl], ['速さ', cu.spd], ['守備', cu.def], ['魔防', cu.res], ['移動', cu.mov], ['射程', weaponOf(cu).min + (weaponOf(cu).max > weaponOf(cu).min ? '-' + weaponOf(cu).max : '')]];
-      rows.forEach((r, i) => { const cx = 6 + (i % 4) * 78, cy = 62 + Math.floor(i / 4) * 13; text(r[0], cx, cy, { size: 8, color: '#ffd24a' }); text(String(r[1]), cx + 62, cy, { size: 8, align: 'right' }); });
-      const sp = SP[cu.key]; if (sp && cu.team === 0) text('特技 ' + sp.name + (cu.spUsed ? '(使用済)' : '') + ' : ' + sp.desc, 6, 90, { size: 7, color: cu.spUsed ? '#778' : '#9fe8ff' });
+      rows.forEach((r, i) => { const cx = 6 + (i % 4) * 52, cy = 62 + Math.floor(i / 4) * 13; text(r[0], cx, cy, { size: 8, color: '#ffd24a' }); text(String(r[1]), cx + 46, cy, { size: 8, align: 'right' }); });
+      const sp = SP[cu.key]; if (sp && cu.team === 0) text('特技 ' + sp.name + (cu.spUsed ? '(使用済)' : '') + ' : ' + sp.desc, 6, 97, { size: 7, color: cu.spUsed ? '#778' : '#9fe8ff' });
     }
-    text('目的: ' + S.ch.goal, 6, 106, { size: 9, color: '#ffe27a' });
-    text('タップ:選択/移動/決定   青=移動範囲  赤=攻撃範囲', 6, 120, { size: 7, color: '#889' });
+    text('目的: ' + S.ch.goal, 6, 109, { size: 9, color: '#ffe27a' });
+    text('ドラッグ:地図を動かす  青=移動範囲  赤=攻撃範囲', 6, 122, { size: 7, color: '#889' });
+    drawMinimap(S);
   }
   ctx = main;
 }
+// minimap (portrait): terrain, units and the camera window; tap it to jump there
+const MM = { x: 218, y: 22, w: 98, h: 72, t: 4 };
+function drawMinimap(S) {
+  const t = Math.max(2, Math.floor(Math.min(MM.w / S.w, MM.h / S.h))); MM.t = t; const mw = S.w * t, mh = S.h * t, x0 = MM.x + (MM.w - mw) / 2, y0 = MM.y + (MM.h - mh) / 2; MM.ox = x0; MM.oy = y0;
+  const col = { '.': '#6a9a3a', '=': '#a08a60', 'T': '#2f6a2a', '^': '#8a6a4a', '~': '#3a8ab0', '#': '#707080' };
+  rect(x0 - 1, y0 - 1, mw + 2, mh + 2, '#000');
+  for (let y = 0; y < S.h; y++) for (let x = 0; x < S.w; x++) rect(x0 + x * t, y0 + y * t, t, t, col[S.rows[y][x]] || '#5a4a3a');
+  for (const u of alive(S)) rect(x0 + u.x * t, y0 + u.y * t, t, t, u.team === 0 ? '#5ab0ff' : (u.boss ? '#ffd24a' : '#ff4a4a'));
+  if (Engine.zoom > 1) { const z = Engine.zoom; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x0 + Cam.x / TS * t) + 0.5, Math.round(y0 + Cam.y / TS * t) + 0.5, W / z / TS * t, Engine.vh / z / TS * t); }
+}
+window.minimapTap = (x, y) => {
+  if (!G.S || Engine.zoom <= 1 || !MM.ox) return; const tx = (x - MM.ox) / MM.t, ty = (y - MM.oy) / MM.t; if (tx < -1 || ty < -1 || tx > G.S.w + 1 || ty > G.S.h + 1) return;
+  const z = Engine.zoom; Cam.tx = tx * TS - W / z / 2; Cam.ty = ty * TS - Engine.vh / z / 2; camClamp(); Cam.key = G.cursor.x + ',' + G.cursor.y;
+};
 function drawBattle() {
   const S = G.S; if (!S) return;
   ctx.save();
   if (G.shake > 0) ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+  if (Engine.zoom > 1) { ctx.scale(Engine.zoom, Engine.zoom); ctx.translate(-Cam.x, -Cam.y); }
   drawMap(S, G.t); drawOverlay(S);
   const us = S.units.filter(u => !u.gone).sort((a, b) => a.vy - b.vy);
   for (const u of us) drawUnit(u, S);
@@ -1333,8 +1387,8 @@ function openActionMenu() {
   const sp = SP[u.key], st = spTargets(S, u, u.x, u.y);
   if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
   items.push({ label: '待機', act: 'wait', desc: '何もせず行動を終える' });
-  const ox = OX(), oy = OY(); let mx = ox + u.x * TS + 20; if (mx > W - 62) mx = ox + u.x * TS - 60;
-  let my = oy + u.y * TS - 4; my = Math.max(4, Math.min(H - items.length * 14 - 12, my));
+  const ts = tileScreen(u.x, u.y), tz = TS * Engine.zoom; let mx = ts.x + tz + 3; if (mx > W - 54) mx = ts.x - 53;
+  let my = ts.y - 4; my = Math.max(4, Math.min(VH() - items.length * 14 - 12, my));
   openMenu(items, mx, my, 50); G.mode = 'menu'; u.spActive = null; G.spMode = false;
 }
 function undoMove() {
@@ -1394,7 +1448,7 @@ function battleInput(a) {
       else if (a === 'right' || a === 'down') { G.ti = (G.ti + 1) % G.targets.length; Aud.sfx('move'); }
       else if (a === 'ok') {
         if (isHealer(G.sel)) { doAction('attack'); break; }
-        G.fc = forecast(S, G.sel, G.targets[G.ti], G.sel.x, G.sel.y); G.fc.top = OY() + (G.sel.y + G.targets[G.ti].y) / 2 * TS > H / 2; G.mode = 'forecast'; Aud.sfx('ok');
+        G.fc = forecast(S, G.sel, G.targets[G.ti], G.sel.x, G.sel.y); G.fc.top = tileScreen(0, (G.sel.y + G.targets[G.ti].y) / 2).y + TS * Engine.zoom / 2 > VH() / 2; G.mode = 'forecast'; Aud.sfx('ok');
       } else if (a === 'cancel') { G.cursor = { x: G.sel.x, y: G.sel.y }; openActionMenu(); Aud.sfx('cancel'); break; }
       { const t = G.targets[G.ti]; if (t) G.cursor = { x: t.x, y: t.y }; }
       break;
@@ -1407,7 +1461,7 @@ function tapMap(px, py) {
   if (!G.S) return;
   if (G.mode === 'forecast') { Input.q.push('cancel'); return; }
   if (G.mode === 'menu' || G.mode === 'sysmenu') { Input.q.push('cancel'); return; }
-  const tx = Math.floor((px - OX()) / TS), ty = Math.floor((py - OY()) / TS);
+  const z = Engine.zoom, tx = Math.floor((px / z + Cam.x - OX()) / TS), ty = Math.floor((py / z + Cam.y - OY()) / TS);
   if (!inb(G.S, tx, ty)) return;
   const S = G.S, u = unitAt(S, tx, ty);
   if (G.mode === 'target') { const i = G.targets.findIndex(t => t.x === tx && t.y === ty); if (i >= 0) { G.ti = i; G.cursor = { x: tx, y: ty }; Input.q.push('ok'); } return; }
@@ -1488,7 +1542,7 @@ function* enemyPhase() {
 function* healRecords(list) { for (const h of list) { Aud.sfx('heal'); sparkle(h.unit); numFx(h.unit, '+' + h.amt, '#6dff8d', 10); Co.run(tweenHp(h.unit, h.unit.hp, 20)); } if (list.length) yield 40; }
 function* battleScene(S, idx) {
   G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.infoBig = false; G.lvl = null;
-  initVisual(S); const leon = S.units.find(u => u.key === 'leon'); G.cursor = { x: leon.x, y: leon.y };
+  Cam.snap = true; Cam.key = null; initVisual(S); const leon = S.units.find(u => u.key === 'leon'); G.cursor = { x: leon.x, y: leon.y };
   for (;;) {
     G.phase = 0; Aud.bgm(S.ch.win === 'boss' ? 'field' : 'field'); G.mode = 'idle'; G.endTurn = false; flushInput();
     yield* banner('自軍フェーズ', '#2a5ac8');
@@ -1541,9 +1595,10 @@ function* flow() {
 function step() {
   pumpTaps();
   if (G.scene === 'battle') { while (Input.q.length && inputReady()) battleInput(Input.q.shift()); if (!inputReady() && !G.lvl) Input.q.length = 0; }
-  Co.tick(); stepFx(); G.t++;
+  Co.tick(); stepFx(); camUpdate(); G.t++;
 }
 function render() {
+  { const tall = Engine.port && G.scene === 'battle'; if (tall !== Engine.tall) { Engine.tall = tall; fit(); } }
   ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1;
   switch (G.scene) {
     case 'title': drawTitle(); break;
@@ -1576,7 +1631,7 @@ window.__tac = {
       scene: G.scene, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
       title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
-      over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? OX() : 0, oy: S ? OY() : 0, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
+      over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
       targets: (G.targets || []).map(t => t.id), ti: G.ti,
       units: S ? S.units.filter(u => !u.dead).map(u => ({ id: u.id, key: u.key, name: u.name, team: u.team, x: u.x, y: u.y, hp: u.hp, maxhp: u.maxhp, lv: u.lv, exp: u.exp, acted: !!u.acted, boss: u.boss })) : []
     };

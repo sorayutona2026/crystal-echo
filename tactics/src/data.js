@@ -153,9 +153,9 @@ const CHAPTERS = [
       '..=T.......^..=..TT.', '..=..PT..====..T....', '..==.TT.==..........', '...=.......T....T...',
       '.===....T.....^^....', '.=......T..T........', '.=..................']),
     party: [['leon', 2, 12], ['mira', 3, 13], ['luka', 1, 13], ['sophia', 3, 11], ['jin', 4, 12]],
-    enemies: [['goblin', 9, 9, 3, 'aggro'], ['goblin', 12, 6, 3, 'aggro'], ['slime', 13, 10, 3, 'aggro'], ['slime', 11, 5, 3, 'wait'],
-      ['skeleton', 10, 7, 3, 'wait'], ['skeleton', 14, 7, 3, 'wait'], ['skeleton', 15, 5, 3, 'wait'],
-      ['darkmage', 13, 3, 3, 'wait'], ['darkmage', 16, 5, 3, 'wait'], ['boss', 16, 2, 4, 'hold']],
+    enemies: [['goblin', 9, 9, 3, 'aggro'], ['goblin', 12, 6, 3, 'aggro'], ['slime', 13, 10, 3, 'aggro'], ['slime', 11, 5, 3, 'aggro'],
+      ['skeleton', 10, 7, 3, 'aggro'], ['skeleton', 14, 7, 3, 'aggro'], ['skeleton', 16, 3, 3, 'wait'],
+      ['darkmage', 13, 3, 3, 'aggro'], ['darkmage', 16, 5, 3, 'aggro'], ['goblin', 11, 9, 3, 'aggro'], ['skeleton', 12, 4, 3, 'aggro'], ['darkmage', 15, 4, 3, 'wait'], ['boss', 16, 2, 4, 'hold']],
     join: [],
     pre: [
       [null, '丘の上の古い砦。黄金の旗が、重い風にはためいている。'],

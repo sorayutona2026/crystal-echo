@@ -47,6 +47,8 @@ function chooseAction(S, u, opts) {
         const give = Math.min(t.hp, f.a.dmg * f.a.n) * f.a.hit / 100, take = f.d.can ? f.d.dmg * f.d.n * f.d.hit / 100 : 0;
         const kill = f.a.dmg * f.a.n >= t.hp && f.a.hit >= 60;
         score = 20 + give - take * (care ? 1.2 : 1) + (kill ? 15 : 0) + (t.boss ? 4 : 0) + tb - th * 0.5 - s.cost * 0.05;
+        // bot safety: never walk the lord (or anyone) into a likely death (counter-attack plus enemies that can reach the tile)
+        if (care && !kill) { const danger = (f.d.can ? f.d.dmg * f.d.n * f.d.hit / 100 : 0) + threatAt(S, u, s.x, s.y); if (danger >= u.hp - 1) score -= u.lord ? 100 : 12; }
       }
       if (!best || score > best.score) best = { unit: u, dest: { x: s.x, y: s.y }, target: t, score, kind: healer ? 'heal' : 'attack' };
     }
@@ -74,7 +76,7 @@ function chooseAction(S, u, opts) {
       }
     }
   }
-  if (best) return best;
+  if (best && !opts.noAttack) return best;
   if (u.ai === 'wait' && !opts.player) return { unit: u, dest: { x: u.x, y: u.y }, target: null, score: -1, kind: 'wait' };
   if (hold && !opts.player) return { unit: u, dest: { x: u.x, y: u.y }, target: null, score: -1, kind: 'wait' };
   // approach: closest to foes (healer: closest to hurt ally / lord)
@@ -90,7 +92,10 @@ function chooseAction(S, u, opts) {
     if (goal) sc = -dist(s.x, s.y, goal.x, goal.y) * 1.2;
     else { const dd = dmap.get(kk(s.x, s.y)); sc = -(dd == null ? 99 : dd); }
     sc += (T.def + T.avo / 15) * 0.15;
-    if (care) sc -= threatAt(S, u, s.x, s.y) * care * (u.lord ? 1.5 : 1) * 0.35 * (healer ? 1.5 : 1);
+    if (care) {
+      const tha = threatAt(S, u, s.x, s.y); sc -= tha * care * (u.lord ? 1.5 : 1) * 0.35 * (healer ? 1.5 : 1); if (u.lord && tha >= u.hp - 1) sc -= 100;
+      if (u.lord && u.hp < u.maxhp * 0.5 && !goal) { const dd = dmap.get(kk(s.x, s.y)); sc = -tha * 2 + (dd == null ? 0 : dd) * 0.4 + (T.def + T.avo / 15) * 0.15; } // wounded lord retreats
+    }
     if (healer && care) { /* keep away from foes */ }
     if (!bm || sc > bm.score) bm = { unit: u, dest: { x: s.x, y: s.y }, target: null, score: sc, kind: 'move' };
   }
@@ -105,7 +110,10 @@ function suggestAction(S) {
     const a = chooseAction(S, u, { careful: 0.6, player: true });
     (a.target || a.sp ? acts : moves).push(a);
   }
-  if (acts.length) { acts.sort((a, b) => b.score - a.score); return acts[0]; }
+  // an attack that scored badly (the bot's lord would likely die) is dropped in favour of retreating/moving
+  const okActs = acts.filter(a => a.score > 0 || !a.unit.lord);
+  for (const a of acts) if (!okActs.includes(a)) { const m = chooseAction(S, a.unit, { careful: 0.6, player: true, noAttack: true }); moves.push(m); }
+  if (okActs.length) { okActs.sort((a, b) => b.score - a.score); return okActs[0]; }
   // movers: front-most first (smallest distance to foes)
   const dm = distToFoes(S, 0);
   moves.sort((a, b) => (dm.get(kk(a.unit.x, a.unit.y)) || 0) - (dm.get(kk(b.unit.x, b.unit.y)) || 0));

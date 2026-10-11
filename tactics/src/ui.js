@@ -5,7 +5,23 @@ const G = {
   menu: null, targets: [], ti: 0, fc: null, busy: 0, banner: null, fx: [], shake: 0, infoBig: false, showRange: null, endTurn: false, modal: null,
   dlg: null, speed: 1, title: { idx: 0 }, card: null, over: null, ending: null, lvl: null, phase: 0, hasSave: false
 };
-const OX = () => Math.floor((W - G.S.w * TS) / 2), OY = () => Math.floor((H - G.S.h * TS) / 2);
+const OX = () => Engine.zoom > 1 ? 0 : Math.floor((W - G.S.w * TS) / 2), OY = () => Engine.zoom > 1 ? 0 : Math.floor((H - G.S.h * TS) / 2);
+// camera (portrait zoom): world px of the view's top-left; follows the cursor smoothly, can be panned by dragging
+const Cam = { x: 0, y: 0, tx: 0, ty: 0, key: null, snap: true };
+function camClamp() {
+  const z = Engine.zoom, vw = W / z, vh = Engine.vh / z, mw = G.S.w * TS, mh = G.S.h * TS;
+  Cam.tx = mw <= vw ? (mw - vw) / 2 : Math.max(0, Math.min(mw - vw, Cam.tx)); Cam.ty = mh <= vh ? (mh - vh) / 2 : Math.max(0, Math.min(mh - vh, Cam.ty));
+}
+function camUpdate() {
+  if (!G.S || Engine.zoom <= 1) { Cam.x = Cam.y = Cam.tx = Cam.ty = 0; Cam.key = null; return; }
+  const z = Engine.zoom, c = G.cursor, k = c.x + ',' + c.y;
+  for (const p of Input.pans) { Cam.tx -= p.dx / z; Cam.ty -= p.dy / z; camClamp(); Cam.x = Cam.tx; Cam.y = Cam.ty; }
+  Input.pans.length = 0;
+  if (k !== Cam.key) { Cam.key = k; Cam.tx = c.x * TS + 8 - W / z / 2; Cam.ty = c.y * TS + 8 - Engine.vh / z / 2; camClamp(); }
+  if (Cam.snap) { camClamp(); Cam.x = Cam.tx; Cam.y = Cam.ty; Cam.snap = false; }
+  Cam.x += (Cam.tx - Cam.x) * 0.2; Cam.y += (Cam.ty - Cam.y) * 0.2;
+}
+function tileScreen(x, y) { return { x: (OX() + x * TS - Cam.x) * Engine.zoom, y: (OY() + y * TS - Cam.y) * Engine.zoom }; }
 const TEAMCOL = ['#4a90ff', '#ff4a4a'];
 const NOSTART = '、。，．！？!?）」』】〕…ー・ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ:;,.';
 const NOEND = '（「『【〔';
@@ -29,8 +45,8 @@ function hpBar(x, y, w, h, hp, max, ghost) {
 // ---------- map ----------
 function drawMap(S, tt) {
   const ox = OX(), oy = OY();
-  rect(0, 0, W, H, '#10131e');
-  drawBackdrop(ctx, ox, oy, S.w, S.h, S.ch.theme, tt);
+  if (Engine.zoom > 1) { ctx.fillStyle = '#10131e'; ctx.fillRect(Cam.x - 8, Cam.y - 8, W / Engine.zoom + 16, Engine.vh / Engine.zoom + 16); }
+  else { rect(0, 0, W, H, '#10131e'); drawBackdrop(ctx, ox, oy, S.w, S.h, S.ch.theme, tt); }
   drawMapLayer(ctx, S.rows, ox, oy, tt, S.ch.theme, S.ch.props);
 }
 function drawOverlay(S) {
@@ -132,7 +148,7 @@ function drawMenu(m) {
   });
 }
 function drawForecast(fc) {
-  const x = 44, w = 232, h = 56, y = fc.top ? 4 : H - h - 4; panel(x, y, w, h, 0.95);
+  const x = 44, w = 232, h = 56, y = fc.top ? 4 : VH() - h - 4; panel(x, y, w, h, 0.95);
   Touch.add(x, y, w, h, () => Input.q.push('ok'));
   const side = (S, cx) => {
     const u = S.u; text(u.name, cx, y + 4, { size: 9, bold: true, color: u.team === 0 ? '#9fc4ff' : '#ff9f9f' });
@@ -147,12 +163,13 @@ function drawForecast(fc) {
   side(fc.a, x + 6); rect(x + w / 2, y + 5, 1, h - 18, '#4a58a8'); side(fc.d, x + w / 2 + 6);
   text(G.spMode ? '決定:' + SP[G.sel.key].name + '  戻る:キャンセル' : '決定:攻撃  戻る:キャンセル', x + w / 2, y + h - 11, { size: 7, align: 'center', color: '#99a', shadow: false });
 }
+const VH = () => Engine.vh || H;
 function drawBanner() {
   const b = G.banner; if (!b) return; const t = b.t;
   const inT = Math.min(1, t / 12), outT = Math.min(1, (b.dur - t) / 12), k = Math.min(inT, outT), h = 32 * k;
-  ctx.fillStyle = b.color; ctx.globalAlpha = 0.9; ctx.fillRect(0, H / 2 - h / 2, W, h); ctx.globalAlpha = 1;
-  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(0, H / 2 - h / 2, W, 1); ctx.fillRect(0, H / 2 + h / 2 - 1, W, 1);
-  if (k > 0.8) { const off = (1 - Math.min(1, t / 16)) * 60; ctx.globalAlpha = Math.min(1, outT * 2); text(b.text, W / 2 + off, H / 2 - 10, { size: 18, bold: true, align: 'center' }); ctx.globalAlpha = 1; }
+  ctx.fillStyle = b.color; ctx.globalAlpha = 0.9; ctx.fillRect(0, VH() / 2 - h / 2, W, h); ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(0, VH() / 2 - h / 2, W, 1); ctx.fillRect(0, VH() / 2 + h / 2 - 1, W, 1);
+  if (k > 0.8) { const off = (1 - Math.min(1, t / 16)) * 60; ctx.globalAlpha = Math.min(1, outT * 2); text(b.text, W / 2 + off, VH() / 2 - 10, { size: 18, bold: true, align: 'center' }); ctx.globalAlpha = 1; }
 }
 function drawLevelUp(L) {
   const x = 50, y = 30, w = 220, h = 150; panel(x, y, w, h, 0.97);
@@ -187,18 +204,34 @@ function drawInfoCanvas() {
     text('味方 ' + alive(S).filter(u => u.team === 0).length + '  敵 ' + alive(S).filter(u => u.team === 1).length, 246, 8, { size: 8 });
     if (cu) {
       const rows = [['力', cu.str], ['魔力', cu.mag], ['技', cu.skl], ['速さ', cu.spd], ['守備', cu.def], ['魔防', cu.res], ['移動', cu.mov], ['射程', weaponOf(cu).min + (weaponOf(cu).max > weaponOf(cu).min ? '-' + weaponOf(cu).max : '')]];
-      rows.forEach((r, i) => { const cx = 6 + (i % 4) * 78, cy = 62 + Math.floor(i / 4) * 13; text(r[0], cx, cy, { size: 8, color: '#ffd24a' }); text(String(r[1]), cx + 62, cy, { size: 8, align: 'right' }); });
-      const sp = SP[cu.key]; if (sp && cu.team === 0) text('特技 ' + sp.name + (cu.spUsed ? '(使用済)' : '') + ' : ' + sp.desc, 6, 90, { size: 7, color: cu.spUsed ? '#778' : '#9fe8ff' });
+      rows.forEach((r, i) => { const cx = 6 + (i % 4) * 52, cy = 62 + Math.floor(i / 4) * 13; text(r[0], cx, cy, { size: 8, color: '#ffd24a' }); text(String(r[1]), cx + 46, cy, { size: 8, align: 'right' }); });
+      const sp = SP[cu.key]; if (sp && cu.team === 0) text('特技 ' + sp.name + (cu.spUsed ? '(使用済)' : '') + ' : ' + sp.desc, 6, 97, { size: 7, color: cu.spUsed ? '#778' : '#9fe8ff' });
     }
-    text('目的: ' + S.ch.goal, 6, 106, { size: 9, color: '#ffe27a' });
-    text('タップ:選択/移動/決定   青=移動範囲  赤=攻撃範囲', 6, 120, { size: 7, color: '#889' });
+    text('目的: ' + S.ch.goal, 6, 109, { size: 9, color: '#ffe27a' });
+    text('ドラッグ:地図を動かす  青=移動範囲  赤=攻撃範囲', 6, 122, { size: 7, color: '#889' });
+    drawMinimap(S);
   }
   ctx = main;
 }
+// minimap (portrait): terrain, units and the camera window; tap it to jump there
+const MM = { x: 218, y: 22, w: 98, h: 72, t: 4 };
+function drawMinimap(S) {
+  const t = Math.max(2, Math.floor(Math.min(MM.w / S.w, MM.h / S.h))); MM.t = t; const mw = S.w * t, mh = S.h * t, x0 = MM.x + (MM.w - mw) / 2, y0 = MM.y + (MM.h - mh) / 2; MM.ox = x0; MM.oy = y0;
+  const col = { '.': '#6a9a3a', '=': '#a08a60', 'T': '#2f6a2a', '^': '#8a6a4a', '~': '#3a8ab0', '#': '#707080' };
+  rect(x0 - 1, y0 - 1, mw + 2, mh + 2, '#000');
+  for (let y = 0; y < S.h; y++) for (let x = 0; x < S.w; x++) rect(x0 + x * t, y0 + y * t, t, t, col[S.rows[y][x]] || '#5a4a3a');
+  for (const u of alive(S)) rect(x0 + u.x * t, y0 + u.y * t, t, t, u.team === 0 ? '#5ab0ff' : (u.boss ? '#ffd24a' : '#ff4a4a'));
+  if (Engine.zoom > 1) { const z = Engine.zoom; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x0 + Cam.x / TS * t) + 0.5, Math.round(y0 + Cam.y / TS * t) + 0.5, W / z / TS * t, Engine.vh / z / TS * t); }
+}
+window.minimapTap = (x, y) => {
+  if (!G.S || Engine.zoom <= 1 || !MM.ox) return; const tx = (x - MM.ox) / MM.t, ty = (y - MM.oy) / MM.t; if (tx < -1 || ty < -1 || tx > G.S.w + 1 || ty > G.S.h + 1) return;
+  const z = Engine.zoom; Cam.tx = tx * TS - W / z / 2; Cam.ty = ty * TS - Engine.vh / z / 2; camClamp(); Cam.key = G.cursor.x + ',' + G.cursor.y;
+};
 function drawBattle() {
   const S = G.S; if (!S) return;
   ctx.save();
   if (G.shake > 0) ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+  if (Engine.zoom > 1) { ctx.scale(Engine.zoom, Engine.zoom); ctx.translate(-Cam.x, -Cam.y); }
   drawMap(S, G.t); drawOverlay(S);
   const us = S.units.filter(u => !u.gone).sort((a, b) => a.vy - b.vy);
   for (const u of us) drawUnit(u, S);

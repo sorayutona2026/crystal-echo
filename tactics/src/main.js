@@ -94,8 +94,8 @@ function openActionMenu() {
   const sp = SP[u.key], st = spTargets(S, u, u.x, u.y);
   if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
   items.push({ label: '待機', act: 'wait', desc: '何もせず行動を終える' });
-  const ox = OX(), oy = OY(); let mx = ox + u.x * TS + 20; if (mx > W - 62) mx = ox + u.x * TS - 60;
-  let my = oy + u.y * TS - 4; my = Math.max(4, Math.min(H - items.length * 14 - 12, my));
+  const ts = tileScreen(u.x, u.y), tz = TS * Engine.zoom; let mx = ts.x + tz + 3; if (mx > W - 54) mx = ts.x - 53;
+  let my = ts.y - 4; my = Math.max(4, Math.min(VH() - items.length * 14 - 12, my));
   openMenu(items, mx, my, 50); G.mode = 'menu'; u.spActive = null; G.spMode = false;
 }
 function undoMove() {
@@ -155,7 +155,7 @@ function battleInput(a) {
       else if (a === 'right' || a === 'down') { G.ti = (G.ti + 1) % G.targets.length; Aud.sfx('move'); }
       else if (a === 'ok') {
         if (isHealer(G.sel)) { doAction('attack'); break; }
-        G.fc = forecast(S, G.sel, G.targets[G.ti], G.sel.x, G.sel.y); G.fc.top = OY() + (G.sel.y + G.targets[G.ti].y) / 2 * TS > H / 2; G.mode = 'forecast'; Aud.sfx('ok');
+        G.fc = forecast(S, G.sel, G.targets[G.ti], G.sel.x, G.sel.y); G.fc.top = tileScreen(0, (G.sel.y + G.targets[G.ti].y) / 2).y + TS * Engine.zoom / 2 > VH() / 2; G.mode = 'forecast'; Aud.sfx('ok');
       } else if (a === 'cancel') { G.cursor = { x: G.sel.x, y: G.sel.y }; openActionMenu(); Aud.sfx('cancel'); break; }
       { const t = G.targets[G.ti]; if (t) G.cursor = { x: t.x, y: t.y }; }
       break;
@@ -168,7 +168,7 @@ function tapMap(px, py) {
   if (!G.S) return;
   if (G.mode === 'forecast') { Input.q.push('cancel'); return; }
   if (G.mode === 'menu' || G.mode === 'sysmenu') { Input.q.push('cancel'); return; }
-  const tx = Math.floor((px - OX()) / TS), ty = Math.floor((py - OY()) / TS);
+  const z = Engine.zoom, tx = Math.floor((px / z + Cam.x - OX()) / TS), ty = Math.floor((py / z + Cam.y - OY()) / TS);
   if (!inb(G.S, tx, ty)) return;
   const S = G.S, u = unitAt(S, tx, ty);
   if (G.mode === 'target') { const i = G.targets.findIndex(t => t.x === tx && t.y === ty); if (i >= 0) { G.ti = i; G.cursor = { x: tx, y: ty }; Input.q.push('ok'); } return; }
@@ -249,7 +249,7 @@ function* enemyPhase() {
 function* healRecords(list) { for (const h of list) { Aud.sfx('heal'); sparkle(h.unit); numFx(h.unit, '+' + h.amt, '#6dff8d', 10); Co.run(tweenHp(h.unit, h.unit.hp, 20)); } if (list.length) yield 40; }
 function* battleScene(S, idx) {
   G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.infoBig = false; G.lvl = null;
-  initVisual(S); const leon = S.units.find(u => u.key === 'leon'); G.cursor = { x: leon.x, y: leon.y };
+  Cam.snap = true; Cam.key = null; initVisual(S); const leon = S.units.find(u => u.key === 'leon'); G.cursor = { x: leon.x, y: leon.y };
   for (;;) {
     G.phase = 0; Aud.bgm(S.ch.win === 'boss' ? 'field' : 'field'); G.mode = 'idle'; G.endTurn = false; flushInput();
     yield* banner('自軍フェーズ', '#2a5ac8');
@@ -302,9 +302,10 @@ function* flow() {
 function step() {
   pumpTaps();
   if (G.scene === 'battle') { while (Input.q.length && inputReady()) battleInput(Input.q.shift()); if (!inputReady() && !G.lvl) Input.q.length = 0; }
-  Co.tick(); stepFx(); G.t++;
+  Co.tick(); stepFx(); camUpdate(); G.t++;
 }
 function render() {
+  { const tall = Engine.port && G.scene === 'battle'; if (tall !== Engine.tall) { Engine.tall = tall; fit(); } }
   ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1;
   switch (G.scene) {
     case 'title': drawTitle(); break;
@@ -337,7 +338,7 @@ window.__tac = {
       scene: G.scene, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
       title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
-      over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? OX() : 0, oy: S ? OY() : 0, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
+      over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
       targets: (G.targets || []).map(t => t.id), ti: G.ti,
       units: S ? S.units.filter(u => !u.dead).map(u => ({ id: u.id, key: u.key, name: u.name, team: u.team, x: u.x, y: u.y, hp: u.hp, maxhp: u.maxhp, lv: u.lv, exp: u.exp, acted: !!u.acted, boss: u.boss })) : []
     };
