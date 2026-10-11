@@ -8,7 +8,7 @@ html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 #tac button.end{background:#6a2a2a;border-color:#e08f8f}
 #pads{display:contents}
 #tac #cv2{display:none;background:#0b0b14}
-#tac.port{flex-direction:column;justify-content:center;gap:0}
+#tac.port{flex-direction:column;justify-content:flex-start;padding-top:8px;box-sizing:border-box;gap:0}
 #tac.port #cv2{display:block}
 #tac.port #pads{display:flex;gap:12px;margin-top:8px}
 #tac.port .pad{position:static;display:flex;gap:6px}
@@ -20,7 +20,7 @@ html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 </style>
 <div id="tac" class="port">
 <canvas id="cv" width="320" height="240"></canvas>
-<canvas id="cv2" width="320" height="80"></canvas>
+<canvas id="cv2" width="320" height="136"></canvas>
 <div id="pads">
 <div class="pad" id="padL"><button id="bCancel">キャンセル</button><button id="bInfo">情報</button></div>
 <div class="pad" id="padR"><button id="bEnd" class="end">ターン終了</button><button id="bMute">音 ON</button></div>

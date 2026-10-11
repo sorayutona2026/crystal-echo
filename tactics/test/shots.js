@@ -59,6 +59,13 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
   await page.evaluate(() => { __tac.speed(10); __tac.kill('leon'); });
   await waitState(page, () => __tac.state().scene === 'gameover', null, 60000); await page.evaluate(() => __tac.speed(1)); await sleep(300); await shot(page, '16_gameover');
   await press(page, 'z'); await waitState(page, () => __tac.state().scene === 'battle'); console.log('retry after defeat OK');
+  // full-map views of chapters 1 and 2 (cursor parked in a corner so nothing covers the field)
+  for (const [ch, name] of [[0, '18_ch1_map'], [1, '19_ch2_map']]) {
+    await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
+    await page.evaluate(c => { __tac.speed(10); __tac.start(c); }, ch);
+    await page.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await page.evaluate(() => __tac.speed(1));
+    await cursorTo(page, 0, 0); await sleep(300); await shot(page, name);
+  }
   // special-command menu (ルカ: メテオ) on the opening position of chapter 1
   await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
   await page.evaluate(() => { __tac.speed(10); __tac.start(0); });

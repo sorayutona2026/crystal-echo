@@ -23,8 +23,15 @@ All files in this folder are unmodified copies (byte-for-byte) of PNGs from the 
 | characters/25.png | ninja-adventure/characters/25.png | Ninja Adventure |
 | faces/N.png (N = 1,2,9,12,15,16,20,23,24,25) | ninja-adventure/characters/faceset/N.png | Ninja Adventure (portraits) |
 | tiles/ninja_tileset.png | ninja-adventure/background-elements/tileset.png | Ninja Adventure (background elements; rock pile used for mountains, plus flower/tuft/stone decorations) |
+| tiles/ruin_a.png | medieval-fantasy/background-elements/8.png | Medieval Fantasy (ruined stone block) |
+| tiles/ruin_b.png | medieval-fantasy/background-elements/15.png | Medieval Fantasy (broken tower) |
+| tiles/tent_s.png | medieval-fantasy/background-elements/5.png | Medieval Fantasy (small tent) |
 | tiles/castle.png | medieval-fantasy/background-elements/17.png | Medieval Fantasy (30x39 stone castle sprite; drawn centred over the fort block) |
 | tiles/fort.png | medieval-fantasy/background-elements/1.png | Medieval Fantasy (small fort sprite; no longer used by the game, kept as an unmodified copy) |
 | tiles/terrain.png | medieval-fantasy/background-elements/0-tileset.png | Medieval Fantasy (background elements) |
 
 Each `N.png` in `characters/` is the body sheet with the same number as its `faces/N.png` portrait.
+
+
+## Decorations
+Houses, straw hut (tent), carts, signs, graves, stump, banner, barrel, mushrooms, tufts, flowers, sticks, bones and the dead tree are crops (see `deco` in `manifest.json`) of `tiles/ninja_tileset.png` (ninja-adventure/background-elements/tileset.png). Ruins and the small tent are the medieval-fantasy files listed above. Torches, campfire, smoke, fences-free ground patches, flower patches and moss are drawn in code.

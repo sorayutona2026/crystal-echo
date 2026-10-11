@@ -30,7 +30,8 @@ function hpBar(x, y, w, h, hp, max, ghost) {
 function drawMap(S, tt) {
   const ox = OX(), oy = OY();
   rect(0, 0, W, H, '#10131e');
-  drawMapLayer(ctx, S.rows, ox, oy, tt);
+  drawBackdrop(ctx, ox, oy, S.w, S.h, S.ch.theme, tt);
+  drawMapLayer(ctx, S.rows, ox, oy, tt, S.ch.theme, S.ch.props);
 }
 function drawOverlay(S) {
   const ox = OX(), oy = OY(), pulse = 0.5 + 0.5 * Math.sin(G.t / 12);
@@ -131,22 +132,19 @@ function drawMenu(m) {
   });
 }
 function drawForecast(fc) {
-  const x = 40, w = 240, h = 74, y = fc.top ? 6 : H - h - 6; panel(x, y, w, h, 0.95);
+  const x = 44, w = 232, h = 56, y = fc.top ? 4 : H - h - 4; panel(x, y, w, h, 0.95);
   Touch.add(x, y, w, h, () => Input.q.push('ok'));
-  const side = (S, cx, right) => {
+  const side = (S, cx) => {
     const u = S.u; text(u.name, cx, y + 4, { size: 9, bold: true, color: u.team === 0 ? '#9fc4ff' : '#ff9f9f' });
-    text(weaponOf(u).name, cx, y + 15, { size: 7, color: '#b8c4ff' });
-    if (S.adv) text(S.adv > 0 ? '▲有利' : '▼不利', cx + 52, y + 15, { size: 7, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
-    text('HP', cx, y + 25, { size: 7, color: '#ffd24a' }); hpBar(cx + 14, y + 27, 50, 4, u.hp, u.maxhp);
-    text(String(u.hp), cx + 68, y + 24, { size: 8 });
+    text(weaponOf(u).name, cx + 46, y + 6, { size: 7, color: '#b8c4ff' });
+    if (S.adv) text(S.adv > 0 ? '▲' : '▼', cx + 100, y + 5, { size: 8, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
+    hpBar(cx, y + 20, 56, 4, u.hp, u.maxhp); text('HP ' + u.hp, cx + 60, y + 16, { size: 8 });
     if (S.can) {
-      text('ダメージ', cx, y + 35, { size: 8 }); text(S.dmg + (S.n > 1 ? ' ×2' : ''), cx + 90, y + 35, { size: 9, bold: true, align: 'right', color: S.n > 1 ? '#ffe860' : '#fff' });
-      if (S.adv) text(S.adv > 0 ? '▲' : '▼', cx + 95, y + 35, { size: 8, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
-      text('命中', cx, y + 46, { size: 8 }); text(S.hit + '%', cx + 90, y + 46, { size: 9, bold: true, align: 'right' });
-      if (S.adv) text(S.adv > 0 ? '▲' : '▼', cx + 95, y + 46, { size: 8, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
-    } else text('反撃できない', cx, y + 40, { size: 8, color: '#889' });
+      text('ダメージ', cx, y + 28, { size: 8 }); text(S.dmg + (S.n > 1 ? '×2' : ''), cx + 62, y + 27, { size: 10, bold: true, align: 'right', color: S.n > 1 ? '#ffe860' : '#fff' });
+      text('命中', cx + 68, y + 28, { size: 8 }); text(S.hit + '%', cx + 108, y + 27, { size: 10, bold: true, align: 'right' });
+    } else text('反撃できない', cx, y + 30, { size: 8, color: '#889' });
   };
-  side(fc.a, x + 8); rect(x + w / 2, y + 6, 1, h - 12, '#4a58a8'); side(fc.d, x + w / 2 + 8);
+  side(fc.a, x + 6); rect(x + w / 2, y + 5, 1, h - 18, '#4a58a8'); side(fc.d, x + w / 2 + 6);
   text(G.spMode ? '決定:' + SP[G.sel.key].name + '  戻る:キャンセル' : '決定:攻撃  戻る:キャンセル', x + w / 2, y + h - 11, { size: 7, align: 'center', color: '#99a', shadow: false });
 }
 function drawBanner() {
@@ -181,14 +179,19 @@ function cursorUnit() { const S = G.S; return unitAt(S, G.cursor.x, G.cursor.y) 
 // portrait phones: unit/terrain/phase info lives in a separate canvas below the map so it never covers the field
 function drawInfoCanvas() {
   const S = G.S, main = ctx; ctx = cv2.getContext('2d'); ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false;
-  rect(0, 0, W, INFO_H, '#0b0b14'); ctx.fillStyle = '#161a3a'; ctx.fillRect(0, 0, W, 1);
+  rect(0, 0, W, INFO_H, '#0b0b14'); ctx.fillStyle = '#2a3070'; ctx.fillRect(0, 0, W, 1);
   if (S) {
     const cu = cursorUnit();
-    if (cu) drawUnitPanel(cu, 4, 4); else { panel(4, 4, 128, 50, 0.6); text('マスをタップして', 12, 16, { size: 8, color: '#889' }); text('ユニットを選択', 12, 28, { size: 8, color: '#889' }); }
-    drawPhaseLabel(S, 140, 4); drawTerrainPanel(140, 22, S.rows[G.cursor.y][G.cursor.x]);
-    text('目的: ' + S.ch.goal, 4, 58, { size: 8, color: '#ffe27a' });
-    text('味方 ' + alive(S).filter(u => u.team === 0).length + '  敵 ' + alive(S).filter(u => u.team === 1).length, 246, 7, { size: 8 });
-    text('タップ:選択/移動/決定', 4, 69, { size: 7, color: '#889' });
+    if (cu) drawUnitPanel(cu, 4, 5); else { panel(4, 5, 128, 50, 0.6); text('マスをタップして', 12, 17, { size: 8, color: '#889' }); text('ユニットを選択', 12, 29, { size: 8, color: '#889' }); }
+    drawPhaseLabel(S, 140, 5); drawTerrainPanel(140, 23, S.rows[G.cursor.y][G.cursor.x]);
+    text('味方 ' + alive(S).filter(u => u.team === 0).length + '  敵 ' + alive(S).filter(u => u.team === 1).length, 246, 8, { size: 8 });
+    if (cu) {
+      const rows = [['力', cu.str], ['魔力', cu.mag], ['技', cu.skl], ['速さ', cu.spd], ['守備', cu.def], ['魔防', cu.res], ['移動', cu.mov], ['射程', weaponOf(cu).min + (weaponOf(cu).max > weaponOf(cu).min ? '-' + weaponOf(cu).max : '')]];
+      rows.forEach((r, i) => { const cx = 6 + (i % 4) * 78, cy = 62 + Math.floor(i / 4) * 13; text(r[0], cx, cy, { size: 8, color: '#ffd24a' }); text(String(r[1]), cx + 62, cy, { size: 8, align: 'right' }); });
+      const sp = SP[cu.key]; if (sp && cu.team === 0) text('特技 ' + sp.name + (cu.spUsed ? '(使用済)' : '') + ' : ' + sp.desc, 6, 90, { size: 7, color: cu.spUsed ? '#778' : '#9fe8ff' });
+    }
+    text('目的: ' + S.ch.goal, 6, 106, { size: 9, color: '#ffe27a' });
+    text('タップ:選択/移動/決定   青=移動範囲  赤=攻撃範囲', 6, 120, { size: 7, color: '#889' });
   }
   ctx = main;
 }
@@ -220,7 +223,8 @@ function drawBattle() {
 function drawBackdropMap(idx, dim) {
   const ch = CHAPTERS[idx], w = ch.map[0].length, h = ch.map.length, ox = Math.floor((W - w * TS) / 2), oy = Math.floor((H - h * TS) / 2);
   rect(0, 0, W, H, '#080a14');
-  drawMapLayer(ctx, ch.map, ox, oy, G.t);
+  drawBackdrop(ctx, ox, oy, w, h, ch.theme, G.t);
+  drawMapLayer(ctx, ch.map, ox, oy, G.t, ch.theme, ch.props);
   ctx.fillStyle = 'rgba(8,10,40,' + dim + ')'; ctx.fillRect(0, 0, W, H);
 }
 function drawDialogue() {

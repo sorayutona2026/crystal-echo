@@ -460,5 +460,224 @@
       "h": 16,
       "desc": "small stone (ninja-adventure tileset)"
     }
+  },
+  "deco": {
+    "house_a": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 47
+    },
+    "house_b": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 64,
+      "y": 2,
+      "w": 64,
+      "h": 46
+    },
+    "house_c": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 47
+    },
+    "house_d": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 193,
+      "y": 2,
+      "w": 64,
+      "h": 46
+    },
+    "hut": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 256,
+      "y": 0,
+      "w": 50,
+      "h": 38
+    },
+    "cart": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 116,
+      "y": 130,
+      "w": 27,
+      "h": 28
+    },
+    "cart_broken": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 82,
+      "y": 131,
+      "w": 27,
+      "h": 27
+    },
+    "sign": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 240,
+      "y": 131,
+      "w": 16,
+      "h": 13
+    },
+    "grave": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 146,
+      "y": 112,
+      "w": 12,
+      "h": 15
+    },
+    "grave2": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 131,
+      "y": 113,
+      "w": 11,
+      "h": 14
+    },
+    "stump": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 97,
+      "y": 293,
+      "w": 30,
+      "h": 23
+    },
+    "banner": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 128,
+      "y": 73,
+      "w": 32,
+      "h": 21
+    },
+    "barrel": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 192,
+      "y": 96,
+      "w": 16,
+      "h": 15
+    },
+    "mushroom": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 49,
+      "y": 258,
+      "w": 13,
+      "h": 11
+    },
+    "tuft1": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 1,
+      "y": 88,
+      "w": 15,
+      "h": 6
+    },
+    "tuft2": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 3,
+      "y": 133,
+      "w": 12,
+      "h": 7
+    },
+    "tuft3": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 145,
+      "y": 308,
+      "w": 12,
+      "h": 9
+    },
+    "clover": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 65,
+      "y": 243,
+      "w": 15,
+      "h": 11
+    },
+    "sunflower": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 49,
+      "y": 240,
+      "w": 15,
+      "h": 15
+    },
+    "flower_w": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 21,
+      "y": 131,
+      "w": 11,
+      "h": 9
+    },
+    "stick1": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 2,
+      "y": 290,
+      "w": 11,
+      "h": 4
+    },
+    "stick2": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 21,
+      "y": 290,
+      "w": 8,
+      "h": 9
+    },
+    "stick3": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 4,
+      "y": 296,
+      "w": 10,
+      "h": 5
+    },
+    "bone": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 49,
+      "y": 276,
+      "w": 14,
+      "h": 9
+    },
+    "skull": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 34,
+      "y": 276,
+      "w": 14,
+      "h": 9
+    },
+    "pebble": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 54,
+      "y": 228,
+      "w": 7,
+      "h": 6
+    },
+    "stone_s": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 3,
+      "y": 121,
+      "w": 11,
+      "h": 7
+    },
+    "deadtree": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 0,
+      "y": 448,
+      "w": 32,
+      "h": 32
+    },
+    "ruin_a": {
+      "file": "tiles/ruin_a.png",
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "ruin_b": {
+      "file": "tiles/ruin_b.png",
+      "x": 0,
+      "y": 0,
+      "w": 13,
+      "h": 18
+    },
+    "tent_s": {
+      "file": "tiles/tent_s.png",
+      "x": 0,
+      "y": 0,
+      "w": 14,
+      "h": 15
+    }
   }
 }

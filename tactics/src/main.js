@@ -90,10 +90,10 @@ function confirmMove() {
 }
 function openActionMenu() {
   const u = G.sel, S = G.S, t = targetsFrom(S, u, u.x, u.y), items = [];
-  items.push(isHealer(u) ? { label: '回復', off: !t.length, act: 'heal' } : { label: '攻撃', off: !t.length, act: 'attack' });
+  { const w = weaponOf(u); items.push(isHealer(u) ? { label: '回復', off: !t.length, act: 'heal', desc: '隣の味方をHP回復(射程1)' } : { label: '攻撃', off: !t.length, act: 'attack', desc: w.name + ' 威力' + w.might + ' 射程' + w.min + (w.max > w.min ? '〜' + w.max : '') }); }
   const sp = SP[u.key], st = spTargets(S, u, u.x, u.y);
   if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
-  items.push({ label: '待機', act: 'wait' });
+  items.push({ label: '待機', act: 'wait', desc: '何もせず行動を終える' });
   const ox = OX(), oy = OY(); let mx = ox + u.x * TS + 20; if (mx > W - 62) mx = ox + u.x * TS - 60;
   let my = oy + u.y * TS - 4; my = Math.max(4, Math.min(H - items.length * 14 - 12, my));
   openMenu(items, mx, my, 50); G.mode = 'menu'; u.spActive = null; G.spMode = false;
@@ -155,7 +155,7 @@ function battleInput(a) {
       else if (a === 'right' || a === 'down') { G.ti = (G.ti + 1) % G.targets.length; Aud.sfx('move'); }
       else if (a === 'ok') {
         if (isHealer(G.sel)) { doAction('attack'); break; }
-        G.fc = forecast(S, G.sel, G.targets[G.ti], G.sel.x, G.sel.y); G.fc.top = OY() + G.targets[G.ti].y * TS > H / 2; G.mode = 'forecast'; Aud.sfx('ok');
+        G.fc = forecast(S, G.sel, G.targets[G.ti], G.sel.x, G.sel.y); G.fc.top = OY() + (G.sel.y + G.targets[G.ti].y) / 2 * TS > H / 2; G.mode = 'forecast'; Aud.sfx('ok');
       } else if (a === 'cancel') { G.cursor = { x: G.sel.x, y: G.sel.y }; openActionMenu(); Aud.sfx('cancel'); break; }
       { const t = G.targets[G.ti]; if (t) G.cursor = { x: t.x, y: t.y }; }
       break;

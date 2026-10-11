@@ -1,6 +1,6 @@
 'use strict';
 // ===== engine: canvas scaling, input, rng =====
-const W = 320, H = 240, TS = 16, INFO_H = 80;
+const W = 320, H = 240, TS = 16, INFO_H = 136;
 let _seed = 1;
 function seedRng(n) { _seed = (n >>> 0) || 1; }
 function rnd() { // mulberry32 (game logic randomness; visuals use Math.random)

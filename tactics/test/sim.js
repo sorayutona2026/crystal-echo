@@ -5,6 +5,13 @@ const ctx = vm.createContext({ console });
 vm.runInContext(src + '\nthis.API={seedRng,rnd,CHAPTERS,newRoster,prepareChapter,cloneRoster,alive,chooseAction,suggestAction,applyAction,startPhase,chapterBonus,checkOver,STATS};', ctx);
 const A = ctx.API;
 const spUse = {};
+// map sanity: every 'P' tile has a prop entry and vice versa; no unit starts on a blocking tile
+vm.runInContext('this.TERR = TERRAIN;', ctx);
+A.CHAPTERS.forEach((c, i) => {
+  c.map.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === 'P' && !(c.props || {})[x + ',' + y]) throw new Error('ch' + (i + 1) + ': P without prop at ' + x + ',' + y); });
+  for (const k in c.props || {}) { const [x, y] = k.split(',').map(Number); if (c.map[y][x] !== 'P') throw new Error('ch' + (i + 1) + ': prop ' + k + ' not on a P tile'); }
+  for (const [id, x, y] of c.party.concat(c.enemies.map(e => [e[0], e[1], e[2]]))) if (ctx.TERR[c.map[y][x]].block) throw new Error('ch' + (i + 1) + ': ' + id + ' starts on a blocking tile');
+});
 function playChapter(roster, idx, log) {
   const S = A.prepareChapter(roster, idx); let turns = 0;
   while (!S.over && turns < 40) {
