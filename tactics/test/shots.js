@@ -66,6 +66,25 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
     await page.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await page.evaluate(() => __tac.speed(1));
     await cursorTo(page, 0, 0); await sleep(300); await shot(page, name);
   }
+  // combat effects: sword/spear slash, meteor, heal; then auto mode
+  const freshBattle = async (ch) => { await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title'); await page.evaluate(c => { __tac.setAuto(false); __tac.speed(10); __tac.start(c); }, ch); await page.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await page.evaluate(() => __tac.speed(1)); await sleep(300); };
+  const frames = async (n) => { await page.evaluate(k => __tac.step(k), n); };
+  await freshBattle(0);
+  { const s1 = await st(page), lv = s1.units.find(u => u.key === 'leon');
+    await page.evaluate(([x, y]) => __tac.place('slime_13_4', x, y), [lv.x + 1, lv.y]); await sleep(150);
+    await doAction(page, { unit: 'leon', from: { x: lv.x, y: lv.y }, dest: { x: lv.x, y: lv.y }, target: 'slime_13_4', kind: 'attack' }, 'forecast');
+    await page.evaluate(() => __tac.speed(0)); await press(page, 'z'); await frames(8); await shot(page, '22_fx_slash'); await page.evaluate(() => __tac.speed(1)); await settle(page); }
+  await freshBattle(0);
+  { const s1 = await st(page), lk = s1.units.find(u => u.key === 'luka');
+    await page.evaluate(([x, y]) => { __tac.place('slime_13_4', x, y); __tac.place('slime_13_7', x, y - 1); }, [lk.x + 3, lk.y]); await sleep(150);
+    await doAction(page, { unit: 'luka', from: { x: lk.x, y: lk.y }, dest: { x: lk.x, y: lk.y }, target: 'slime_13_4', kind: 'attack', sp: true, spLabel: 'メテオ' }, 'forecast');
+    await page.evaluate(() => __tac.speed(0)); await press(page, 'z'); await frames(46); await shot(page, '23_fx_meteor'); await page.evaluate(() => __tac.speed(1)); await settle(page); }
+  await freshBattle(1);
+  { await page.evaluate(() => { __tac.place('leon', 1, 6); __tac.hurt('leon', 5); }); await sleep(150);
+    await cursorTo(page, 1, 5); await press(page, 'z'); await waitMode(page, 'move'); await press(page, 'z'); await waitMode(page, 'menu'); await press(page, 'z'); await waitMode(page, 'target');
+    await page.evaluate(() => __tac.speed(0)); await press(page, 'z'); await frames(14); await shot(page, '24_fx_heal'); await page.evaluate(() => __tac.speed(1)); await settle(page); }
+  await freshBattle(0);
+  await press(page, 'q'); await sleep(2500); await shot(page, '25_auto_on'); await press(page, 'q'); await sleep(600);
   // special-command menu (ルカ: メテオ) on the opening position of chapter 1
   await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
   await page.evaluate(() => { __tac.speed(10); __tac.start(0); });

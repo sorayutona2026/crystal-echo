@@ -5,9 +5,16 @@ function saveGame(ch) { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ch
 function loadGame() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.roster && s.ch >= 0 && s.ch < CHAPTERS.length) return s; } catch (e) { } return null; }
 function flushInput() { Input.q.length = 0; }
 function* waitAct() { for (;;) { if (Input.q.length) return Input.q.shift(); yield 1; } }
-function* waitOk() { for (;;) { const a = yield* waitAct(); if (a === 'ok') return; } }
+function* waitOk() { // level-up popups etc.; with auto on they close by themselves after ~1s
+  let n = 0;
+  for (;;) { if (Input.q.length) { if (Input.q.shift() === 'ok') return; } else { n++; if (G.auto && n > 60) return; yield 1; } }
+}
+function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX })); } catch (e) { } }
+function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; } } catch (e) { } syncButtons(); }
+function syncButtons() { const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
+function setAuto(v) { G.auto = v; syncButtons(); savePrefs(); Aud.sfx(v ? 'ok' : 'cancel'); }
 // ---------- visual helpers ----------
-function initVisual(S) { for (const u of S.units) { u.vx = u.x; u.vy = u.y; u.vhp = u.hp; u.fade = 30; u.fading = false; u.gone = false; u.flash = 0; u.lx = 0; u.ly = 0; u.walking = false; u.dead = false; } }
+function initVisual(S) { for (const u of S.units) { u.vx = u.x; u.vy = u.y; u.vhp = u.hp; u.ghost = u.hp; u.kx = 0; u.ky = 0; u.fade = 30; u.fading = false; u.gone = false; u.flash = 0; u.lx = 0; u.ly = 0; u.walking = false; u.dead = false; } }
 function tilePx(x, y) { return { x: OX() + x * TS + 8, y: OY() + y * TS }; }
 function numFx(u, textv, color, size) { const p = tilePx(u.vx, u.vy); G.fx.push({ kind: 'num', x: p.x, y: p.y - 4, vy: -0.45, life: 46, text: textv, color, size }); }
 function burst(u, color, n) { const p = tilePx(u.vx, u.vy); for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 0.6 + Math.random() * 1.4; G.fx.push({ kind: 'p', x: p.x, y: p.y + 8, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.5, g: 0.06, life: 18 + (Math.random() * 10 | 0), color, s: 2 }); } }
@@ -34,7 +41,17 @@ function* strike(ev) {
   const ranged = dd >= 2, wt = weaponOf(a).type;
   const impact = () => {
     if (ev.hit) {
-      d.flash = 10; G.shake = ev.kill ? 7 : 4; Aud.sfx('hit'); burst(d, '#ffe9a0', 8);
+      d.flash = 10; G.shake = ev.kill ? 10 : 4; Aud.sfx('hit'); burst(d, '#ffe9a0', 8);
+      const cp = tilePx(d.vx, d.vy), cx = cp.x, cy = cp.y + 8, aw = a.wpn;
+      if (!ev.aoe) { d.kx = dx / L * 3.5; d.ky = dy / L * 3.5; }
+      if (ev.aoe) spawnSpr('rpg_1', cx, cy, { scale: 0.3, dur: 3, glow: 1 });
+      else if (wt === 'mag') { spawnSpr('rpg_1', cx, cy, { scale: 0.34, dur: 3, glow: 1 }); if (a.spActive === 'meteor') spawnSpr('rpg_11', cx, cy - 4, { scale: 0.3, dur: 4 }); }
+      else if (aw === 'spear' || aw === 'gold') spawnSpr('rpg_3', cx, cy, { scale: 0.34, dur: 3, flip: dx < 0 });
+      else if (aw === 'bow') { spawnSpr('nin_5', cx, cy, { scale: 1, dur: 3 }); spawnSpr('rpg_10', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0 }); }
+      else if (aw === 'axe') spawnSpr('rpg_5', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0 });
+      else if (aw === 'dagger') spawnSpr('rpg_10', cx, cy, { scale: 0.32, dur: 3, flip: dx < 0 });
+      else spawnSpr('rpg_4', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0 });
+      if (ev.kill) { spawnSpr('nin_18', cx, cy + 2, { scale: 1.3, dur: 4 }); G.flashW = 4; }
       numFx(d, String(ev.dmg), d.team === 0 ? '#ff7070' : '#fff', ev.dmg >= 10 ? 13 : 11);
       Co.run(tweenHp(d, ev.hpAfter, 16));
     } else { Aud.sfx('miss'); numFx(d, 'MISS', '#c8d0ff', 9); }
@@ -43,7 +60,8 @@ function* strike(ev) {
     const p0 = tilePx(a.vx, a.vy), p1 = tilePx(d.vx, d.vy);
     for (let f = 0; f < 22; f++) {
       const k = Math.sin(Math.PI * Math.min(1, f / 10)); a.lx = -dx / L * 2 * k; a.ly = -dy / L * 2 * k;
-      if (f >= 4 && f < 12) { const q = (f - 4) / 8; G.fx.push({ kind: 'p', x: p0.x + (p1.x - p0.x) * q - 1, y: p0.y + 8 + (p1.y - p0.y) * q - 1, life: 5, color: wt === 'mag' ? (q % 0.25 < 0.12 ? '#ff9050' : '#ffe060') : '#f4f0d8', s: wt === 'mag' ? 4 : 3 }); }
+      if (f === 4 && wt === 'mag') spawnSpr('rpg_9', p0.x, p0.y + 8, { vx: (p1.x - p0.x) / 8, vy: (p1.y - p0.y) / 8, life: 8, scale: 0.28, dur: 2, rot: Math.atan2(p1.y - p0.y, p1.x - p0.x) + Math.PI, glow: 1 });
+      if (f >= 4 && f < 12 && wt !== 'mag') { const q = (f - 4) / 8; G.fx.push({ kind: 'p', x: p0.x + (p1.x - p0.x) * q - 1, y: p0.y + 8 + (p1.y - p0.y) * q - 1, life: 5, color: wt === 'mag' ? (q % 0.25 < 0.12 ? '#ff9050' : '#ffe060') : '#f4f0d8', s: wt === 'mag' ? 4 : 3 }); }
       if (f === 12) impact();
       yield 1;
     }
@@ -57,12 +75,12 @@ function* strike(ev) {
 function* playRecord(rec, fast) {
   const u = rec.unit; u.acting = true;
   if (rec.path && rec.path.length > 1) yield* glide(u, rec.path, fast ? 3 : 4);
-  if (rec.sp) { Aud.sfx('levelup'); numFx(u, SP[u.key].name + '!', '#ffd24a', 10); burst(u, '#ffd24a', 12); yield 22; }
+  if (rec.sp) { Aud.sfx('levelup'); numFx(u, SP[u.key].name + '!', '#ffd24a', 10); burst(u, '#ffd24a', 12); { const up = tilePx(u.vx, u.vy); spawnSpr('rpg_12', up.x, up.y + 6, { scale: 0.28, dur: 3, glow: 1 }); } yield 22; }
   if (rec.buffed.length) { for (const a of rec.buffed) { sparkle(a); numFx(a, '攻撃+2', '#ffb050', 8); } Aud.sfx('heal'); yield 30; }
   if (rec.target && !rec.unit.dead) { u.dir = dirOf(rec.target.x - u.x, rec.target.y - u.y); }
   for (const ev of rec.events) {
     if (ev.type === 'heal') {
-      Aud.sfx('heal'); sparkle(ev.def); numFx(ev.def, '+' + ev.dmg, '#6dff8d', 11); yield* tweenHp(ev.def, ev.hpAfter, 20); yield 14;
+      Aud.sfx('heal'); sparkle(ev.def); { const hp = tilePx(ev.def.vx, ev.def.vy); spawnSpr('rpg_7', hp.x, hp.y + 6, { scale: 0.42, dur: 3 }); if (rec.sp === 'pray') spawnSpr('rpg_12', hp.x, hp.y + 6, { scale: 0.22, dur: 3, glow: 1 }); } numFx(ev.def, '+' + ev.dmg, '#6dff8d', 11); yield* tweenHp(ev.def, ev.hpAfter, 20); yield 14;
     } else yield* strike(ev);
   }
   for (const x of rec.exp) {
@@ -73,7 +91,7 @@ function* playRecord(rec, fast) {
   u.walking = false; u.acting = false;
 }
 // ---------- battle input ----------
-function inputReady() { return G.scene === 'battle' && G.phase === 0 && !G.endTurn && !G.busy && !G.banner && !G.lvl && !!G.S && !G.S.over; }
+function inputReady() { return G.scene === 'battle' && !G.auto && G.phase === 0 && !G.endTurn && !G.busy && !G.banner && !G.lvl && !!G.S && !G.S.over; }
 function moveCursor(dx, dy) { const S = G.S, c = G.cursor; c.x = Math.max(0, Math.min(S.w - 1, c.x + dx)); c.y = Math.max(0, Math.min(S.h - 1, c.y + dy)); Aud.sfx('move'); }
 function openMenu(items, x, y, w) { G.menu = { items, idx: Math.max(0, items.findIndex(i => !i.off)), x, y, w: w || 56 }; }
 function selectUnit(u) {
@@ -194,11 +212,18 @@ function pumpTaps() {
   for (const t of Input.taps) {
     const r = Touch.hit(t.x, t.y);
     if (r) { r.fn(); continue; }
+    if (G.scene === 'battle' && G.auto) { setAuto(false); continue; } // a tap on the field stops auto (after the current action)
     if (G.scene === 'battle') { if (G.lvl || G.banner) { if (G.lvl) Input.q.push('ok'); } else if (!G.busy) tapMap(t.x, t.y); }
     else Input.q.push('ok');
   }
   Input.taps.length = 0;
-  for (let i = Input.q.length - 1; i >= 0; i--) if (Input.q[i] === 'mute') { Input.q.splice(i, 1); Aud.toggle(); }
+  for (let i = Input.q.length - 1; i >= 0; i--) {
+    const k = Input.q[i];
+    if (k === 'mute') { Input.q.splice(i, 1); Aud.toggle(); }
+    else if (k === 'auto') { Input.q.splice(i, 1); if (G.scene === 'battle' || G.scene === 'dialogue' || G.scene === 'title') setAuto(!G.auto); }
+    else if (k === 'speed') { Input.q.splice(i, 1); G.speedX = G.speedX === 1 ? 2 : 1; syncButtons(); savePrefs(); Aud.sfx('ok'); }
+    else if (k === 'cancel' && G.auto && G.scene === 'battle') { Input.q.splice(i, 1); setAuto(false); }
+  }
 }
 // ---------- scenes ----------
 function* dialogue(lines, bg) {
@@ -216,7 +241,7 @@ function* dialogue(lines, bg) {
 }
 function* chapterCard(idx) {
   G.scene = 'card'; flushInput(); const ch = CHAPTERS[idx];
-  G.card = { title: ch.title, name: ch.name, goal: ch.goal, t: 0, dur: 150 };
+  G.card = { idx, title: ch.title, name: ch.name, goal: ch.goal, t: 0, dur: 150 };
   Aud.bgm('title');
   while (G.card.t < G.card.dur) { G.card.t++; yield 1; if (Input.q.shift() === 'ok' && G.card.t > 30) break; }
   G.card = null;
@@ -245,6 +270,27 @@ function* endingScene() {
   for (;;) { G.ending.t++; yield 1; const a = Input.q.shift(); if (a === 'ok' && G.ending.t > 380) break; }
   G.ending = null;
 }
+// auto play: one action chosen by the same AI as the test bot, played with visible selection, move and attack
+function* autoStep() {
+  const S = G.S;
+  if (G.mode !== 'idle') { if (G.sel && G.orig) { const u = G.sel; u.x = G.orig.x; u.y = G.orig.y; u.vx = u.x; u.vy = u.y; } deselect(); G.mode = 'idle'; yield 6; }
+  const sug = suggestAction(S);
+  if (!sug) { G.endTurn = true; yield 20; return; }
+  G.busy++;
+  try {
+    const u = sug.unit; G.cursor = { x: u.x, y: u.y }; yield 14; selectUnit(u); yield 16;
+    if (sug.dest.x !== u.x || sug.dest.y !== u.y) {
+      G.cursor = { x: sug.dest.x, y: sug.dest.y }; yield 14;
+      const path = pathTo(G.reach, sug.dest.x, sug.dest.y); G.mode = 'moving'; u.x = sug.dest.x; u.y = sug.dest.y; yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y;
+    }
+    if (sug.target) { G.cursor = { x: sug.target.x, y: sug.target.y }; yield 16; }
+    G.menu = null; G.mode = 'busy';
+    const rec = applyAction(S, u, null, sug.target, sug.sp);
+    yield* playRecord(rec);
+    afterAction();
+  } finally { G.busy--; flushInput(); }
+  yield 8;
+}
 function* enemyPhase() {
   const S = G.S; G.phase = 1; G.mode = 'busy'; Aud.bgm(S.ch.win === 'boss' ? 'boss' : 'enemy');
   yield* banner('敵軍フェーズ', '#a02828');
@@ -268,7 +314,7 @@ function* battleScene(S, idx) {
     G.phase = 0; Aud.bgm(S.ch.win === 'boss' ? 'field' : 'field'); G.mode = 'idle'; G.endTurn = false; flushInput();
     yield* banner('自軍フェーズ', '#2a5ac8');
     yield* healRecords(startPhase(S, 0));
-    while (!G.endTurn && !S.over) yield 1;
+    while (!G.endTurn && !S.over) { if (G.auto && !G.busy && !G.banner && !G.lvl) yield* autoStep(); else yield 1; }
     if (S.over) break;
     deselect(); G.mode = 'busy';
     yield* enemyPhase(); if (S.over) break;
@@ -337,12 +383,14 @@ let _last = 0, _acc = 0;
 function frame(ts) {
   requestAnimationFrame(frame);
   const dt = Math.min(100, ts - _last); _last = ts; _acc += dt;
-  while (_acc >= 1000 / 60) { for (let i = 0; i < G.speed; i++) step(); _acc -= 1000 / 60; }
+  while (_acc >= 1000 / 60) { const n = G.speed * (G.scene === 'battle' ? G.speedX : 1); for (let i = 0; i < n; i++) step(); _acc -= 1000 / 60; }
   render();
 }
 window.__tac = {
   seed: n => seedRng(n), speed: n => { G.speed = n; }, step: n => { for (let i = 0; i < n; i++) step(); render(); },
+  setAuto: v => setAuto(v),
   start: ch => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0 }; },
+  hurt: (id, hp) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.hp = hp; u.vhp = hp; u.ghost = hp; } },
   place: (id, x, y) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.x = x; u.y = y; u.vx = x; u.vy = y; } },
   kill: key => { const u = G.S && G.S.units.find(x => x.key === key); if (u) { u.hp = 0; u.dead = true; u.gone = true; checkOver(G.S); } },
   setExp: (id, n) => { if (G.roster && G.roster[id]) G.roster[id].exp = n; },
@@ -350,7 +398,7 @@ window.__tac = {
   state() {
     const S = G.S;
     return {
-      scene: G.scene, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
+      scene: G.scene, auto: G.auto, speedX: G.speedX, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
       title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
       over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
@@ -368,6 +416,7 @@ window.addEventListener('load', () => {
   initCanvas(); initInput();
   const q = new URLSearchParams(location.search).get('seed'); seedRng(q ? +q : (Math.random() * 1e9) | 0);
   try { G.hasSave = !!loadGame(); } catch (e) { }
+  loadPrefs();
   render();
   loadAssets().then(() => { Co.run(flow()); requestAnimationFrame(frame); }).catch(e => { console.error(e); });
 });

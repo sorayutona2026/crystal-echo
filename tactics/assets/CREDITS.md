@@ -35,3 +35,10 @@ Each `N.png` in `characters/` is the body sheet with the same number as its `fac
 
 ## Decorations
 Houses, straw hut (tent), carts, signs, graves, stump, banner, barrel, mushrooms, tufts, flowers, sticks, bones and the dead tree are crops (see `deco` in `manifest.json`) of `tiles/ninja_tileset.png` (ninja-adventure/background-elements/tileset.png). Ruins and the small tent are the medieval-fantasy files listed above. Torches, campfire, smoke, fences-free ground patches, flower patches and moss are drawn in code.
+
+## Effects, backgrounds and icons (Loop 5)
+Unmodified copies from the same repository and commit (CC0, Pixel-boy):
+- `fx/rpg_N.png` = `rpg-battle-system/fx/N.png` (N = 1, 3, 4, 5, 7, 9, 10, 11, 12): explosion, slashes, heal cross, fireball, claw, flame, holy cross effects.
+- `fx/nin_5.png`, `fx/nin_18.png` = `ninja-adventure/fx/5.png`, `18.png` (hit spark, smoke puff).
+- `bg/N.png` = `rpg-battle-system/backgrounds/N.png` (N = 15, 19, 12, 2, 3): painted backgrounds for the title, chapter cards, dialogue and ending.
+- `icons/w_{sword,lance,axe,bow,sai}.png` = `ninja-adventure/weapons/*.png`; `icons/i_{scroll-fire,life-pot,kunai,heart}.png` = `ninja-adventure/items/*.png`: weapon and special icons.

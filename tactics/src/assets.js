@@ -11,7 +11,7 @@ function cvs(w, h) { const c = document.createElement('canvas'); c.width = w; c.
 function pxColor(im, x, y) { const c = cvs(1, 1), g = c.getContext('2d'); g.drawImage(im, x, y, 1, 1, 0, 0, 1, 1); const d = g.getImageData(0, 0, 1, 1).data; return d; }
 // 16x16 tile canvases (terrain), pre-composited on grass where the art is transparent
 const TILE = {};
-let DECO = {};
+let DECO = {}, FXS = {}, BGS = {}, ICONS = {};
 const THEMES = {
   bright: { tint: null, density: 0.34, flat: ['fl', 'fl', 'fl', 'fl', 'fl', 'tuft', 'tuft', 'tuft', 'clover', 'flw', 'stone', 'sun', 'stick'] },
   mossy: { tint: 'rgba(20,80,60,0.20)', density: 0.36, flat: ['moss', 'moss', 'moss', 'mush', 'tuft', 'tuft', 'stone', 'stick', 'pebble', 'flw', 'fl'] },
@@ -35,6 +35,9 @@ function buildTiles() {
     TILE.grass.push(c);
   }
   const over = n => { const c = cvs(16, 16), g = c.getContext('2d'); g.drawImage(grass, 0, 0); g.drawImage(raw(n), 0, 0); return c; };
+  FXS = {}; for (const n in (MANIFEST.fx || {})) { const d = MANIFEST.fx[n], im = A.img[d.file]; FXS[n] = { img: im, n: d.n, fw: Math.floor(im.width / d.n), fh: im.height }; }
+  BGS = {}; for (const n in (MANIFEST.bg || {})) BGS[n] = A.img[MANIFEST.bg[n].file];
+  ICONS = {}; for (const n in (MANIFEST.icons || {})) ICONS[n] = A.img[MANIFEST.icons[n].file];
   DECO = {}; for (const n in (MANIFEST.deco || {})) { const d = MANIFEST.deco[n], c = cvs(d.w, d.h); c.getContext('2d').drawImage(A.img[d.file], d.x, d.y, d.w, d.h, 0, 0, d.w, d.h); DECO[n] = c; }
   TILE.deco = ['deco_flower', 'deco_flowers', 'deco_tuft', 'deco_stone'].map(raw);
   TILE.forest = over('tile_forest'); TILE.mountain = over('tile_mountain');
@@ -65,7 +68,7 @@ function drawFlat(g, kind, px, py, x, y) {
 }
 function propSprite(kind, x, y) { if (kind === 'grave') return DECO[hash2(x, y, 3) < 0.5 ? 'grave' : 'grave2']; const m = { sign: 'sign', stump: 'stump', cart: 'cart', barrel: 'barrel', banner: 'banner', cart_broken: 'cart_broken' }; return DECO[m[kind]]; }
 // draws a whole map (backdrop is separate). rows = array of strings; props = {'x,y': kind}
-function drawMapLayer(g, rows, ox, oy, t, themeName, props) {
+function drawMapLayer(g, rows, ox, oy, t, themeName, props, noAmbient) {
   const TH = THEMES[themeName || 'bright'], H = rows.length, Wd = rows[0].length, at = (x, y) => (x < 0 || y < 0 || x >= Wd || y >= H) ? null : rows[y][x];
   const shade = TILE.shade, gd = TILE.gd, fx = []; props = props || {};
   const water = c => c === '~', roadish = c => c === '=' || c === '#' || c === null || c === '~';
@@ -163,7 +166,12 @@ function drawMapLayer(g, rows, ox, oy, t, themeName, props) {
     const sp = TILE.fortSprite; g.drawImage(sp, Math.round(ox + x * 16 + (w * 16 - sp.width) / 2), oy + (y + h) * 16 - sp.height);
     if (TH.dead) { fx.push({ k: 'smoke', x: ox + (x + w / 2) * 16 - 6, y: oy + (y + h) * 16 - sp.height + 4, dark: 1 }); fx.push({ k: 'smoke', x: ox + (x + w / 2) * 16 + 7, y: oy + (y + h) * 16 - sp.height + 6, dark: 1, ph: 0.5 }); }
   }
-  // ambient: flames, glow and smoke (animated)
+  if (!noAmbient) drawAmbient(g, fx, t);
+  return fx;
+}
+// flames, glow and smoke (animated every frame; the static ground is cached)
+function drawAmbient(g, fx0, t) {
+  const fx = fx0.map(f => Object.assign({}, f));
   const tt = (t || 0);
   for (const f of fx) {
     if (f.k === 'flame') {
@@ -223,3 +231,23 @@ function drawFace(g, name, x, y, scale) {
   const s = scale || 1; g.drawImage(A.img[f.file], f.x, f.y, f.w, f.h, x, y, f.w * s, f.h * s);
 }
 
+
+// team-coloured 1px rim around a sprite (cached)
+const RIM = {};
+function spriteRim(id, dir, row, team) {
+  const key = id + dir + row + team; if (RIM[key]) return RIM[key];
+  const src = spriteVariant(id, dir, row, null), c = cvs(18, 18), g = c.getContext('2d');
+  for (const [dx, dy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) g.drawImage(src, dx, dy);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = team === 0 ? '#5fa8ff' : '#ff5a5a'; g.fillRect(0, 0, 18, 18);
+  return RIM[key] = c;
+}
+function drawBgImage(g, name, dim, t) { // painted background scaled to the screen, slowly drifting
+  const im = BGS[name]; if (!im) return; g.imageSmoothingEnabled = true;
+  const dx = Math.sin((t || 0) / 400) * 6; g.drawImage(im, 0, 0, im.width, im.height, -8 + dx, -6, W + 16, H + 12); g.imageSmoothingEnabled = false;
+  g.fillStyle = 'rgba(6,8,30,' + dim + ')'; g.fillRect(0, 0, W, H);
+  const gr = g.createRadialGradient(W / 2, H / 2, 70, W / 2, H / 2, 230); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+}
+function weaponIcon(u) {
+  const m = { spear: 'w_lance', gold: 'w_lance', dagger: 'w_sai', bow: 'w_bow', tome: 'i_scroll-fire', dark: 'i_scroll-fire', staff: 'i_life-pot', axe: 'w_axe', sword: 'w_sword', slime: 'i_heart' };
+  return ICONS[m[u.wpn]] || null;
+}

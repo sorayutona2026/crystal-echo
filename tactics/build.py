@@ -7,7 +7,7 @@ js = '\n'.join((src / f).read_text() for f in order)
 manifest = json.loads((root / 'assets' / 'manifest.json').read_text())
 files = set()
 for u in manifest['units'].values(): files.add(u['file'])
-for g in ('faces', 'tiles', 'deco'):
+for g in ('faces', 'tiles', 'deco', 'fx', 'bg', 'icons'):
     for t in manifest[g].values(): files.add(t['file'])
 imgs = {f: 'data:image/png;base64,' + base64.b64encode((root / 'assets' / f).read_bytes()).decode() for f in sorted(files)}
 js += '\nconst MANIFEST = ' + json.dumps(manifest) + ';\nconst ASSET_IMG = ' + json.dumps(imgs) + ';'

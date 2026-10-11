@@ -679,5 +679,97 @@
       "w": 14,
       "h": 15
     }
+  },
+  "fx": {
+    "rpg_1": {
+      "file": "fx/rpg_1.png",
+      "n": 6
+    },
+    "rpg_3": {
+      "file": "fx/rpg_3.png",
+      "n": 6
+    },
+    "rpg_4": {
+      "file": "fx/rpg_4.png",
+      "n": 5
+    },
+    "rpg_5": {
+      "file": "fx/rpg_5.png",
+      "n": 6
+    },
+    "rpg_7": {
+      "file": "fx/rpg_7.png",
+      "n": 7
+    },
+    "rpg_9": {
+      "file": "fx/rpg_9.png",
+      "n": 3
+    },
+    "rpg_10": {
+      "file": "fx/rpg_10.png",
+      "n": 5
+    },
+    "rpg_11": {
+      "file": "fx/rpg_11.png",
+      "n": 4
+    },
+    "rpg_12": {
+      "file": "fx/rpg_12.png",
+      "n": 6
+    },
+    "nin_5": {
+      "file": "fx/nin_5.png",
+      "n": 6
+    },
+    "nin_18": {
+      "file": "fx/nin_18.png",
+      "n": 6
+    }
+  },
+  "bg": {
+    "15": {
+      "file": "bg/15.png"
+    },
+    "19": {
+      "file": "bg/19.png"
+    },
+    "12": {
+      "file": "bg/12.png"
+    },
+    "2": {
+      "file": "bg/2.png"
+    },
+    "3": {
+      "file": "bg/3.png"
+    }
+  },
+  "icons": {
+    "w_sword": {
+      "file": "icons/w_sword.png"
+    },
+    "w_lance": {
+      "file": "icons/w_lance.png"
+    },
+    "w_axe": {
+      "file": "icons/w_axe.png"
+    },
+    "w_bow": {
+      "file": "icons/w_bow.png"
+    },
+    "w_sai": {
+      "file": "icons/w_sai.png"
+    },
+    "i_scroll-fire": {
+      "file": "icons/i_scroll-fire.png"
+    },
+    "i_life-pot": {
+      "file": "icons/i_life-pot.png"
+    },
+    "i_kunai": {
+      "file": "icons/i_kunai.png"
+    },
+    "i_heart": {
+      "file": "icons/i_heart.png"
+    }
   }
 }

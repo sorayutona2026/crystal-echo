@@ -20,10 +20,10 @@ function fit() {
   let s;
   Engine.zoom = 1; Engine.vh = H;
   if (port) {
-    s = Math.min(w / W, (h - 64) / (H + INFO_H)); if (s >= 2) s = Math.floor(s);
+    s = Math.min(w / W, (h - 112) / (H + INFO_H)); if (s >= 2) s = Math.floor(s);
     if (Engine.tall) { // battle on a portrait phone: bigger map (zoom 2) with a camera, filling the height above the panels
       let s2 = w / W; if (s2 >= 2) s2 = Math.floor(s2);
-      const vh = Math.floor((h - 76 - INFO_H * s2) / s2);
+      const vh = Math.floor((h - 124 - INFO_H * s2) / s2);
       if (vh >= H) { s = s2; Engine.vh = Math.min(vh, 600); Engine.zoom = 2; }
     }
   }
@@ -46,7 +46,7 @@ function fit() {
 const Engine = { scale: 1, zoom: 1, vh: 240, tall: false, port: false };
 // ----- input -----
 const Input = { q: [], taps: [], pans: [] };
-const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute' };
+const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute', q: 'auto', Q: 'auto', t: 'speed', T: 'speed' };
 function initInput() {
   window.addEventListener('contextmenu', e => { if (e.target === cv) { e.preventDefault(); Input.q.push('cancel'); } });
   window.addEventListener('keydown', e => {
@@ -64,7 +64,7 @@ function initInput() {
   cv2.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); const r = cv2.getBoundingClientRect(); if (window.minimapTap) window.minimapTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * INFO_H); });
   cv.addEventListener('pointercancel', () => { ptr = null; });
   const b = (id, a) => document.getElementById(id).addEventListener('click', () => { if (Aud) Aud.unlock(); Input.q.push(a); });
-  b('bCancel', 'cancel'); b('bOk', 'ok'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute');
+  b('bCancel', 'cancel'); b('bOk', 'ok'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute'); b('bAuto', 'auto'); b('bSpeed', 'speed');
 }
 // tap targets registered by draw code each frame (logical coords)
 const Touch = { rects: [], next: [] };
@@ -94,8 +94,14 @@ function text(s, x, y, o) {
   ctx.fillStyle = o.color || '#fff'; ctx.fillText(s, x, y);
 }
 function tw(s, size) { ctx.font = (size || 9) + 'px ' + FONT; return ctx.measureText(s).width; }
-function panel(x, y, w, h, a) {
-  ctx.fillStyle = 'rgba(8,10,40,' + (a == null ? 0.88 : a) + ')'; ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = '#c8d0ff'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+function panel(x, y, w, h, a) { // framed window: gradient body, dark outer line, light rim, inner shade line, gold corner studs
+  const al = a == null ? 0.88 : a;
+  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(26,32,92,' + al + ')'); g.addColorStop(1, 'rgba(8,10,40,' + al + ')');
+  ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#05061a'; ctx.lineWidth = 1; ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
+  ctx.strokeStyle = '#d8dfff'; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   ctx.strokeStyle = '#4a58a8'; ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(x + 2, y + 2, w - 4, 1);
+  ctx.fillStyle = '#ffd24a'; for (const [cx, cy] of [[x, y], [x + w - 3, y], [x, y + h - 3], [x + w - 3, y + h - 3]]) { ctx.fillRect(cx, cy, 3, 3); }
+  ctx.fillStyle = '#7a5a10'; for (const [cx, cy] of [[x, y], [x + w - 3, y], [x, y + h - 3], [x + w - 3, y + h - 3]]) { ctx.fillRect(cx + 1, cy + 1, 1, 1); }
 }
