@@ -64,7 +64,7 @@ function initInput() {
   cv2.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); const r = cv2.getBoundingClientRect(); if (window.minimapTap) window.minimapTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * INFO_H); });
   cv.addEventListener('pointercancel', () => { ptr = null; });
   const b = (id, a) => document.getElementById(id).addEventListener('click', () => { if (Aud) Aud.unlock(); Input.q.push(a); });
-  b('bCancel', 'cancel'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute');
+  b('bCancel', 'cancel'); b('bOk', 'ok'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute');
 }
 // tap targets registered by draw code each frame (logical coords)
 const Touch = { rects: [], next: [] };

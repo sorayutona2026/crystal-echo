@@ -148,7 +148,7 @@ function drawMenu(m) {
   });
 }
 function drawForecast(fc) {
-  const x = 44, w = 232, h = 56, y = fc.top ? 4 : VH() - h - 4; panel(x, y, w, h, 0.95);
+  const x = 44, w = 232, h = 62, y = fc.top ? 4 : VH() - h - 4; panel(x, y, w, h, 0.95);
   Touch.add(x, y, w, h, () => Input.q.push('ok'));
   const side = (S, cx) => {
     const u = S.u; text(u.name, cx, y + 4, { size: 9, bold: true, color: u.team === 0 ? '#9fc4ff' : '#ff9f9f' });
@@ -160,8 +160,9 @@ function drawForecast(fc) {
       text('命中', cx + 68, y + 28, { size: 8 }); text(S.hit + '%', cx + 108, y + 27, { size: 10, bold: true, align: 'right' });
     } else text('反撃できない', cx, y + 30, { size: 8, color: '#889' });
   };
-  side(fc.a, x + 6); rect(x + w / 2, y + 5, 1, h - 18, '#4a58a8'); side(fc.d, x + w / 2 + 6);
-  text(G.spMode ? '決定:' + SP[G.sel.key].name + '  戻る:キャンセル' : '決定:攻撃  戻る:キャンセル', x + w / 2, y + h - 11, { size: 7, align: 'center', color: '#99a', shadow: false });
+  side(fc.a, x + 6); rect(x + w / 2, y + 5, 1, h - 24, '#4a58a8'); side(fc.d, x + w / 2 + 6);
+  rect(x + 6, y + h - 17, w - 12, 13, '#1f6a3a'); ctx.strokeStyle = '#7fe0a0'; ctx.strokeRect(x + 6.5, y + h - 16.5, w - 13, 12);
+  text((G.spMode ? SP[G.sel.key].name : '攻撃') + 'する(もう一度タップ / 決定ボタン)', x + w / 2, y + h - 15, { size: 8, bold: true, align: 'center' });
 }
 const VH = () => Engine.vh || H;
 function drawBanner() {

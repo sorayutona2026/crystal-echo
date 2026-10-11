@@ -79,6 +79,17 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
   await pg.evaluate(() => __tac.start(2)); await pg.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready);
   await sleep(400); await pg.tap('canvas', { position: { x: 56, y: 250 } }).catch(() => { });
   await sleep(300); await shot(pg, '13_phone_portrait_battle');
+  // touch-only attack on the phone, inside an iframe like the artifact host: forecast, then the attack moment
+  { const cx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }); const pf = await cx.newPage();
+    await pf.goto('file://' + path.join(__dirname, 'frame.html')); let fr = null; for (let i = 0; i < 60 && !fr; i++) { fr = pf.frames().find(f => f !== pf.mainFrame()); await sleep(100); }
+    await fr.waitForFunction(() => window.__tac && __tac.state().scene === 'title'); await fr.evaluate(() => { __tac.seed(2); __tac.speed(10); __tac.start(0); });
+    await fr.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await fr.evaluate(() => __tac.speed(1)); await sleep(300);
+    const S = () => fr.evaluate(() => __tac.state());
+    const tapT = async (tx, ty) => { const s = await S(); const r = await fr.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height }; }); const fe = await (await pf.$('iframe')).boundingBox(); await pf.touchscreen.tap(fe.x + r.l + (s.ox + tx * s.tile + s.tile / 2) / 320 * r.w, fe.y + r.t + (s.oy + ty * s.tile + s.tile / 2) / s.vh * r.h); await sleep(150); };
+    let s0 = await S(); const lv = s0.units.find(u => u.key === 'leon'), sl = s0.units.find(u => u.id.startsWith('slime'));
+    await fr.evaluate(([id, x, y]) => __tac.place(id, x, y), [sl.id, lv.x + 2, lv.y]); await sleep(200);
+    await tapT(lv.x, lv.y); await tapT(lv.x + 1, lv.y); await sleep(400); await tapT(lv.x + 2, lv.y); await sleep(400); await shot(pf, '20_phone_tap_forecast');
+    await fr.evaluate(() => __tac.speed(0)); await tapT(lv.x + 2, lv.y); await fr.evaluate(() => __tac.step(14)); await shot(pf, '21_phone_tap_attack'); await fr.evaluate(() => __tac.speed(1)); await cx.close(); }
   const p3 = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const pl = await p3.newPage(); await pl.goto(require('./lib').URL); await pl.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
   await pl.evaluate(() => __tac.start(2)); await pl.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await sleep(300); await shot(pl, '14_phone_landscape_battle');

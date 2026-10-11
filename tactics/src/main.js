@@ -80,13 +80,13 @@ function selectUnit(u) {
   const S = G.S; G.sel = u; G.reach = reach(S, u); G.moveSet = new Set(G.reach.stops.map(s => kk(s.x, s.y))); G.threat = threatTiles(S, u, G.reach);
   G.orig = { x: u.x, y: u.y, dir: u.dir }; G.mode = 'move'; G.showRange = null; Aud.sfx('ok');
 }
-function deselect() { if (G.sel) G.sel.spActive = null; G.spMode = false; G.sel = null; G.reach = null; G.moveSet = null; G.threat = null; G.mode = 'idle'; G.targets = []; G.fc = null; G.menu = null; }
+function deselect() { G.pendingAtk = null; if (G.sel) G.sel.spActive = null; G.spMode = false; G.sel = null; G.reach = null; G.moveSet = null; G.threat = null; G.mode = 'idle'; G.targets = []; G.fc = null; G.menu = null; }
 function runBusy(gen) { G.busy++; Co.run((function* () { try { yield* gen; } finally { G.busy--; flushInput(); } })()); }
 function confirmMove() {
   const u = G.sel, c = G.cursor, S = G.S;
   if (!G.moveSet.has(kk(c.x, c.y))) { Aud.sfx('cancel'); return; }
   const path = pathTo(G.reach, c.x, c.y); Aud.sfx('ok'); G.mode = 'moving';
-  runBusy((function* () { u.x = c.x; u.y = c.y; if (path.length > 1) yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y; openActionMenu(); })());
+  runBusy((function* () { u.x = c.x; u.y = c.y; if (path.length > 1) yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y; openActionMenu(); if (G.pendingAtk) { const e = G.pendingAtk; G.pendingAtk = null; quickAttack(e); } })());
 }
 function openActionMenu() {
   const u = G.sel, S = G.S, t = targetsFrom(S, u, u.x, u.y), items = [];
@@ -94,8 +94,12 @@ function openActionMenu() {
   const sp = SP[u.key], st = spTargets(S, u, u.x, u.y);
   if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
   items.push({ label: '待機', act: 'wait', desc: '何もせず行動を終える' });
-  const ts = tileScreen(u.x, u.y), tz = TS * Engine.zoom; let mx = ts.x + tz + 3; if (mx > W - 54) mx = ts.x - 53;
-  let my = ts.y - 4; my = Math.max(4, Math.min(VH() - items.length * 14 - 12, my));
+  // place the menu where it does not cover other units (so enemies stay tappable)
+  const ts = tileScreen(u.x, u.y), tz = TS * Engine.zoom, mw = 50, mh = items.length * 14 + 8, vh = VH();
+  const cands = [[ts.x + tz + 3, ts.y - 4], [ts.x - mw - 3, ts.y - 4], [ts.x - 4, ts.y + tz + 3], [ts.x - 4, ts.y - mh - 3], [ts.x + tz + 3, ts.y + tz - mh + 4], [ts.x - mw - 3, ts.y + tz - mh + 4]];
+  const others = alive(S).filter(o => o !== u).map(o => tileScreen(o.x, o.y));
+  const fits = c => c[0] >= 2 && c[0] + mw <= W - 2 && c[1] >= 2 && c[1] + mh <= vh - 2 && !others.some(o => c[0] < o.x + tz && o.x < c[0] + mw && c[1] < o.y + tz && o.y < c[1] + mh);
+  let pick = cands.find(fits) || cands[0]; let mx = Math.max(2, Math.min(W - mw - 2, pick[0])), my = Math.max(2, Math.min(vh - mh - 2, pick[1]));
   openMenu(items, mx, my, 50); G.mode = 'menu'; u.spActive = null; G.spMode = false;
 }
 function undoMove() {
@@ -164,17 +168,27 @@ function battleInput(a) {
       break;
   }
 }
+// tapping an enemy directly: open the forecast for it when the selected hero can already reach it
+function quickAttack(e) {
+  if (!G.menu) return false; const k = G.menu.items.findIndex(i => (i.act === 'attack' || i.act === 'heal') && !i.off); if (k < 0) return false;
+  G.menu.idx = k; menuPick(); const i = G.targets.indexOf(e); if (i < 0) { openActionMenu(); return false; }
+  G.ti = i; G.cursor = { x: e.x, y: e.y }; battleInput('ok'); return true;
+}
 function tapMap(px, py) {
   if (!G.S) return;
-  if (G.mode === 'forecast') { Input.q.push('cancel'); return; }
-  if (G.mode === 'menu' || G.mode === 'sysmenu') { Input.q.push('cancel'); return; }
   const z = Engine.zoom, tx = Math.floor((px / z + Cam.x - OX()) / TS), ty = Math.floor((py / z + Cam.y - OY()) / TS);
+  if (G.mode === 'forecast') { const t = G.targets[G.ti]; Input.q.push(t && t.x === tx && t.y === ty ? 'ok' : 'cancel'); return; } // tap the target again = confirm
+  if (G.mode === 'menu') { const e = inb(G.S, tx, ty) && unitAt(G.S, tx, ty); if (e && e.team !== 0 && quickAttack(e)) return; Input.q.push('cancel'); return; }
+  if (G.mode === 'sysmenu') { Input.q.push('cancel'); return; }
   if (!inb(G.S, tx, ty)) return;
   const S = G.S, u = unitAt(S, tx, ty);
   if (G.mode === 'target') { const i = G.targets.findIndex(t => t.x === tx && t.y === ty); if (i >= 0) { G.ti = i; G.cursor = { x: tx, y: ty }; Input.q.push('ok'); } return; }
   G.cursor = { x: tx, y: ty };
   if (G.mode === 'idle') { if (u) Input.q.push('ok'); }
-  else if (G.mode === 'move') { if (G.moveSet.has(kk(tx, ty))) Input.q.push('ok'); }
+  else if (G.mode === 'move') {
+    if (G.moveSet.has(kk(tx, ty))) Input.q.push('ok');
+    else if (u && u.team !== 0 && targetsFrom(S, G.sel, G.sel.x, G.sel.y).includes(u)) { G.cursor = { x: G.sel.x, y: G.sel.y }; G.pendingAtk = u; confirmMove(); } // enemy already in range: stay and attack
+  }
 }
 function pumpTaps() {
   for (const t of Input.taps) {
@@ -329,6 +343,7 @@ function frame(ts) {
 window.__tac = {
   seed: n => seedRng(n), speed: n => { G.speed = n; }, step: n => { for (let i = 0; i < n; i++) step(); render(); },
   start: ch => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0 }; },
+  place: (id, x, y) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.x = x; u.y = y; u.vx = x; u.vy = y; } },
   kill: key => { const u = G.S && G.S.units.find(x => x.key === key); if (u) { u.hp = 0; u.dead = true; u.gone = true; checkOver(G.S); } },
   setExp: (id, n) => { if (G.roster && G.roster[id]) G.roster[id].exp = n; },
   ready: () => (G.scene === 'battle' ? inputReady() : (G.scene !== 'boot' && !G.banner)),
