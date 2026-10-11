@@ -4,7 +4,7 @@ All files in this folder are unmodified copies (byte-for-byte) of PNGs from the 
 
 ## Source
 - Repository: https://github.com/sparklinlabs/superpowers-asset-packs (commit `e8674a03ab4456802f71f848c4df79eccca23f7a`)
-- Packs used: `ninja-adventure/` and `medieval-fantasy/` (terrain from the `medieval-fantasy` background-elements tileset; the mountain tile comes from the ninja-adventure tileset and the fort sprite from medieval-fantasy)
+- Packs used: `ninja-adventure/` and `medieval-fantasy/` (terrain from the `medieval-fantasy` background-elements tileset; the mountain tile comes from the ninja-adventure tileset and the castle sprite from medieval-fantasy)
 - Author: Pixel-boy (https://twitter.com/2pblog1), as credited in each pack's `README.md` ("Assets created by Pixel-boy ... for Superpowers supporters! See https://github.com/sparklinlabs/superpowers-asset-packs for license information and more assets!")
 - License: CC0 1.0 Universal. The repo `LICENSE.txt` begins: "CC0 1.0 Universal" and includes the CC0 statement. Attribution is not required; it is given here as a courtesy.
 
@@ -22,8 +22,9 @@ All files in this folder are unmodified copies (byte-for-byte) of PNGs from the 
 | characters/24.png | ninja-adventure/characters/24.png | Ninja Adventure |
 | characters/25.png | ninja-adventure/characters/25.png | Ninja Adventure |
 | faces/N.png (N = 1,2,9,12,15,16,20,23,24,25) | ninja-adventure/characters/faceset/N.png | Ninja Adventure (portraits) |
-| tiles/ninja_tileset.png | ninja-adventure/background-elements/tileset.png | Ninja Adventure (background elements; rock pile used for mountains) |
-| tiles/fort.png | medieval-fantasy/background-elements/1.png | Medieval Fantasy (30x29 stone fort sprite; drawn whole over a 2x2 fort block) |
+| tiles/ninja_tileset.png | ninja-adventure/background-elements/tileset.png | Ninja Adventure (background elements; rock pile used for mountains, plus flower/tuft/stone decorations) |
+| tiles/castle.png | medieval-fantasy/background-elements/17.png | Medieval Fantasy (30x39 stone castle sprite; drawn centred over the fort block) |
+| tiles/fort.png | medieval-fantasy/background-elements/1.png | Medieval Fantasy (small fort sprite; no longer used by the game, kept as an unmodified copy) |
 | tiles/terrain.png | medieval-fantasy/background-elements/0-tileset.png | Medieval Fantasy (background elements) |
 
 Each `N.png` in `characters/` is the body sheet with the same number as its `faces/N.png` portrait.

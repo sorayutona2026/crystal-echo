@@ -7,9 +7,17 @@ const G = {
 };
 const OX = () => Math.floor((W - G.S.w * TS) / 2), OY = () => Math.floor((H - G.S.h * TS) / 2);
 const TEAMCOL = ['#4a90ff', '#ff4a4a'];
-function wrapText(s, maxw, size) {
+const NOSTART = '、。，．！？!?）」』】〕…ー・ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ:;,.';
+const NOEND = '（「『【〔';
+function wrapText(s, maxw, size) { // Japanese line breaking (kinsoku): no line starts with closing marks/small kana/ー, none ends with an opening bracket
   const lines = []; let cur = '';
-  for (const ch of s) { if (tw(cur + ch, size) > maxw) { lines.push(cur); cur = ch; } else cur += ch; }
+  for (const ch of s) {
+    if (tw(cur + ch, size) > maxw && cur) {
+      if (NOSTART.includes(ch) && cur.length > 1) { const last = cur.slice(-1); lines.push(cur.slice(0, -1)); cur = last + ch; }
+      else if (NOEND.includes(cur.slice(-1)) && cur.length > 1) { const last = cur.slice(-1); lines.push(cur.slice(0, -1)); cur = last + ch; }
+      else { lines.push(cur); cur = ch; }
+    } else cur += ch;
+  }
   if (cur) lines.push(cur); return lines;
 }
 function hpColor(r) { return r > 0.5 ? '#4fe070' : r > 0.25 ? '#f0d040' : '#f05050'; }
@@ -22,8 +30,7 @@ function hpBar(x, y, w, h, hp, max, ghost) {
 function drawMap(S, tt) {
   const ox = OX(), oy = OY();
   rect(0, 0, W, H, '#10131e');
-  for (let y = 0; y < S.h; y++) for (let x = 0; x < S.w; x++) drawTile(ctx, S.rows[y][x], ox + x * TS, oy + y * TS, x, y, tt);
-  drawForts(ctx, S.rows, ox, oy);
+  drawMapLayer(ctx, S.rows, ox, oy, tt);
 }
 function drawOverlay(S) {
   const ox = OX(), oy = OY(), pulse = 0.5 + 0.5 * Math.sin(G.t / 12);
@@ -113,6 +120,7 @@ function drawBigInfo(u) {
   text('Aキーで閉じる', x + w - 6, y + h - 11, { size: 7, align: 'right', color: '#889' });
 }
 function drawMenu(m) {
+  const cur = m.items[m.idx]; if (cur && cur.desc) { panel(40, 4, 240, 15, 0.92); text(cur.name || cur.label, 46, 8, { size: 8, bold: true, color: '#ffe860' }); text(cur.desc + (cur.off ? '(使えない)' : ''), 86, 8, { size: 8 }); }
   const w = m.w || 56, h = m.items.length * 14 + 8;
   panel(m.x, m.y, w, h, 0.95);
   m.items.forEach((it, i) => {
@@ -128,15 +136,18 @@ function drawForecast(fc) {
   const side = (S, cx, right) => {
     const u = S.u; text(u.name, cx, y + 4, { size: 9, bold: true, color: u.team === 0 ? '#9fc4ff' : '#ff9f9f' });
     text(weaponOf(u).name, cx, y + 15, { size: 7, color: '#b8c4ff' });
+    if (S.adv) text(S.adv > 0 ? '▲有利' : '▼不利', cx + 52, y + 15, { size: 7, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
     text('HP', cx, y + 25, { size: 7, color: '#ffd24a' }); hpBar(cx + 14, y + 27, 50, 4, u.hp, u.maxhp);
     text(String(u.hp), cx + 68, y + 24, { size: 8 });
     if (S.can) {
       text('ダメージ', cx, y + 35, { size: 8 }); text(S.dmg + (S.n > 1 ? ' ×2' : ''), cx + 90, y + 35, { size: 9, bold: true, align: 'right', color: S.n > 1 ? '#ffe860' : '#fff' });
+      if (S.adv) text(S.adv > 0 ? '▲' : '▼', cx + 95, y + 35, { size: 8, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
       text('命中', cx, y + 46, { size: 8 }); text(S.hit + '%', cx + 90, y + 46, { size: 9, bold: true, align: 'right' });
+      if (S.adv) text(S.adv > 0 ? '▲' : '▼', cx + 95, y + 46, { size: 8, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
     } else text('反撃できない', cx, y + 40, { size: 8, color: '#889' });
   };
   side(fc.a, x + 8); rect(x + w / 2, y + 6, 1, h - 12, '#4a58a8'); side(fc.d, x + w / 2 + 8);
-  text('決定:攻撃  戻る:キャンセル', x + w / 2, y + h - 11, { size: 7, align: 'center', color: '#99a', shadow: false });
+  text(G.spMode ? '決定:' + SP[G.sel.key].name + '  戻る:キャンセル' : '決定:攻撃  戻る:キャンセル', x + w / 2, y + h - 11, { size: 7, align: 'center', color: '#99a', shadow: false });
 }
 function drawBanner() {
   const b = G.banner; if (!b) return; const t = b.t;
@@ -166,6 +177,21 @@ function drawPhaseLabel(S, x, y) {
   text('ターン' + S.turn + (G.phase === 0 ? ' 自軍' : ' 敵軍'), x + 5, y + 3, { size: 8, bold: true, color: G.phase === 0 ? '#9fc4ff' : '#ff9f9f' });
   const left = alive(S).filter(u => u.team === 1).length; text('敵' + left, x + 78, y + 3, { size: 7, color: '#ffb0b0' });
 }
+function cursorUnit() { const S = G.S; return unitAt(S, G.cursor.x, G.cursor.y) || (G.sel && G.sel.x === G.cursor.x && G.sel.y === G.cursor.y ? G.sel : null); }
+// portrait phones: unit/terrain/phase info lives in a separate canvas below the map so it never covers the field
+function drawInfoCanvas() {
+  const S = G.S, main = ctx; ctx = cv2.getContext('2d'); ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false;
+  rect(0, 0, W, INFO_H, '#0b0b14'); ctx.fillStyle = '#161a3a'; ctx.fillRect(0, 0, W, 1);
+  if (S) {
+    const cu = cursorUnit();
+    if (cu) drawUnitPanel(cu, 4, 4); else { panel(4, 4, 128, 50, 0.6); text('マスをタップして', 12, 16, { size: 8, color: '#889' }); text('ユニットを選択', 12, 28, { size: 8, color: '#889' }); }
+    drawPhaseLabel(S, 140, 4); drawTerrainPanel(140, 22, S.rows[G.cursor.y][G.cursor.x]);
+    text('目的: ' + S.ch.goal, 4, 58, { size: 8, color: '#ffe27a' });
+    text('味方 ' + alive(S).filter(u => u.team === 0).length + '  敵 ' + alive(S).filter(u => u.team === 1).length, 246, 7, { size: 8 });
+    text('タップ:選択/移動/決定', 4, 69, { size: 7, color: '#889' });
+  }
+  ctx = main;
+}
 function drawBattle() {
   const S = G.S; if (!S) return;
   ctx.save();
@@ -177,9 +203,8 @@ function drawBattle() {
   if (G.mode !== 'busyhide') drawCursor(S);
   ctx.restore();
   const left = G.cursor.x >= 10; // flip panels away from the cursor
-  const cu = unitAt(S, G.cursor.x, G.cursor.y) || (G.sel && G.sel.x === G.cursor.x && G.sel.y === G.cursor.y ? G.sel : null);
-  const ox = OX(), oy = OY();
-  if (G.mode !== 'forecast') {
+  const cu = cursorUnit();
+  if (G.mode !== 'forecast' && !Engine.port) {
     drawPhaseLabel(S, left ? 4 : W - 100, 4);
     drawTerrainPanel(left ? 4 : W - 74, 20, S.rows[G.cursor.y][G.cursor.x]);
     if (cu && !G.infoBig) drawUnitPanel(cu, left ? 4 : W - 132, H - 54);
@@ -195,8 +220,7 @@ function drawBattle() {
 function drawBackdropMap(idx, dim) {
   const ch = CHAPTERS[idx], w = ch.map[0].length, h = ch.map.length, ox = Math.floor((W - w * TS) / 2), oy = Math.floor((H - h * TS) / 2);
   rect(0, 0, W, H, '#080a14');
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) drawTile(ctx, ch.map[y][x], ox + x * TS, oy + y * TS, x, y, G.t);
-  drawForts(ctx, ch.map, ox, oy);
+  drawMapLayer(ctx, ch.map, ox, oy, G.t);
   ctx.fillStyle = 'rgba(8,10,40,' + dim + ')'; ctx.fillRect(0, 0, W, H);
 }
 function drawDialogue() {
@@ -210,9 +234,8 @@ function drawDialogue() {
   }
   panel(bx, by, bw, bh, 0.92);
   if (sp) { panel(bx + 6, by - 8, tw(sp.name, 9) + 14, 14, 1); text(sp.name, bx + 13, by - 5, { size: 9, bold: true, color: '#ffe860' }); }
-  const lines = wrapText(d.line[1].slice(0, d.n), bw - 20, 9);
-  const all = wrapText(d.line[1], bw - 20, 9);
-  lines.forEach((l, i) => text(l, bx + 10, by + 9 + i * 14, { size: 9 }));
+  const all = wrapText(d.line[1], bw - 20, 9); let left = d.n;
+  all.forEach((l, i) => { const part = l.slice(0, Math.max(0, left)); left -= l.length; if (part) text(part, bx + 10, by + 9 + i * 14, { size: 9 }); });
   if (d.n >= d.line[1].length && Math.floor(G.t / 20) % 2) text('▼', bx + bw - 14, by + bh - 12, { size: 8, color: '#ffe860' });
   if (d.tip) text('決定: 次へ', W - 8, 6, { size: 7, align: 'right', color: '#889' });
 }

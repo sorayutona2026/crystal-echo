@@ -10,16 +10,16 @@ const TERRAIN = {
 };
 // names[tier]: tier 0 basic, 1 steel, 2 silver (player gear improves per chapter); might +2 per tier
 const WEAPONS = {
-  spear:  { names: ['鉄の槍', '鋼の槍', '銀の槍'], type: 'phys', might: 6, hit: 85, min: 1, max: 1 },
+  spear:  { names: ['鉄の槍', '鋼の槍', '銀の槍'], tri: 'spear', type: 'phys', might: 6, hit: 85, min: 1, max: 1 },
   bow:    { names: ['鉄の弓', '鋼の弓', '銀の弓'], type: 'phys', might: 5, hit: 85, min: 2, max: 2 },
   tome:   { names: ['ファイア', 'エルファイア', 'ボルガノン'], type: 'mag', might: 5, hit: 85, min: 1, max: 2 },
   staff:  { names: ['ライブ', 'リライブ', 'ミラクル'], type: 'heal', might: 4, hit: 100, min: 1, max: 1 },
-  dagger: { names: ['短剣', '鋼の短剣', '銀の短剣'], type: 'phys', might: 4, hit: 95, min: 1, max: 1 },
-  axe:    { names: ['手斧'], type: 'phys', might: 5, hit: 75, min: 1, max: 1 },
-  sword:  { names: ['骨の剣'], type: 'phys', might: 5, hit: 80, min: 1, max: 1 },
+  dagger: { names: ['短剣', '鋼の短剣', '銀の短剣'], tri: 'sword', type: 'phys', might: 4, hit: 95, min: 1, max: 1 },
+  axe:    { names: ['手斧'], tri: 'axe', type: 'phys', might: 5, hit: 75, min: 1, max: 1 },
+  sword:  { names: ['骨の剣'], tri: 'sword', type: 'phys', might: 5, hit: 80, min: 1, max: 1 },
   slime:  { names: ['溶解液'], type: 'phys', might: 3, hit: 80, min: 1, max: 1 },
   dark:   { names: ['ダークボルト'], type: 'mag', might: 5, hit: 80, min: 1, max: 2 },
-  gold:   { names: ['黄金の大剣'], type: 'phys', might: 7, hit: 85, min: 1, max: 1 }
+  gold:   { names: ['黄金の大槍'], tri: 'spear', type: 'phys', might: 7, hit: 85, min: 1, max: 1 }
 };
 const STATS = ['hp', 'str', 'mag', 'skl', 'spd', 'def', 'res'];
 const STAT_JP = { hp: 'HP', str: '力', mag: '魔力', skl: '技', spd: '速さ', def: '守備', res: '魔防', mov: '移動' };
@@ -43,7 +43,25 @@ function scaledStats(base, gr, lv) { // deterministic growth for enemies / late 
   for (const k of STATS) s[k] = Math.round(base[k] + (gr[k] || 0) * (lv - 1) / 100);
   return s;
 }
-function weaponOf(u) { const w = WEAPONS[u.wpn], t = Math.min(u.tier || 0, w.names.length - 1); return { name: w.names[t], type: w.type, might: w.might + (w.names.length > 1 ? 2 * t : 0), hit: w.hit, min: w.min, max: w.max }; }
+// weapon triangle: sword > axe > spear > sword (advantage: +1 damage, +15 hit; disadvantage: the reverse)
+const TRI_BEATS = { sword: 'axe', axe: 'spear', spear: 'sword' };
+// hero specials: once per chapter. shot/meteor/ambush modify the weapon for one attack; buff/pray are instant
+const SP = {
+  leon: { name: '鼓舞', kind: 'buff', desc: '隣の味方の攻撃+2(このターン)' },
+  mira: { name: '狙撃', kind: 'shot', desc: '射程2〜3・威力+3・命中+10' },
+  luka: { name: 'メテオ', kind: 'meteor', desc: '射程1〜3・威力+3・着弾点の周囲1マスにも6割の被害' },
+  sophia: { name: '祈り', kind: 'pray', desc: '2マス以内の味方全員を回復' },
+  jin: { name: '奇襲', kind: 'ambush', desc: '威力+2・命中+30・必ず2回攻撃' }
+};
+function weaponOf(u) {
+  const w = WEAPONS[u.wpn], t = Math.min(u.tier || 0, w.names.length - 1);
+  const o = { name: w.names[t], type: w.type, tri: w.tri || null, might: w.might + (w.names.length > 1 ? 2 * t : 0), hit: w.hit, min: w.min, max: w.max };
+  const k = u.spActive;
+  if (k === 'shot') { o.min = 2; o.max = 3; o.might += 3; o.hit += 10; o.name = '狙撃'; }
+  else if (k === 'meteor') { o.min = 1; o.max = 3; o.might += 3; o.hit += 10; o.name = 'メテオ'; }
+  else if (k === 'ambush') { o.might += 2; o.hit += 30; o.name = '奇襲'; }
+  return o;
+}
 function makeHero(id, lv) {
   const d = HEROES[id], s = scaledStats(d.base, d.gr, lv);
   return Object.assign({ id, key: id, name: d.name, cls: d.cls, sprite: d.sprite, team: 0, lv, exp: 0, wpn: d.wpn, tier: 0, maxhp: s.hp, hp: s.hp, ai: null, boss: false, lord: id === 'leon', dir: 'down' }, s, { hp: s.hp });
@@ -121,7 +139,7 @@ const CHAPTERS = [
   {
     title: '第三章', name: '金角の砦', goal: '敵将ガルドを倒せ', win: 'boss', bgm: 'boss',
     map: mk([
-      '..TT.....^^^......TT', '....T....^^....##...', '..T.....==.....##...', '....====..T.........',
+      '..TT.....^^^......TT', '....T....^^....###..', '..T.....==.....###..', '....====..T.........',
       '~~..=.....T....=.=..', '~...=..~~...T.==....', '....=..~~.^^..=...T.', '...==..~~.^^.==.....',
       '..=T.......^..=..TT.', '..=...T..====..T....', '..==.TT.==..........', '...=.......T....T...',
       '.===....T.....^^....', '.=......T..T........', '.=..................']),

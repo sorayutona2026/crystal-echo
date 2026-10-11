@@ -24,11 +24,11 @@ async function doAction(page, sug, stopAt) {
   await cursorTo(page, sug.dest.x, sug.dest.y); if (stopAt === 'move') return;
   await press(page, 'z'); await waitMode(page, 'menu');
   if (stopAt === 'menu') return;
-  const s = await st(page); const want = sug.target ? (sug.kind === 'heal' ? '回復' : '攻撃') : '待機';
+  const s = await st(page); const want = sug.sp ? sug.spLabel : sug.target ? (sug.kind === 'heal' ? '回復' : '攻撃') : '待機';
   const i = s.menu.items.findIndex(x => x.label === want); if (i < 0 || s.menu.items[i].off) throw new Error('menu item unavailable: ' + want + ' ' + JSON.stringify(s.menu));
   await press(page, 'ArrowDown', i - s.menu.idx); await press(page, 'z');
   const acted = () => waitState(page, id => { const s = __tac.state(); const u = s.units.find(x => x.id === id); return !u || u.acted || s.over; }, sug.unit);
-  if (!sug.target) { await acted(); return; }
+  if (!sug.target) { await acted(); return; } // wait or an instant special
   await waitMode(page, 'target');
   const t = await st(page), ti = t.targets.indexOf(sug.target); if (ti < 0) throw new Error('target not in list');
   await press(page, 'ArrowRight', (ti - t.ti + t.targets.length) % t.targets.length);

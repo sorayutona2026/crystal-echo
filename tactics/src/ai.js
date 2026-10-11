@@ -50,6 +50,29 @@ function chooseAction(S, u, opts) {
       }
       if (!best || score > best.score) best = { unit: u, dest: { x: s.x, y: s.y }, target: t, score, kind: healer ? 'heal' : 'attack' };
     }
+    // hero special (player bot only): considered as extra candidates, slightly penalised so it is saved for good moments
+    const spd = opts.player ? SP[u.key] : null;
+    if (spd && !u.spUsed) {
+      const cand = (score, target) => { if (!best || score > best.score) best = { unit: u, dest: { x: s.x, y: s.y }, target, score, kind: target ? 'attack' : 'sp', sp: true }; };
+      if (spd.kind === 'buff') {
+        const n = alive(S).filter(o => o !== u && o.team === u.team && !o.acted && dist(s.x, s.y, o.x, o.y) <= 1).length;
+        const foe = alive(S).some(o => o.team !== u.team && dist(s.x, s.y, o.x, o.y) <= 6);
+        if (n >= 2 || (n >= 1 && foe)) cand(14 + 4 * n - th, null);
+      } else if (spd.kind === 'pray') {
+        let sum = 0, cnt = 0; for (const o of alive(S)) if (o.team === u.team && o.hp < o.maxhp && dist(s.x, s.y, o.x, o.y) <= 2) { sum += Math.min(o.maxhp - o.hp, u.mag + 3); cnt++; }
+        if (sum >= 12 && cnt >= 2) cand(20 + sum * 1.5 - th, null);
+      } else {
+        u.spActive = spd.kind;
+        for (const t of targetsFrom(S, u, s.x, s.y)) {
+          const f = forecast(S, u, t, s.x, s.y);
+          let give = Math.min(t.hp, f.a.dmg * f.a.n) * f.a.hit / 100; const take = f.d.can ? f.d.dmg * f.d.n * f.d.hit / 100 : 0;
+          const kill = f.a.dmg * f.a.n >= t.hp && f.a.hit >= 60;
+          if (spd.kind === 'meteor') for (const o of alive(S)) if (o !== t && o.team !== u.team && dist(o.x, o.y, t.x, t.y) <= 1) give += Math.min(o.hp, Math.round(f.a.dmg * 0.6));
+          cand(20 + give - take + (kill ? 15 : 0) + (t.boss ? 4 : 0) + tb - th * 0.5 - 4, t);
+        }
+        u.spActive = null;
+      }
+    }
   }
   if (best) return best;
   if (u.ai === 'wait' && !opts.player) return { unit: u, dest: { x: u.x, y: u.y }, target: null, score: -1, kind: 'wait' };
@@ -80,7 +103,7 @@ function suggestAction(S) {
   let acts = [], moves = [];
   for (const u of mine) {
     const a = chooseAction(S, u, { careful: 0.6, player: true });
-    (a.target ? acts : moves).push(a);
+    (a.target || a.sp ? acts : moves).push(a);
   }
   if (acts.length) { acts.sort((a, b) => b.score - a.score); return acts[0]; }
   // movers: front-most first (smallest distance to foes)

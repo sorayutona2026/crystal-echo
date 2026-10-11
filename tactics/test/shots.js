@@ -59,6 +59,11 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
   await page.evaluate(() => { __tac.speed(10); __tac.kill('leon'); });
   await waitState(page, () => __tac.state().scene === 'gameover', null, 60000); await page.evaluate(() => __tac.speed(1)); await sleep(300); await shot(page, '16_gameover');
   await press(page, 'z'); await waitState(page, () => __tac.state().scene === 'battle'); console.log('retry after defeat OK');
+  // special-command menu (ルカ: メテオ) on the opening position of chapter 1
+  await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
+  await page.evaluate(() => { __tac.speed(10); __tac.start(0); });
+  await page.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await page.evaluate(() => __tac.speed(1));
+  { const s1 = await st(page), lk = s1.units.find(u => u.key === 'luka'); await cursorTo(page, lk.x, lk.y); await press(page, 'z'); await waitMode(page, 'move'); await press(page, 'z'); await waitMode(page, 'menu'); await press(page, 'ArrowDown'); await sleep(250); await shot(page, '17_special_menu'); }
   // boss chapter on a phone in portrait
   const p2 = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const pg = await p2.newPage(); pg.on('pageerror', e => errors.push('pageerror ' + e.message)); pg.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

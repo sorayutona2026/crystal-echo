@@ -421,12 +421,44 @@
       "desc": "beige stone floor path"
     },
     "tile_fort": {
-      "file": "tiles/fort.png",
+      "file": "tiles/castle.png",
       "x": 0,
       "y": 0,
       "w": 30,
-      "h": 29,
-      "desc": "stone fort seen from above (30x29 sprite, drawn over a 2x2 block of fort tiles)"
+      "h": 39,
+      "desc": "dark stone castle (30x39 sprite), centred on the fort block"
+    },
+    "deco_flower": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 16,
+      "y": 128,
+      "w": 16,
+      "h": 16,
+      "desc": "white flower (ninja-adventure tileset)"
+    },
+    "deco_flowers": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 32,
+      "y": 128,
+      "w": 16,
+      "h": 16,
+      "desc": "small white flowers (ninja-adventure tileset)"
+    },
+    "deco_tuft": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 0,
+      "y": 128,
+      "w": 16,
+      "h": 16,
+      "desc": "grass tuft (ninja-adventure tileset)"
+    },
+    "deco_stone": {
+      "file": "tiles/ninja_tileset.png",
+      "x": 0,
+      "y": 112,
+      "w": 16,
+      "h": 16,
+      "desc": "small stone (ninja-adventure tileset)"
     }
   }
 }

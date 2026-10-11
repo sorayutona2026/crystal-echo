@@ -3,7 +3,7 @@
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 function newBattle(ch, roster) {
   const rows = ch.map, S = { rows, w: rows[0].length, h: rows.length, units: [], turn: 1, phase: 0, over: null, ch };
-  for (const [id, x, y] of ch.party) { const u = roster[id]; u.x = x; u.y = y; u.hp = u.maxhp; u.acted = false; u.dead = false; u.dir = 'right'; S.units.push(u); }
+  for (const [id, x, y] of ch.party) { const u = roster[id]; u.x = x; u.y = y; u.hp = u.maxhp; u.acted = false; u.dead = false; u.dir = 'right'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; S.units.push(u); }
   for (const [t, x, y, lv, ai] of ch.enemies) { const u = makeEnemy(t, lv, x, y, ai); u.acted = false; u.dead = false; S.units.push(u); }
   return S;
 }
@@ -59,14 +59,23 @@ function threatTiles(S, u, r) {
   }
   return set;
 }
+function triAdv(a, d) { const x = weaponOf(a).tri, y = weaponOf(d).tri; if (!x || !y) return 0; return TRI_BEATS[x] === y ? 1 : TRI_BEATS[y] === x ? -1 : 0; }
 function calcDmg(S, a, d, dx, dy) {
-  const w = weaponOf(a);
-  if (w.type === 'mag') return Math.max(0, a.mag + w.might - d.res);
-  return Math.max(0, a.str + w.might - (d.def + terrAt(S, dx, dy).def));
+  const w = weaponOf(a), adv = triAdv(a, d), bf = a.atkBuff || 0;
+  if (w.type === 'mag') return Math.max(0, a.mag + w.might + adv + bf - d.res);
+  return Math.max(0, a.str + w.might + adv + bf - (d.def + terrAt(S, dx, dy).def));
 }
 function calcHit(S, a, d, dx, dy) {
   const w = weaponOf(a);
-  return Math.max(0, Math.min(100, w.hit + a.skl * 2 - (d.spd * 2 + terrAt(S, dx, dy).avo)));
+  return Math.max(0, Math.min(100, w.hit + triAdv(a, d) * 15 + a.skl * 2 - (d.spd * 2 + terrAt(S, dx, dy).avo)));
+}
+// special availability: returns null (no special), or the list of targets (may be empty => unusable)
+function spTargets(S, u, x, y) {
+  const sp = SP[u.key]; if (!sp || u.spUsed || u.team !== 0) return null;
+  const near = r => alive(S).filter(o => o !== u && o.team === u.team && dist(x, y, o.x, o.y) <= r);
+  if (sp.kind === 'buff') return near(1);
+  if (sp.kind === 'pray') return alive(S).filter(o => o.team === u.team && o.hp < o.maxhp && dist(x, y, o.x, o.y) <= 2);
+  u.spActive = sp.kind; const t = targetsFrom(S, u, x, y); u.spActive = null; return t;
 }
 // forecast of a attacks d with a standing at (ax,ay)
 function forecast(S, a, d, ax, ay) {
@@ -74,8 +83,9 @@ function forecast(S, a, d, ax, ay) {
   const dd = dist(ax, ay, d.x, d.y), dw = weaponOf(d);
   const dcan = canDamage(d) && dd >= dw.min && dd <= dw.max;
   const diff = a.spd - d.spd;
-  const A = { u: a, dmg: calcDmg(S, a, d, d.x, d.y), hit: calcHit(S, a, d, d.x, d.y), n: diff >= 4 ? 2 : 1, can: true };
-  const D = { u: d, dmg: dcan ? calcDmg(S, d, a, ax, ay) : 0, hit: dcan ? calcHit(S, d, a, ax, ay) : 0, n: dcan ? (-diff >= 4 ? 2 : 1) : 0, can: dcan };
+  const adv = triAdv(a, d);
+  const A = { u: a, dmg: calcDmg(S, a, d, d.x, d.y), hit: calcHit(S, a, d, d.x, d.y), n: (diff >= 4 || a.spActive === 'ambush') ? 2 : 1, can: true, adv };
+  const D = { u: d, dmg: dcan ? calcDmg(S, d, a, ax, ay) : 0, hit: dcan ? calcHit(S, d, a, ax, ay) : 0, n: dcan ? (-diff >= 4 ? 2 : 1) : 0, can: dcan, adv: -adv };
   return { a: A, d: D, dist: dd };
 }
 // roll a whole combat. returns events with hp after each strike; mutates hp.
@@ -112,12 +122,24 @@ function checkOver(S) {
   return S.over;
 }
 // perform one unit's action instantly; returns a record the UI can replay
-function applyAction(S, u, dest, target) {
-  const rec = { unit: u, from: { x: u.x, y: u.y }, path: null, events: [], exp: [], target: target || null, kind: 'wait' };
+function applyAction(S, u, dest, target, sp) {
+  const rec = { unit: u, from: { x: u.x, y: u.y }, path: null, events: [], exp: [], target: target || null, kind: 'wait', sp: null, buffed: [] };
   if (dest && (dest.x !== u.x || dest.y !== u.y)) {
     const r = reach(S, u); rec.path = pathTo(r, dest.x, dest.y); u.x = dest.x; u.y = dest.y;
   }
-  if (target) {
+  const kind = sp && SP[u.key] ? SP[u.key].kind : null;
+  if (kind) { u.spUsed = true; rec.sp = kind; }
+  if (kind === 'buff') {
+    rec.kind = 'buff';
+    for (const o of alive(S)) if (o !== u && o.team === u.team && dist(u.x, u.y, o.x, o.y) <= 1) { o.atkBuff = 2; rec.buffed.push(o); }
+  } else if (kind === 'pray') {
+    rec.kind = 'heal';
+    for (const o of alive(S)) if (o.team === u.team && o.hp < o.maxhp && dist(u.x, u.y, o.x, o.y) <= 2) {
+      const amt = Math.min(o.maxhp - o.hp, u.mag + 3), before = o.hp; o.hp += amt;
+      rec.events.push({ type: 'heal', att: u, def: o, dmg: amt, hpBefore: before, hpAfter: o.hp });
+    }
+    if (rec.events.length) { const e = gainExp(u, 15); if (e) rec.exp.push({ unit: u, n: 15, up: e.up }); }
+  } else if (target) {
     if (isHealer(u)) {
       const amt = Math.min(target.maxhp - target.hp, u.mag + weaponOf(u).might);
       const before = target.hp; target.hp += amt; rec.kind = 'heal';
@@ -125,7 +147,16 @@ function applyAction(S, u, dest, target) {
       const e = gainExp(u, 15); if (e) rec.exp.push({ unit: u, n: 15, up: e.up });
     } else {
       rec.kind = 'attack';
+      if (kind) u.spActive = kind;
       rec.events = runCombat(S, u, target, u.x, u.y);
+      if (kind === 'meteor' && !u.dead) { // splash on the foes around the impact point (never misses, no counter)
+        const base = Math.max(1, Math.round(calcDmg(S, u, target, target.x, target.y) * 0.6));
+        for (const o of alive(S)) if (o !== target && o.team !== u.team && dist(o.x, o.y, target.x, target.y) <= 1) {
+          o.hp = Math.max(0, o.hp - base); if (o.hp <= 0) o.dead = true;
+          rec.events.push({ type: 'hit', att: u, def: o, hit: true, dmg: base, hpAfter: o.hp, kill: o.dead, aoe: true });
+        }
+      }
+      u.spActive = null;
       for (const p of [u, target]) if (p.team === 0 && !p.dead) {
         const killed = rec.events.some(e => e.kill && e.att === p);
         const n = killed ? 30 : 10; const e = gainExp(p, n); if (e) rec.exp.push({ unit: p, n, up: e.up });
@@ -139,7 +170,7 @@ function applyAction(S, u, dest, target) {
 function startPhase(S, team) { // fort heal + reset acted flags; returns heal records
   const out = [];
   for (const u of alive(S)) if (u.team === team) {
-    u.acted = false;
+    u.acted = false; if (team === 0) u.atkBuff = 0;
     const T = terrAt(S, u.x, u.y);
     if (T.heal && u.hp < u.maxhp) { const amt = Math.max(1, Math.round(u.maxhp * T.heal)), a = Math.min(amt, u.maxhp - u.hp); out.push({ unit: u, from: u.hp, amt: a }); u.hp += a; }
   }

@@ -6,9 +6,12 @@ html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 #tac button{white-space:nowrap;font:bold 13px/1 "Hiragino Kaku Gothic ProN","Noto Sans JP","Meiryo","IPAGothic","WenQuanYi Zen Hei",sans-serif;color:#eef;background:#27305a;border:2px solid #7f8fe0;border-radius:10px;padding:0 10px;min-width:64px;height:44px;touch-action:manipulation}
 #tac button:active{background:#4a58a8}
 #tac button.end{background:#6a2a2a;border-color:#e08f8f}
-#tac.port .pad{bottom:0;height:56px;align-items:center}
-#tac.port #padL{left:0;right:50%;justify-content:flex-end;padding-right:6px}
-#tac.port #padR{left:50%;right:0;justify-content:flex-start;padding-left:6px}
+#pads{display:contents}
+#tac #cv2{display:none;background:#0b0b14}
+#tac.port{flex-direction:column;justify-content:center;gap:0}
+#tac.port #cv2{display:block}
+#tac.port #pads{display:flex;gap:12px;margin-top:8px}
+#tac.port .pad{position:static;display:flex;gap:6px}
 #tac.nopads .pad{display:none}
 #tac.land .pad{top:0;bottom:0;flex-direction:column;justify-content:center;width:80px}
 #tac.land #padL{left:0;align-items:center}
@@ -17,6 +20,9 @@ html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 </style>
 <div id="tac" class="port">
 <canvas id="cv" width="320" height="240"></canvas>
+<canvas id="cv2" width="320" height="80"></canvas>
+<div id="pads">
 <div class="pad" id="padL"><button id="bCancel">キャンセル</button><button id="bInfo">情報</button></div>
 <div class="pad" id="padR"><button id="bEnd" class="end">ターン終了</button><button id="bMute">音 ON</button></div>
+</div>
 </div>

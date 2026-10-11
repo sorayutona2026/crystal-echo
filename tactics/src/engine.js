@@ -1,6 +1,6 @@
 'use strict';
 // ===== engine: canvas scaling, input, rng =====
-const W = 320, H = 240, TS = 16;
+const W = 320, H = 240, TS = 16, INFO_H = 80;
 let _seed = 1;
 function seedRng(n) { _seed = (n >>> 0) || 1; }
 function rnd() { // mulberry32 (game logic randomness; visuals use Math.random)
@@ -9,16 +9,16 @@ function rnd() { // mulberry32 (game logic randomness; visuals use Math.random)
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 const FONT = '"Hiragino Kaku Gothic ProN","Noto Sans JP","Meiryo","IPAGothic","WenQuanYi Zen Hei",sans-serif';
-let cv, ctx, K = 3, appEl;
+let cv, cv2, ctx, K = 3, appEl;
 function initCanvas() {
-  appEl = document.getElementById('tac'); cv = document.getElementById('cv'); ctx = cv.getContext('2d');
+  appEl = document.getElementById('tac'); cv = document.getElementById('cv'); cv2 = document.getElementById('cv2'); ctx = cv.getContext('2d');
   window.addEventListener('resize', fit); fit();
 }
 function fit() {
   const w = window.innerWidth, h = window.innerHeight;
   const port = h > w * 1.05; let padsOff = false;
   let s;
-  if (port) { s = Math.min(w / W, (h - 60) / H); if (s >= 2) s = Math.floor(s); }
+  if (port) { s = Math.min(w / W, (h - 64) / (H + INFO_H)); if (s >= 2) s = Math.floor(s); }
   else {
     let s0 = Math.min(w / W, h / H); if (s0 >= 2) s0 = Math.floor(s0);
     const mouse = window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches;
@@ -30,8 +30,9 @@ function fit() {
   appEl.className = (port ? 'port' : 'land') + (padsOff ? ' nopads' : '');
   K = Math.max(1, Math.min(6, Math.ceil(s)));
   cv.width = W * K; cv.height = H * K;
+  cv2.width = W * K; cv2.height = INFO_H * K; cv2.style.width = Math.round(W * s) + 'px'; cv2.style.height = Math.round(INFO_H * s) + 'px'; Engine.port = port;
   cv.style.width = Math.round(W * s) + 'px'; cv.style.height = Math.round(H * s) + 'px';
-  cv.style.imageRendering = (s === Math.floor(s)) ? 'pixelated' : 'auto';
+  cv.style.imageRendering = cv2.style.imageRendering = (s === Math.floor(s)) ? 'pixelated' : 'auto';
   Engine.scale = s;
 }
 const Engine = { scale: 1 };

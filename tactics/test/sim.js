@@ -4,12 +4,13 @@ const src = ['engine.js', 'data.js', 'battle.js', 'ai.js'].map(f => fs.readFileS
 const ctx = vm.createContext({ console });
 vm.runInContext(src + '\nthis.API={seedRng,rnd,CHAPTERS,newRoster,prepareChapter,cloneRoster,alive,chooseAction,suggestAction,applyAction,startPhase,chapterBonus,checkOver,STATS};', ctx);
 const A = ctx.API;
+const spUse = {};
 function playChapter(roster, idx, log) {
   const S = A.prepareChapter(roster, idx); let turns = 0;
   while (!S.over && turns < 40) {
     // player phase
     A.startPhase(S, 0);
-    for (let guard = 0; guard < 20 && !S.over; guard++) { const a = A.suggestAction(S); if (!a) break; A.applyAction(S, a.unit, a.dest, a.target); }
+    for (let guard = 0; guard < 20 && !S.over; guard++) { const a = A.suggestAction(S); if (!a) break; if (a.sp) spUse[a.unit.key] = (spUse[a.unit.key] || 0) + 1; A.applyAction(S, a.unit, a.dest, a.target, a.sp); }
     if (S.over) break;
     A.startPhase(S, 1);
     for (const e of A.alive(S).filter(u => u.team === 1)) { if (S.over || e.dead) continue; const a = A.chooseAction(S, e, {}); A.applyAction(S, e, a.dest, a.target); }
@@ -34,4 +35,5 @@ for (let seed = 1; seed <= runs; seed++) {
 }
 const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2) : '-';
 for (let i = 0; i < 3; i++) console.log('ch' + (i + 1), 'attempts', res[i][0], 'wins', res[i][1], 'avg lv', avg(lv[i]), 'avg hp% left', avg(hpLeft[i]), 'avg dead', avg(lost[i]));
+console.log('special uses', JSON.stringify(spUse));
 console.log('full clears', full + '/' + runs);

@@ -57,6 +57,8 @@ function* strike(ev) {
 function* playRecord(rec, fast) {
   const u = rec.unit; u.acting = true;
   if (rec.path && rec.path.length > 1) yield* glide(u, rec.path, fast ? 3 : 4);
+  if (rec.sp) { Aud.sfx('levelup'); numFx(u, SP[u.key].name + '!', '#ffd24a', 10); burst(u, '#ffd24a', 12); yield 22; }
+  if (rec.buffed.length) { for (const a of rec.buffed) { sparkle(a); numFx(a, '攻撃+2', '#ffb050', 8); } Aud.sfx('heal'); yield 30; }
   if (rec.target && !rec.unit.dead) { u.dir = dirOf(rec.target.x - u.x, rec.target.y - u.y); }
   for (const ev of rec.events) {
     if (ev.type === 'heal') {
@@ -78,7 +80,7 @@ function selectUnit(u) {
   const S = G.S; G.sel = u; G.reach = reach(S, u); G.moveSet = new Set(G.reach.stops.map(s => kk(s.x, s.y))); G.threat = threatTiles(S, u, G.reach);
   G.orig = { x: u.x, y: u.y, dir: u.dir }; G.mode = 'move'; G.showRange = null; Aud.sfx('ok');
 }
-function deselect() { G.sel = null; G.reach = null; G.moveSet = null; G.threat = null; G.mode = 'idle'; G.targets = []; G.fc = null; G.menu = null; }
+function deselect() { if (G.sel) G.sel.spActive = null; G.spMode = false; G.sel = null; G.reach = null; G.moveSet = null; G.threat = null; G.mode = 'idle'; G.targets = []; G.fc = null; G.menu = null; }
 function runBusy(gen) { G.busy++; Co.run((function* () { try { yield* gen; } finally { G.busy--; flushInput(); } })()); }
 function confirmMove() {
   const u = G.sel, c = G.cursor, S = G.S;
@@ -89,10 +91,12 @@ function confirmMove() {
 function openActionMenu() {
   const u = G.sel, S = G.S, t = targetsFrom(S, u, u.x, u.y), items = [];
   items.push(isHealer(u) ? { label: '回復', off: !t.length, act: 'heal' } : { label: '攻撃', off: !t.length, act: 'attack' });
+  const sp = SP[u.key], st = spTargets(S, u, u.x, u.y);
+  if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
   items.push({ label: '待機', act: 'wait' });
   const ox = OX(), oy = OY(); let mx = ox + u.x * TS + 20; if (mx > W - 62) mx = ox + u.x * TS - 60;
   let my = oy + u.y * TS - 4; my = Math.max(4, Math.min(H - items.length * 14 - 12, my));
-  openMenu(items, mx, my, 46); G.mode = 'menu';
+  openMenu(items, mx, my, 50); G.mode = 'menu'; u.spActive = null; G.spMode = false;
 }
 function undoMove() {
   const u = G.sel, o = G.orig; u.x = o.x; u.y = o.y; u.vx = o.x; u.vy = o.y; u.dir = o.dir; G.menu = null; G.mode = 'move'; Aud.sfx('cancel');
@@ -104,14 +108,19 @@ function afterAction() {
 function doAction(kind) {
   const u = G.sel, S = G.S;
   if (kind === 'wait') { Aud.sfx('ok'); const rec = applyAction(S, u, null, null); u.dir = u.dir; afterAction(); return; }
-  const target = G.targets[G.ti]; Aud.sfx('ok'); G.mode = 'busy'; G.menu = null;
-  runBusy((function* () { const rec = applyAction(S, u, null, target); G.fc = null; yield* playRecord(rec); afterAction(); if (G.endTurn) yield 12; })());
+  const target = G.targets[G.ti], spm = kind === 'sp' || G.spMode; Aud.sfx('ok'); G.mode = 'busy'; G.menu = null;
+  runBusy((function* () { const rec = applyAction(S, u, null, target, spm); G.fc = null; yield* playRecord(rec); afterAction(); if (G.endTurn) yield 12; })());
 }
 function menuPick() {
   const m = G.menu, it = m.items[m.idx];
   if (it.off) { Aud.sfx('cancel'); return; }
   if (G.mode === 'sysmenu') { it.fn(); return; }
   if (it.act === 'wait') { G.menu = null; doAction('wait'); return; }
+  if (it.act === 'sp') {
+    const k = SP[G.sel.key].kind;
+    if (k === 'buff' || k === 'pray') { G.menu = null; doAction('sp'); return; }
+    G.spMode = true; G.sel.spActive = k;
+  }
   G.targets = targetsFrom(G.S, G.sel, G.sel.x, G.sel.y).sort((a, b) => a.y - b.y || a.x - b.x); G.ti = 0; G.cursor = { x: G.targets[0].x, y: G.targets[0].y }; G.menu = null; G.mode = 'target'; Aud.sfx('ok');
 }
 function openSys() {
@@ -306,6 +315,7 @@ function render() {
     case 'ending': drawEnding(); break;
     default: rect(0, 0, W, H, '#000'); text('読み込み中…', W / 2, 110, { align: 'center' });
   }
+  if (Engine.port && G.scene === 'battle') drawInfoCanvas(); else if (Engine.port) { const c = cv2.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#0b0b14'; c.fillRect(0, 0, cv2.width, cv2.height); }
   Touch.flip();
 }
 let _last = 0, _acc = 0;
@@ -335,7 +345,7 @@ window.__tac = {
   suggest() {
     const S = G.S; if (!S || G.scene !== 'battle') return null;
     const a = suggestAction(S); if (!a) return { end: true };
-    return { unit: a.unit.id, dest: a.dest, target: a.target ? a.target.id : null, kind: a.kind, from: { x: a.unit.x, y: a.unit.y } };
+    return { unit: a.unit.id, dest: a.dest, target: a.target ? a.target.id : null, kind: a.kind, sp: !!a.sp, spLabel: a.sp ? SP[a.unit.key].name : null, from: { x: a.unit.x, y: a.unit.y } };
   }
 };
 window.addEventListener('load', () => {
