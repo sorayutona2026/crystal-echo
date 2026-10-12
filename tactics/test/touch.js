@@ -3,13 +3,14 @@ const { launch, open, st, URL } = require('./lib');
 const { sleep, waitState } = require('./bot');
 (async () => {
   const b = await launch(); const errors = [];
+  const settleCam = async (get) => { let prev = null; for (let i = 0; i < 40; i++) { const s = await get(); const k = Math.round(s.ox) + ',' + Math.round(s.oy); if (k === prev) return s; prev = k; await sleep(90); } return get(); };
   for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
     const ctx = await b.newContext({ viewport: vp, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
     const page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     await page.goto(URL); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
     const lg = async (x, y) => { const r = await page.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh, yo: __tac.state().yoff }; }); return { x: r.l + x / 320 * r.w, y: r.t + (y + r.yo) / r.vh * r.h }; };
     const tap = async (x, y) => { const p = await lg(x, y); await page.touchscreen.tap(p.x, p.y); await sleep(60); };
-    const tapTile = async (tx, ty) => { const s = await st(page); await tap(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
+    const tapTile = async (tx, ty) => { const s = await settleCam(() => st(page)); await tap(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
     // canvas must fit inside the viewport and buttons must be on screen
     const geo = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cv'); return { c: [c.left, c.top, c.right, c.bottom], b: ['bCancel', 'bEnd', 'bInfo', 'bMute'].map(i => { const q = r(i); return [q.left, q.top, q.right, q.bottom]; }), w: innerWidth, h: innerHeight }; });
     for (const q of geo.b.concat([geo.c])) if (q[0] < -0.5 || q[1] < -0.5 || q[2] > geo.w + 0.5 || q[3] > geo.h + 0.5) throw new Error('element off screen ' + JSON.stringify(geo));
@@ -42,6 +43,27 @@ const { sleep, waitState } = require('./bot');
     console.log('touch OK', vp.width + 'x' + vp.height, 'canvas', geo.c.map(Math.round).join(','));
     await ctx.close();
   }
+  // camp (base) screens by real touches: big rows must be tappable on phones, portrait and landscape
+  for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    const ctx = await b.newContext({ viewport: vp, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+    const page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+    await page.goto(URL); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
+    await page.evaluate(() => { __tac.speed(4); __tac.start(2, true); }); await waitState(page, () => __tac.state().scene === 'base'); await page.evaluate(() => { __tac.speed(1); __tac.give(1000, 0); }); await sleep(300);
+    const tapRow = async (label) => { // tap the row with this label (scrolling with arrows is not needed: all test rows fit)
+      const s = await st(page), i = s.base.rows.indexOf(label); if (i < 0) throw new Error('row not found: ' + label + ' in ' + s.base.rows.join(','));
+      const g = s.base.geom, k = i - g.scroll; if (k < 0 || k >= g.vis) throw new Error('row not visible: ' + label + ' ' + JSON.stringify(g));
+      const r = await page.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh, yo: __tac.state().yoff }; });
+      const ly = g.y0 + k * (g.rh + 2) + g.rh / 2; await page.touchscreen.tap(r.l + 160 / 320 * r.w, r.t + (ly + r.yo) / r.vh * r.h); await sleep(150); };
+    const depth = async () => (await st(page)).base.depth;
+    await tapRow('部隊'); if ((await st(page)).base.title !== '部隊') throw new Error('部隊 row tap failed');
+    await tapRow((await st(page)).base.rows[0]); if ((await depth()) !== 3) throw new Error('hero row tap failed');
+    await tapRow('戻る'); await tapRow('戻る'); if ((await depth()) !== 1) throw new Error('戻る taps failed');
+    await tapRow('ショップ'); await tapRow('買う'); await tapRow((await st(page)).base.rows[0]); if ((await depth()) !== 4) throw new Error('shop navigation failed');
+    const g0 = (await st(page)).gold; await tapRow((await st(page)).base.rows[0]); const g1 = (await st(page)).gold; if (!(g1 < g0)) throw new Error('buy by tap did not spend gold ' + g0 + ' -> ' + g1);
+    await tapRow('戻る'); await tapRow('戻る'); await tapRow('戻る'); if ((await depth()) !== 1) throw new Error('could not leave the shop');
+    await tapRow('出撃準備'); await tapRow('出撃する!'); await waitState(page, () => __tac.state().scene !== 'base', null, 8000);
+    console.log('camp touch OK', vp.width + 'x' + vp.height, 'gold', g0, '->', g1); await ctx.close();
+  }
   // regression: attack with taps only, inside an iframe (like the artifact host), portrait and landscape
   for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
     for (const seq of ['menu', 'quick-menu', 'quick-move']) {
@@ -54,7 +76,7 @@ const { sleep, waitState } = require('./bot');
         await fr.waitForFunction(() => window.__tac && __tac.state().scene === 'title', null, { timeout: 15000 });
         const S = () => fr.evaluate(() => __tac.state());
         const tapL = async (x, y) => { const r = await fr.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh, yo: __tac.state().yoff }; }); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + r.l + x / 320 * r.w, fe.y + r.t + (y + r.yo) / r.vh * r.h); await sleep(150); };
-        const tapT = async (tx, ty) => { const s = await S(); await tapL(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
+        const tapT = async (tx, ty) => { const s = await settleCam(S); await tapL(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
         const tapBtn = async sel => { const bx = await (await fr.$(sel)).boundingBox(); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + bx.x + bx.width / 2, fe.y + bx.y + bx.height / 2); await sleep(150); };
         await fr.evaluate(sd => { __tac.seed(sd); __tac.speed(10); __tac.start(0); }, seed);
         await fr.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await fr.evaluate(() => __tac.speed(1)); await sleep(300);

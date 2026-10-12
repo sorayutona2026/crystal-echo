@@ -8,10 +8,10 @@ const { launch, open, st } = require('./lib');
   for (let i = 0; i < 40; i++) { s = await st(page); if (s.scene === 'battle' && s.ready) break; await page.keyboard.press('z'); await page.waitForTimeout(60); }
   s = await st(page);
   if (s.scene !== 'battle') throw new Error('did not reach battle: ' + s.scene);
-  if (s.units.filter(u => u.team === 0).length !== 3 || s.units.filter(u => u.team === 1).length !== 5) throw new Error('unexpected units');
+  if (s.units.filter(u => u.team === 0).length !== 3 || s.units.filter(u => u.team === 1).length !== 6) throw new Error('unexpected units');
   // the chapter-start autosave must make 'continue' available after a reload
   await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
-  s = await st(page); if (!(await page.evaluate(() => { try { return !!localStorage.getItem('starfall_tactics_save_v1'); } catch (e) { return true; } }))) throw new Error('no save written');
+  s = await st(page); if (!(await page.evaluate(() => { try { return !!localStorage.getItem('starfall_tactics_save_v2'); } catch (e) { return true; } }))) throw new Error('no save written');
   console.log('save present, title items:', s.title.items.join(','));
   await b.close();
   if (errors.length) { console.error(errors.join('\n')); process.exit(1); }

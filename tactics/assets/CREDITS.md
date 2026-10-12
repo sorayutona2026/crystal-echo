@@ -40,8 +40,16 @@ Houses, straw hut (tent), carts, signs, graves, stump, banner, barrel, mushrooms
 Unmodified copies from the same repository and commit (CC0, Pixel-boy):
 - `fx/rpg_N.png` = `rpg-battle-system/fx/N.png` (N = 1, 3, 4, 5, 7, 9, 10, 11, 12): explosion, slashes, heal cross, fireball, claw, flame, holy cross effects.
 - `fx/nin_5.png`, `fx/nin_18.png` = `ninja-adventure/fx/5.png`, `18.png` (hit spark, smoke puff).
-- `bg/N.png` = `rpg-battle-system/backgrounds/N.png` (N = 15, 19, 12, 2, 3): painted backgrounds for the title, chapter cards, dialogue and ending.
+- `bg/N.png` = `rpg-battle-system/backgrounds/N.png` (N = 15, 19, 12, 2, 3): the old pixel-painted backgrounds. **No longer used or embedded** (replaced by the ChatGPT backgrounds below); the files stay in the repository unmodified.
 - `icons/w_{sword,lance,axe,bow,sai}.png` = `ninja-adventure/weapons/*.png`; `icons/i_{scroll-fire,life-pot,kunai,heart}.png` = `ninja-adventure/items/*.png`: weapon and special icons.
 
 ## ChatGPT-generated illustrations (Loop 6)
 `assets/gpt/face_<id>.webp` and `assets/gpt/full_<id>.webp` are portraits and full-body illustrations for the five heroes and five enemy types. **ユーザーがChatGPTで生成して提供した画像** (prompts in `GPT_PROMPTS.md`). The originals are kept unmodified in `art-src/gpt_faces_sheet.png` and `art-src/gpt_units_sheet.png` (not embedded in the game). `tools/prep_gpt_art.py` crops the portraits (256x256), separates the figures, removes ground shadows and the colour halo, and resizes them to WebP; it is deterministic and can be re-run.
+
+## ChatGPT-generated backgrounds and battlefield (Loop 7)
+**ユーザーがChatGPTで生成して提供した画像 (user-generated with ChatGPT).** Originals are kept unmodified in `art-src/` and are not embedded in the game:
+- `art-src/bg_title.png` (1536x1024) -> `assets/gpt/bg_title.webp`: title screen.
+- `art-src/bg_village.png` (1536x1024) -> `assets/gpt/bg_village.webp`: chapter 1 scenes and the ending.
+- `art-src/bg_sheet_6.png` (1536x1024, a 2x3 sheet separated by thin light gutters) -> `bg_ford.webp` (chapter 2), `bg_forest.webp` (chapter 3), `bg_ruins.webp` (chapter 4), `bg_fort.webp` (chapter 5, boss reveal), `bg_altar.webp` (chapter 6), `bg_camp.webp` (camp / support talks). `tools/prep_gpt_art.py` finds the gutters automatically, trims 2 px and writes WebP (about 1280 px wide for the full-size images, quality 80).
+- `art-src/map_ch1.png` (1448x1086, painted top-down battlefield with a faint grid) -> `assets/gpt/map_ch1.webp` + `map_ch1.json`: the chapter 1 ground. The script measures the painted grid lines (21 vertical and 17 horizontal lines, pitch about 65 x 62 px, slightly uneven), crops the partial bottom row and resamples every painted cell to 64x64 px, so one painted cell is exactly one game tile (22 x 17 tiles). The terrain grid of chapter 1 (`src/story.js`) was written by hand from this painting.
+All of these are drawn at device resolution on the hi-DPI layer (`src/hd.js`, canvas `#cvb`), cover-fitted and slightly darkened with a vignette so text stays readable.

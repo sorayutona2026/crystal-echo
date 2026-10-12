@@ -2,6 +2,8 @@
 """Deterministic preparation of the ChatGPT-generated art (user supplied, see GPT_PROMPTS.md).
 Input : art-src/gpt_faces_sheet.png, art-src/gpt_units_sheet.png   (kept as-is, not embedded)
 Output: assets/gpt/face_<id>.webp (256x256), assets/gpt/full_<id>.webp (cleaned full-body with alpha), assets/gpt/contact.png (review sheet)
+Also  : art-src/bg_title.png, bg_village.png, bg_sheet_6.png (2x3 grid of backgrounds), map_ch1.png (painted ch1 battlefield)
+        -> assets/gpt/bg_<name>.webp (about 1280 px wide, quality 80) and assets/gpt/map_ch1.webp + map_ch1.json (grid-aligned battlefield)
 Run   : python3 tools/prep_gpt_art.py
 """
 import pathlib, json
@@ -170,8 +172,55 @@ def contact(sizes):
             tile.paste(im, ((150 - im.width) // 2, 330 - im.height - 2), im); S.paste(tile, (i * 150, row * 330))
     S.save(out / 'contact.png')
 
+# ---------------------------------------------------------------- backgrounds (title, village, 2x3 sheet)
+BG_W = 1280
+def save_bg(im, name):
+    im = im.convert('RGB')
+    if im.width > BG_W: im = im.resize((BG_W, round(im.height * BG_W / im.width)), Image.LANCZOS)
+    im.save(out / ('bg_%s.webp' % name), 'WEBP', quality=80, method=6)
+    return im.size
+
+def make_backgrounds():
+    sizes = {}
+    sizes['title'] = save_bg(Image.open(src / 'bg_title.png'), 'title')
+    sizes['village'] = save_bg(Image.open(src / 'bg_village.png'), 'village')
+    sheet = Image.open(src / 'bg_sheet_6.png').convert('RGB'); a = np.array(sheet).astype(int)
+    light = (a.min(axis=2) >= 225)
+    gr = [r for r in runs(light.mean(axis=1) > 0.85)]; gc = [c for c in runs(light.mean(axis=0) > 0.85)]
+    assert len(gr) == 2 and len(gc) == 1, 'expected 2 row gutters and 1 column gutter, got %s %s' % (gr, gc)
+    ys = [0, gr[0][0], gr[0][1], gr[1][0], gr[1][1], sheet.height]; xs = [0, gc[0][0], gc[0][1], sheet.width]
+    names = [['ford', 'forest'], ['ruins', 'fort'], ['altar', 'camp']]
+    for r in range(3):
+        for c in range(2):
+            x0, x1 = xs[2 * c], xs[2 * c + 1]; y0, y1 = ys[2 * r], ys[2 * r + 1]
+            sizes[names[r][c]] = save_bg(sheet.crop((x0 + 2, y0 + 2, x1 - 2, y1 - 2)), names[r][c])   # 2px trim against gutter anti-aliasing
+    return sizes
+
+# ---------------------------------------------------------------- painted ch1 battlefield: measure the faint grid, resample every cell to 64x64
+def find_lines(a, axis, thr=0.75):
+    d = (np.roll(a, 3, axis=axis) + np.roll(a, -3, axis=axis)) / 2 - a
+    s = (d > 8).mean(axis=1 - axis)
+    pk = [i for i in range(4, len(s) - 4) if s[i] > thr and s[i] >= s[i - 1] and s[i] > s[i + 1]]
+    return pk
+
+def make_map():
+    im = Image.open(src / 'map_ch1.png').convert('RGB'); g = np.array(im.convert('L')).astype(float)
+    xl = find_lines(g, 1); yl = find_lines(g, 0)          # the grid is 1-2 px dark lines; texture never reaches 75% line coverage
+    xs = [0] + xl + [im.width]; ys = [0] + yl + [im.height]
+    if ys[-1] - ys[-2] < 40: ys = ys[:-1]                  # partial cell at the bottom edge is cropped
+    if xs[-1] - xs[-2] < 40: xs = xs[:-1]
+    print('map grid: %d x %d cells, x pitch %.1f, y pitch %.1f' % (len(xs) - 1, len(ys) - 1, np.mean(np.diff(xs)), np.mean(np.diff(ys))))
+    C = 64; out_im = Image.new('RGB', ((len(xs) - 1) * C, (len(ys) - 1) * C))
+    for j in range(len(ys) - 1):
+        for i in range(len(xs) - 1):
+            out_im.paste(im.crop((xs[i], ys[j], xs[i + 1], ys[j + 1])).resize((C, C), Image.LANCZOS), (i * C, j * C))
+    out_im.save(out / 'map_ch1.webp', 'WEBP', quality=82, method=6)
+    json.dump({'cols': len(xs) - 1, 'rows': len(ys) - 1, 'cell': C, 'xs': xs, 'ys': ys}, open(out / 'map_ch1.json', 'w'))
+    return out_im.size
+
 if __name__ == '__main__':
     cells = make_faces(); print('face cells', cells)
     sizes = make_full(); print('full sizes', sizes)
     contact(sizes)
+    print('backgrounds', make_backgrounds()); print('map', make_map())
     tot = sum(f.stat().st_size for f in out.glob('*.webp')); print('total webp bytes', tot)

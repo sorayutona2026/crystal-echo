@@ -61,7 +61,7 @@ function initInput() {
   cv.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); ptr = { cx: e.clientX, cy: e.clientY, lx: e.clientX, ly: e.clientY, drag: false }; try { cv.setPointerCapture(e.pointerId); } catch (x) { } });
   cv.addEventListener('pointermove', e => {
     if (!ptr) return; if (!ptr.drag && Math.hypot(e.clientX - ptr.cx, e.clientY - ptr.cy) > 9) ptr.drag = true;
-    if (ptr.drag) { const r = cv.getBoundingClientRect(); if (Engine.zoom > 1) Input.pans.push({ dx: (e.clientX - ptr.lx) / r.width * W, dy: (e.clientY - ptr.ly) / r.height * Engine.vh }); ptr.lx = e.clientX; ptr.ly = e.clientY; }
+    if (ptr.drag) { const r = cv.getBoundingClientRect(); if (camOn()) Input.pans.push({ dx: (e.clientX - ptr.lx) / r.width * W, dy: (e.clientY - ptr.ly) / r.height * Engine.vh }); ptr.lx = e.clientX; ptr.ly = e.clientY; }
   });
   cv.addEventListener('pointerup', e => { if (ptr && !ptr.drag) { const p = lp(e); Input.taps.push({ x: p.x, y: p.y - (G.yOff || 0) }); } ptr = null; });
   cv2.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); const r = cv2.getBoundingClientRect(); if (window.minimapTap) window.minimapTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * INFO_H); });

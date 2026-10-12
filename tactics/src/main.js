@@ -1,8 +1,8 @@
 'use strict';
 // ===== main: scenes, input handling, animation, loop, test hooks =====
-const SAVE_KEY = 'starfall_tactics_save_v1';
-function saveGame(ch) { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ch, roster: G.snap })); G.hasSave = true; } catch (e) { } }
-function loadGame() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.roster && s.ch >= 0 && s.ch < CHAPTERS.length) return s; } catch (e) { } return null; }
+const SAVE_KEY = 'starfall_tactics_save_v2';
+function saveGame(ch, base) { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, ch, base: !!base, roster: G.roster, meta: G.meta })); G.hasSave = true; } catch (e) { } }
+function loadGame() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 2 && s.roster && s.meta && s.ch >= 0 && s.ch < CHAPTERS.length) return s; } catch (e) { } return null; }
 function flushInput() { Input.q.length = 0; }
 function* waitAct() { for (;;) { if (Input.q.length) return Input.q.shift(); yield 1; } }
 function* waitOk() { // level-up popups etc.; with auto on they close by themselves after ~1s
@@ -66,7 +66,7 @@ function* strike(ev) {
       else if (aw === 'dagger') spawnSpr('rpg_10', cx, cy, { scale: 0.32, dur: 3, flip: dx < 0 });
       else spawnSpr('rpg_4', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0 });
       if (ev.kill) { spawnSpr('nin_18', cx, cy + 2, { scale: 1.3, dur: 4 }); G.flashW = 4; }
-      numFx(d, String(ev.dmg), d.team === 0 ? '#ff7070' : '#fff', ev.dmg >= 10 ? 13 : 11);
+      if (ev.crit) { numFx(d, '必殺 ' + ev.dmg, '#ffd24a', 14); G.shake = 12; G.flashW = 3; } else numFx(d, String(ev.dmg), d.team === 0 ? '#ff7070' : '#fff', ev.dmg >= 10 ? 13 : 11);
       Co.run(tweenHp(d, ev.hpAfter, 16));
     } else { Aud.sfx('miss'); numFx(d, 'MISS', '#c8d0ff', 9); }
   };
@@ -91,6 +91,10 @@ function* strike(ev) {
 function* playRecord(rec, fast) {
   const u = rec.unit; u.acting = true;
   if (rec.path && rec.path.length > 1) yield* glide(u, rec.path, fast ? 3 : 4);
+  if (rec.chest) { Aud.sfx('levelup'); const c = rec.chest; numFx(u, c.item === 'proof' ? '勇者の証!' : '+' + c.gold + 'G', '#ffe27a', 11); burst(u, '#ffe27a', 12); yield 24; }
+  if (rec.kind === 'escape') { Aud.sfx('heal'); numFx(u, '離脱!', '#8fffb0', 10); sparkle(u); yield 16; u.gone = true; u.acting = false; return; }
+  if (rec.kind === 'talk' && rec.target) { Aud.sfx('levelup'); numFx(rec.target, '仲間に!', '#ffe27a', 10); sparkle(rec.target); yield 22; }
+  if (rec.kind === 'item') { numFx(u, rec.itemName, '#9fe8ff', 8); yield 8; }
   if (rec.sp) { Aud.sfx('levelup'); numFx(u, SP[u.key].name + '!', '#ffd24a', 10); burst(u, '#ffd24a', 12); { const up = tilePx(u.vx, u.vy); spawnSpr('rpg_12', up.x, up.y + 6, { scale: 0.28, dur: 3, glow: 1 }); } yield 22; }
   if (rec.buffed.length) { for (const a of rec.buffed) { sparkle(a); numFx(a, '攻撃+2', '#ffb050', 8); } Aud.sfx('heal'); yield 30; }
   if (rec.target && !rec.unit.dead) { u.dir = dirOf(rec.target.x - u.x, rec.target.y - u.y); }
@@ -116,7 +120,7 @@ function selectUnit(u) {
   const S = G.S; G.sel = u; G.reach = reach(S, u); G.moveSet = new Set(G.reach.stops.map(s => kk(s.x, s.y))); G.threat = threatTiles(S, u, G.reach);
   G.orig = { x: u.x, y: u.y, dir: u.dir }; G.mode = 'move'; G.showRange = null; Aud.sfx('ok');
 }
-function deselect() { G.pendingAtk = null; if (G.sel) G.sel.spActive = null; G.spMode = false; G.sel = null; G.reach = null; G.moveSet = null; G.threat = null; G.mode = 'idle'; G.targets = []; G.fc = null; G.menu = null; }
+function deselect() { G.sub = false; G.healMode = false; G.pendingAtk = null; if (G.sel) G.sel.spActive = null; G.spMode = false; G.sel = null; G.reach = null; G.moveSet = null; G.threat = null; G.mode = 'idle'; G.targets = []; G.fc = null; G.menu = null; }
 function runBusy(gen) { G.busy++; Co.run((function* () { try { yield* gen; } finally { G.busy--; flushInput(); } })()); }
 function confirmMove() {
   const u = G.sel, c = G.cursor, S = G.S;
@@ -124,19 +128,27 @@ function confirmMove() {
   const path = pathTo(G.reach, c.x, c.y); Aud.sfx('ok'); G.mode = 'moving';
   runBusy((function* () { u.x = c.x; u.y = c.y; if (path.length > 1) yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y; openActionMenu(); if (G.pendingAtk) { const e = G.pendingAtk; G.pendingAtk = null; quickAttack(e); } })());
 }
+function adjacentRecruit(S, u) { return u.key === 'leon' ? S.units.find(o => o.recruit && !o.dead && o.team === 2 && dist(o.x, o.y, u.x, u.y) === 1) || null : null; }
 function openActionMenu() {
-  const u = G.sel, S = G.S, t = targetsFrom(S, u, u.x, u.y), items = [];
-  { const w = weaponOf(u); items.push(isHealer(u) ? { label: '回復', off: !t.length, act: 'heal', desc: '隣の味方をHP回復(射程1)' } : { label: '攻撃', off: !t.length, act: 'attack', desc: w.name + ' 威力' + w.might + ' 射程' + w.min + (w.max > w.min ? '〜' + w.max : '') }); }
+  const u = G.sel, S = G.S, items = []; G.sub = false;
+  const t = targetsFrom(S, u, u.x, u.y);
+  if (isHealer(u)) items.push({ label: '回復', off: !t.length, act: 'heal', desc: '隣の味方をHP回復(射程1)' });
+  else { const w = weaponOf(u); items.push({ label: '攻撃', off: !t.length, act: 'attack', desc: w.name + ' 威力' + w.might + ' 射程' + w.min + (w.max > w.min ? '〜' + w.max : '') }); if (u.canHeal) items.push({ label: '回復', off: !healTargets(S, u, u.x, u.y).length, act: 'heal', desc: '隣の味方をHP回復(杖・射程1)' }); }
   const sp = SP[u.key], st = spTargets(S, u, u.x, u.y);
   if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
+  if (u.items.length) items.push({ label: '道具', act: 'item', off: u.hp >= u.maxhp, desc: '傷薬などで自分を回復(' + u.items.map(k => ITEMS[k].name).join('・') + ')' });
+  if (adjacentRecruit(S, u)) items.push({ label: '話す', act: 'talk', desc: '隣の人物に話しかける' });
+  if (S.ch.win === 'escape' && isExit(S, u.x, u.y)) items.push({ label: '離脱', act: 'escape', desc: '出口から脱出する' });
   items.push({ label: '待機', act: 'wait', desc: '何もせず行動を終える' });
-  // place the menu where it does not cover other units (so enemies stay tappable)
-  const ts = tileScreen(u.x, u.y), tz = TS * Engine.zoom, mw = 50, mh = items.length * 14 + 8, vh = VH();
+  placeMenu(items, u); G.mode = 'menu'; u.spActive = null; G.spMode = false; G.healMode = false;
+}
+function placeMenu(items, u) { // place the menu where it does not cover other units (so enemies stay tappable)
+  const S = G.S, ts = tileScreen(u.x, u.y), tz = TS * Engine.zoom, mw = 50, mh = items.length * 14 + 8, vh = VH();
   const cands = [[ts.x + tz + 3, ts.y - 4], [ts.x - mw - 3, ts.y - 4], [ts.x - 4, ts.y + tz + 3], [ts.x - 4, ts.y - mh - 3], [ts.x + tz + 3, ts.y + tz - mh + 4], [ts.x - mw - 3, ts.y + tz - mh + 4]];
   const others = alive(S).filter(o => o !== u).map(o => tileScreen(o.x, o.y));
   const fits = c => c[0] >= 2 && c[0] + mw <= W - 2 && c[1] >= 2 && c[1] + mh <= vh - 2 && !others.some(o => c[0] < o.x + tz && o.x < c[0] + mw && c[1] < o.y + tz && o.y < c[1] + mh);
   let pick = cands.find(fits) || cands[0]; let mx = Math.max(2, Math.min(W - mw - 2, pick[0])), my = Math.max(2, Math.min(vh - mh - 2, pick[1]));
-  openMenu(items, mx, my, 50); G.mode = 'menu'; u.spActive = null; G.spMode = false;
+  openMenu(items, mx, my, 50);
 }
 function undoMove() {
   const u = G.sel, o = G.orig; u.x = o.x; u.y = o.y; u.vx = o.x; u.vy = o.y; u.dir = o.dir; G.menu = null; G.mode = 'move'; Aud.sfx('cancel');
@@ -145,22 +157,34 @@ function afterAction() {
   const S = G.S; const c = G.sel ? { x: G.sel.x, y: G.sel.y } : G.cursor; deselect(); G.cursor = { x: c.x, y: c.y };
   if (!S.over && !alive(S).some(u => u.team === 0 && !u.acted)) G.endTurn = true;
 }
-function doAction(kind) {
+function doAction(kind, extra) {
   const u = G.sel, S = G.S;
   if (kind === 'wait') { Aud.sfx('ok'); const rec = applyAction(S, u, null, null); u.dir = u.dir; afterAction(); return; }
-  const target = G.targets[G.ti], spm = kind === 'sp' || G.spMode; Aud.sfx('ok'); G.mode = 'busy'; G.menu = null;
-  runBusy((function* () { const rec = applyAction(S, u, null, target, spm); G.fc = null; yield* playRecord(rec); afterAction(); if (G.endTurn) yield 12; })());
+  if (kind === 'escape' || kind === 'item' || kind === 'talk') {
+    Aud.sfx('ok'); G.mode = 'busy'; G.menu = null; const tg = kind === 'talk' ? adjacentRecruit(S, u) : null;
+    runBusy((function* () {
+      if (kind === 'talk' && tg) yield* dialogue(S.ch.recruit.lines, null, true);
+      const rec = applyAction(S, u, null, tg, false, kind === 'escape' ? { escape: true } : kind === 'talk' ? { talk: true } : { item: extra });
+      yield* playRecord(rec); afterAction(); if (G.endTurn) yield 12;
+    })()); return;
+  }
+  const target = G.targets[G.ti], spm = kind === 'sp' || G.spMode, hm = G.healMode; Aud.sfx('ok'); G.mode = 'busy'; G.menu = null;
+  runBusy((function* () { const rec = applyAction(S, u, null, target, spm, hm ? { heal: true } : null); G.fc = null; yield* playRecord(rec); afterAction(); if (G.endTurn) yield 12; })());
 }
 function menuPick() {
   const m = G.menu, it = m.items[m.idx];
   if (it.off) { Aud.sfx('cancel'); return; }
   if (G.mode === 'sysmenu') { it.fn(); return; }
   if (it.act === 'wait') { G.menu = null; doAction('wait'); return; }
+  if (it.act === 'escape' || it.act === 'talk') { doAction(it.act); return; }
+  if (it.act === 'useitem') { doAction('item', it.idx); return; }
+  if (it.act === 'item') { const u = G.sel; G.sub = true; placeMenu(u.items.map((id, i) => ({ label: ITEMS[id].name, act: 'useitem', idx: i, desc: ITEMS[id].desc })), u); Aud.sfx('ok'); return; }
   if (it.act === 'sp') {
     const k = SP[G.sel.key].kind;
     if (k === 'buff' || k === 'pray') { G.menu = null; doAction('sp'); return; }
     G.spMode = true; G.sel.spActive = k;
   }
+  if (it.act === 'heal' && !isHealer(G.sel)) { G.sel.spActive = 'heal'; G.healMode = true; }
   G.targets = targetsFrom(G.S, G.sel, G.sel.x, G.sel.y).sort((a, b) => a.y - b.y || a.x - b.x); G.ti = 0; G.cursor = { x: G.targets[0].x, y: G.targets[0].y }; G.menu = null; G.mode = 'target'; Aud.sfx('ok');
 }
 const hdLabel = () => G.hdUnits === 'auto' ? '自動' : G.hdUnits ? 'イラスト' : 'ドット';
@@ -192,7 +216,7 @@ function battleInput(a) {
       if (a === 'up') { m.idx = (m.idx + m.items.length - 1) % m.items.length; Aud.sfx('move'); }
       else if (a === 'down') { m.idx = (m.idx + 1) % m.items.length; Aud.sfx('move'); }
       else if (a === 'ok') menuPick();
-      else if (a === 'cancel') { if (G.mode === 'sysmenu') { G.menu = null; G.mode = 'idle'; Aud.sfx('cancel'); } else undoMove(); }
+      else if (a === 'cancel') { if (G.mode === 'sysmenu') { G.menu = null; G.mode = 'idle'; Aud.sfx('cancel'); } else if (G.sub) { Aud.sfx('cancel'); openActionMenu(); } else undoMove(); }
       break; }
     case 'target':
       if (a === 'left' || a === 'up') { G.ti = (G.ti + G.targets.length - 1) % G.targets.length; Aud.sfx('move'); }
@@ -234,38 +258,39 @@ function pumpTaps() {
   for (const t of Input.taps) {
     if (G.cut) { G.cut.skip = true; continue; }
     if (G.scene === 'intro') { Input.q.push('ok'); continue; }
+    if (G.dlg && G.scene === 'battle') { Input.q.push('ok'); continue; }
     const r = Touch.hit(t.x, t.y);
     if (r) { r.fn(); continue; }
     if (G.scene === 'battle' && G.auto) { setAuto(false); continue; } // a tap on the field stops auto (after the current action)
     if (G.scene === 'battle') { if (G.lvl || G.banner) { if (G.lvl) Input.q.push('ok'); } else if (!G.busy) tapMap(t.x, t.y); }
-    else Input.q.push('ok');
+    else if (G.scene !== 'base') Input.q.push('ok');
   }
   Input.taps.length = 0;
   for (let i = Input.q.length - 1; i >= 0; i--) {
     const k = Input.q[i];
     if (k === 'mute') { Input.q.splice(i, 1); Aud.toggle(); }
-    else if (k === 'auto') { Input.q.splice(i, 1); if (G.scene === 'battle' || G.scene === 'dialogue' || G.scene === 'title') setAuto(!G.auto); }
+    else if (k === 'auto') { Input.q.splice(i, 1); if (G.scene === 'battle' || G.scene === 'dialogue' || G.scene === 'title' || G.scene === 'base') setAuto(!G.auto); }
     else if (k === 'speed') { Input.q.splice(i, 1); G.speedX = G.speedX === 1 ? 2 : 1; syncButtons(); savePrefs(); Aud.sfx('ok'); }
     else if (k === 'cancel' && G.auto && G.scene === 'battle') { Input.q.splice(i, 1); setAuto(false); }
   }
 }
 // ---------- scenes ----------
-function* dialogue(lines, bg) {
-  G.scene = 'dialogue'; flushInput();
+function* dialogue(lines, bg, overlay) {
+  if (!overlay) G.scene = 'dialogue'; flushInput();
   for (const line of lines) {
-    G.dlg = { line, bg, n: 0, tip: line[0] === null };
+    G.dlg = { line, bg, n: 0, tip: line[0] === null && !overlay }; let wait = 0;
     for (;;) {
-      if (G.dlg.n < line[1].length) G.dlg.n++;
+      if (G.dlg.n < line[1].length) G.dlg.n++; else if (G.auto) wait++;
       yield 1;
       const a = Input.q.shift();
-      if (a === 'ok') { if (G.dlg.n < line[1].length) G.dlg.n = line[1].length; else { Aud.sfx('move'); break; } }
+      if (a === 'ok' || (G.auto && wait > 70)) { if (G.dlg.n < line[1].length) G.dlg.n = line[1].length; else { Aud.sfx('move'); break; } }
     }
   }
   G.dlg = null;
 }
 function* chapterCard(idx) {
   G.scene = 'card'; flushInput(); const ch = CHAPTERS[idx];
-  G.card = { idx, title: ch.title, name: ch.name, goal: ch.goal, t: 0, dur: 150 };
+  G.card = { idx, title: ch.title, name: ch.name, goal: ch.goal, bg: ch.bg, t: 0, dur: 150 };
   Aud.bgm('title');
   while (G.card.t < G.card.dur) { G.card.t++; yield 1; if (Input.q.shift() === 'ok' && G.card.t > 30) break; }
   G.card = null;
@@ -285,12 +310,12 @@ function* titleScene() {
     yield 1;
   }
 }
-function* gameOverScene() {
-  G.scene = 'gameover'; flushInput(); Aud.bgm('lose'); const items = [{ label: 'この章をやり直す' }, { label: 'タイトルへ' }]; G.title = { idx: 0, items };
+function* gameOverScene(canCamp) {
+  G.scene = 'gameover'; flushInput(); Aud.bgm('lose'); const items = [{ label: 'この章をやり直す', id: 'retry' }]; if (canCamp) items.push({ label: '野営地で整えてから', id: 'camp' }); items.push({ label: 'タイトルへ', id: 'title' }); G.title = { idx: 0, items };
   for (;;) {
-    const a = Input.q.shift();
-    if (a === 'up' || a === 'down') { G.title.idx = (G.title.idx + 1) % 2; Aud.sfx('move'); }
-    else if (a === 'ok') { Aud.sfx('ok'); return G.title.idx === 0 ? 'retry' : 'title'; }
+    const a = Input.q.shift(); const n = items.length;
+    if (a === 'up') { G.title.idx = (G.title.idx + n - 1) % n; Aud.sfx('move'); } else if (a === 'down') { G.title.idx = (G.title.idx + 1) % n; Aud.sfx('move'); }
+    else if (a === 'ok') { Aud.sfx('ok'); return items[G.title.idx].id; }
     yield 1;
   }
 }
@@ -314,14 +339,15 @@ function* autoStep() {
     }
     if (sug.target) { G.cursor = { x: sug.target.x, y: sug.target.y }; yield 16; }
     G.menu = null; G.mode = 'busy';
-    const rec = applyAction(S, u, null, sug.target, sug.sp);
+    if (sug.kind === 'talk' && S.ch.recruit) yield* dialogue(S.ch.recruit.lines, null, true);
+    const rec = applyAction(S, u, null, sug.target, sug.sp, sug.opt);
     yield* playRecord(rec);
     afterAction();
   } finally { G.busy--; flushInput(); }
   yield 8;
 }
 function* enemyPhase() {
-  const S = G.S; G.phase = 1; G.mode = 'busy'; Aud.bgm(S.ch.win === 'boss' ? 'boss' : 'enemy');
+  const S = G.S; G.phase = 1; S.phase = 1; G.mode = 'busy'; Aud.bgm(S.ch.win === 'boss' ? 'boss' : 'enemy');
   yield* banner('敵軍フェーズ', '#a02828');
   yield* healRecords(startPhase(S, 1));
   for (const e of alive(S).filter(u => u.team === 1)) {
@@ -336,53 +362,76 @@ function* enemyPhase() {
   }
 }
 function* healRecords(list) { for (const h of list) { Aud.sfx('heal'); sparkle(h.unit); numFx(h.unit, '+' + h.amt, '#6dff8d', 10); Co.run(tweenHp(h.unit, h.unit.hp, 20)); } if (list.length) yield 40; }
+function* battleTalk(t) { S_talk(t); G.busy++; try { yield* dialogue(t.lines, null, true); } finally { G.busy--; flushInput(); } }
+function S_talk(t) { G.S.talked[t.id] = true; }
 function* battleScene(S, idx) {
-  G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.infoBig = false; G.lvl = null;
+  G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.infoBig = false; G.lvl = null; G.dlg = null; G.why = '';
   Cam.snap = true; Cam.key = null; initVisual(S); const leon = S.units.find(u => u.key === 'leon'); G.cursor = { x: leon.x, y: leon.y };
   for (;;) {
-    G.phase = 0; Aud.bgm(S.ch.win === 'boss' ? 'field' : 'field'); G.mode = 'idle'; G.endTurn = false; flushInput();
+    G.phase = 0; S.phase = 0; Aud.bgm('field'); G.mode = 'idle'; G.endTurn = false; flushInput();
     yield* banner('自軍フェーズ', '#2a5ac8');
     yield* healRecords(startPhase(S, 0));
-    while (!G.endTurn && !S.over) { if (G.auto && !G.busy && !G.banner && !G.lvl) yield* autoStep(); else yield 1; }
+    while (!G.endTurn && !S.over) {
+      if (!G.busy && !G.banner && !G.lvl && !G.dlg && (G.mode === 'idle' || G.auto)) { const t = nextTalk(S); if (t) { yield* battleTalk(t); continue; } }
+      if (G.auto && !G.busy && !G.banner && !G.lvl && !G.dlg) yield* autoStep(); else yield 1;
+    }
     if (S.over) break;
     deselect(); G.mode = 'busy';
+    for (const b of endPlayerPhase(S)) if (b.up) { Aud.sfx('levelup'); numFx(b.a, '絆 ' + BOND_RANK[b.up], '#ff9fc0', 9); numFx(b.b, '絆 ' + BOND_RANK[b.up], '#ff9fc0', 9); }
     yield* enemyPhase(); if (S.over) break;
-    S.turn++;
+    S.turn++; checkOver(S); if (S.over) break;
   }
   while (G.busy > 0) yield 1; // let the final action animation (and any level-up popup) finish
-  deselect(); G.mode = 'busy'; G.busy++;
+  deselect(); G.mode = 'busy'; G.busy++; G.why = S.why;
   if (S.over === 'win') { Aud.bgm('win'); yield 20; yield* banner('勝利!', '#2a7a3a'); yield 20; G.busy--; return 'win'; }
   yield 30; G.busy--; return 'lose';
 }
+function* resultScene(sum, idx) {
+  const lines = [[null, '戦利品: ' + (sum.gold + sum.reward) + 'G (撃破・宝箱 ' + sum.gold + 'G + 章クリア ' + sum.reward + 'G)' + (sum.proofs ? ' と勇者の証' : '')]];
+  for (const id of sum.injured) lines.push([null, G.roster[id].name + 'は負傷した。次の章は休むことになる。']);
+  for (const id of sum.healed) lines.push([null, G.roster[id].name + 'の傷が癒えた。']);
+  yield* dialogue(lines, CHAPTERS[idx].bg);
+}
+function jumpSetup(idx, camp) { // test/debug: start chapter idx with a plausible party
+  for (let i = 0; i <= idx; i++) prepareChapter(G.roster, G.meta, i);
+  for (const id in G.roster) { const u = G.roster[id]; u.joined = true; const want = 1 + 2 * idx; while (u.lv < want) { u.lv++; for (const k of STATS) { if (k === 'hp') { u.maxhp += 2; u.hp = u.maxhp; } else if (HEROES[u.key].gr[k] > 40) u[k]++; } } }
+  G.meta.cleared = idx; G.meta.gold += 400 * idx; G.meta.proofs += idx >= 4 ? 2 : 0; if (camp) autoCamp(G.roster, G.meta, idx);
+}
 function* flow() {
   for (;;) {
-    const r = yield* titleScene(); let idx = 0, skip = false;
-    G.roster = newRoster();
-    if (r === 'continue') { const s = loadGame(); if (s) { G.roster = s.roster; idx = s.ch; } }
-    if (r === 'jump' && G.jump.ending) { G.jump = null; G.roster = newRoster(); yield* endingScene(); continue; }
-    if (r === 'jump') { idx = G.jump.ch; skip = true; for (let i = 1; i <= idx; i++) prepareChapter(G.roster, i); G.jump = null; }
+    const r = yield* titleScene(); let idx = 0, skip = false, needBase = false;
+    G.roster = newRoster(); G.meta = newMeta(); G.why = '';
+    if (r === 'continue') { const s = loadGame(); if (s) { G.roster = s.roster; G.meta = s.meta; idx = s.ch; needBase = !!s.base; } }
+    if (r === 'jump' && G.jump.ending) { G.jump = null; G.roster = newRoster(); G.meta = newMeta(); yield* endingScene(); continue; }
+    if (r === 'jump') { idx = G.jump.ch; skip = true; needBase = !!G.jump.base; if (idx > 0) jumpSetup(idx, !needBase); G.jump = null; }
     let toTitle = false;
     for (; idx < CHAPTERS.length && !toTitle;) {
       const ch = CHAPTERS[idx]; G.chIdx = idx;
-      if (!skip) { yield* chapterCard(idx); if (idx === 2) yield* bossIntro(); Aud.bgm('title'); yield* dialogue(ch.pre, idx); }
+      if (needBase) { const b = yield* baseScene(idx); if (b === 'title') { toTitle = true; break; } }
+      needBase = false;
+      if (!skip) { yield* chapterCard(idx); if (ch.intro) yield* bossIntro(); Aud.bgm('title'); yield* dialogue(ch.pre, ch.bg); }
       skip = false;
       let result;
       for (;;) {
-        const S = prepareChapter(G.roster, idx); G.snap = cloneRoster(G.roster); saveGame(idx);
+        G.snap = { roster: cloneRoster(G.roster), meta: JSON.parse(JSON.stringify(G.meta)) }; if (idx === 0) saveGame(0, false);
+        const S = prepareChapter(G.roster, G.meta, idx);
         result = yield* battleScene(S, idx);
         if (result === 'win') break;
-        const c = yield* gameOverScene();
-        G.roster = cloneRoster(G.snap);
+        const c = yield* gameOverScene(idx > 0);
+        G.roster = G.snap.roster; G.meta = G.snap.meta;
         if (c === 'title') { toTitle = true; break; }
+        if (c === 'camp') { const b = yield* baseScene(idx); if (b === 'title') { toTitle = true; break; } }
       }
       if (toTitle) break;
-      const bonus = chapterBonus(G.roster, G.S);
+      const bonus = chapterBonus(G.roster, G.S), sum = finishChapter(G.roster, G.meta, G.S, idx);
       G.scene = 'battle'; G.mode = 'busy'; G.busy++;
       for (const x of bonus) { Aud.sfx('levelup'); G.lvl = { unit: x.unit, up: x.up }; yield* waitOk(); G.lvl = null; flushInput(); }
       G.busy--;
-      yield* dialogue(ch.post, idx);
-      idx++;
-      if (idx < CHAPTERS.length) { G.snap = cloneRoster(G.roster); saveGame(idx); }
+      if (sum.late.length && ch.recruit && sum.late.includes(ch.recruit.id)) yield* dialogue(ch.recruit.late, ch.bg);
+      yield* dialogue(ch.post, ch.bg);
+      yield* resultScene(sum, idx);
+      idx++; needBase = true;
+      if (idx < CHAPTERS.length) saveGame(idx, true);
     }
     if (!toTitle) yield* endingScene();
   }
@@ -390,15 +439,15 @@ function* flow() {
 // ---------- loop ----------
 function step() {
   pumpTaps();
-  if (G.scene === 'battle') { while (Input.q.length && inputReady()) battleInput(Input.q.shift()); if (!inputReady() && !G.lvl) Input.q.length = 0; }
+  if (G.scene === 'battle') { while (Input.q.length && inputReady()) battleInput(Input.q.shift()); if (!inputReady() && !G.lvl && !G.dlg) Input.q.length = 0; }
   Co.tick(); stepFx(); camUpdate(); G.t++;
 }
 function render() {
-  HD.collect = true; HD.holes.length = 0; HD.ui.length = 0;
-  { const bm = Engine.port && G.scene === 'battle'; if (bm !== Engine.battleMode || !Engine.fitted) { Engine.battleMode = bm; Engine.fitted = true; fit(); } }
-  G.yOff = (Engine.port && !Engine.battleMode && Engine.vh > H) ? (Engine.vh - H) / 2 : 0;
-  ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1;
-  if (G.yOff) { ctx.fillStyle = '#06070f'; ctx.fillRect(0, 0, W, Engine.vh); ctx.translate(0, G.yOff); }
+  HD.collect = true; HD.holes.length = 0; HD.ui.length = 0; G.bgReq = null; G.paintReq = false;
+  { const bm = Engine.port && G.scene === 'battle'; if (bm !== Engine.battleMode || !Engine.fitted) { Engine.battleMode = bm; Engine.fitted = true; fit(); Cam.snap = true; Cam.key = null; } }
+  G.yOff = (Engine.port && !Engine.battleMode && Engine.vh > H && G.scene !== 'base') ? (Engine.vh - H) / 2 : 0;
+  ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1; ctx.clearRect(0, 0, W, Engine.vh);
+  if (G.yOff) ctx.translate(0, G.yOff);
   switch (G.scene) {
     case 'title': drawTitle(); break;
     case 'card': drawCard(); break;
@@ -407,10 +456,11 @@ function render() {
     case 'battle': drawBattle(); break;
     case 'gameover': drawGameOver(); break;
     case 'ending': drawEnding(); break;
+    case 'base': drawBase(); break;
     default: rect(0, 0, W, H, '#000'); text('読み込み中…', W / 2, 110, { align: 'center' });
   }
   if (Engine.port && G.scene === 'battle') drawInfoCanvas(); else if (Engine.port) { const c = cv2.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#0b0b14'; c.fillRect(0, 0, cv2.width, cv2.height); }
-  hdRender();
+  hdRender(); bgRender();
   Touch.flip();
 }
 let _last = 0, _acc = 0;
@@ -425,7 +475,11 @@ window.__tac = {
   talk: (who, txt, bg) => { G.scene = 'dialogue'; G.dlg = { line: [who, txt], bg: bg || 0, n: txt.length, tip: false }; },
   showIntro: t => { G.scene = 'intro'; G.intro = { t: t || 70 }; },
   setAuto: v => setAuto(v), setCutin: v => { G.cutin = !!v; savePrefs(); }, setHD: v => { G.hdUnits = v === 'auto' ? 'auto' : !!v; savePrefs(); },
-  start: ch => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0 }; },
+  start: (ch, base) => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0, base: !!base }; },
+  campAuto: () => { if (G.scene === 'base') { autoCamp(G.roster, G.meta, Base.chIdx); baseToast('おまかせで整えました'); } }, campGo: () => { if (G.scene === 'base') Base.go = true; },
+  roster: () => JSON.parse(JSON.stringify({ roster: G.roster, meta: G.meta })), give: (gold, proofs) => { if (G.meta) { G.meta.gold += gold || 0; G.meta.proofs += proofs || 0; } },
+  bond: (a, b, n) => { if (G.meta) G.meta.bonds[bondKey(a, b)] = n; }, ready2: () => !!G.dlg,
+  setLv: (id, lv) => { const u = G.roster && G.roster[id]; if (u) { u.lv = lv; } },
   hurt: (id, hp) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.hp = hp; u.vhp = hp; u.ghost = hp; } },
   place: (id, x, y) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.x = x; u.y = y; u.vx = x; u.vy = y; } },
   kill: key => { const u = G.S && G.S.units.find(x => x.key === key); if (u) { u.hp = 0; u.dead = true; u.gone = true; checkOver(G.S); } },
@@ -434,18 +488,18 @@ window.__tac = {
   state() {
     const S = G.S;
     return {
-      scene: G.scene, auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
+      scene: G.scene, dlg: !!G.dlg, gold: G.meta ? G.meta.gold : 0, base: G.scene === 'base' ? { depth: Base.stack.length, title: curView().v.title, rows: allRows(curView().v, curView().e).map(r => r.t), idx: curView().e.idx, geom: Base.geom } : null, auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
       title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
       over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, yoff: G.yOff || 0, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
       targets: (G.targets || []).map(t => t.id), ti: G.ti,
-      units: S ? S.units.filter(u => !u.dead).map(u => ({ id: u.id, key: u.key, name: u.name, team: u.team, x: u.x, y: u.y, hp: u.hp, maxhp: u.maxhp, lv: u.lv, exp: u.exp, acted: !!u.acted, boss: u.boss })) : []
+      units: S ? S.units.filter(u => !u.dead && !u.off).map(u => ({ id: u.id, key: u.key, name: u.name, team: u.team, x: u.x, y: u.y, hp: u.hp, maxhp: u.maxhp, lv: u.lv, exp: u.exp, acted: !!u.acted, boss: u.boss })) : []
     };
   },
   suggest() {
     const S = G.S; if (!S || G.scene !== 'battle') return null;
     const a = suggestAction(S); if (!a) return { end: true };
-    return { unit: a.unit.id, dest: a.dest, target: a.target ? a.target.id : null, kind: a.kind, sp: !!a.sp, spLabel: a.sp ? SP[a.unit.key].name : null, from: { x: a.unit.x, y: a.unit.y } };
+    return { unit: a.unit.id, dest: a.dest, target: a.target ? a.target.id : null, kind: a.kind, sp: !!a.sp, spLabel: a.sp ? SP[a.unit.key].name : null, from: { x: a.unit.x, y: a.unit.y }, opt: a.opt || null };
   }
 };
 window.addEventListener('load', () => {

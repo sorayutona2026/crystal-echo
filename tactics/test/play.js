@@ -1,4 +1,4 @@
-// full playthrough by a keyboard-driven bot: title -> ch1..3 -> ending.  SEED=n node test/play.js
+// full playthrough by a keyboard-driven bot: title -> ch1..6 (with camp between chapters) -> ending.  SEED=n node test/play.js
 const { launch, open, st } = require('./lib');
 const { press, sleep, botStep } = require('./bot');
 const SEED = +(process.env.SEED || 1);
@@ -15,8 +15,9 @@ const SEED = +(process.env.SEED || 1);
       const f = await st(page); console.log('retries:', retries, 'seed:', SEED);
       console.log('COMPLETE'); await b.close(); return;
     }
-    if (s.scene === 'battle') { lastBattle = s; const cont = await botStep(page); actions++; if (!cont) await sleep(50); if (s.turn > 40) throw new Error('turn limit'); continue; }
-    if (s.scene === 'gameover') { retries++; if (retries > 6) throw new Error('too many defeats'); console.log('  defeated -> retry; last battle state: ch' + (lastBattle.chIdx + 1) + ' turn ' + lastBattle.turn + ' units ' + lastBattle.units.map(u => u.name + '(' + u.team + ') ' + u.hp + '/' + u.maxhp + '@' + u.x + ',' + u.y).join(' ')); await press(page, 'z'); await sleep(100); continue; }
+    if (s.scene === 'battle') { lastBattle = s; let cont; try { cont = await botStep(page); } catch (e) { const q = await st(page); throw new Error(e.message.split('\n')[0] + ' | state ' + JSON.stringify({ ch: q.chIdx + 1, turn: q.turn, mode: q.mode, ready: q.ready, busy: q.busy, dlg: q.dlg, lvl: q.lvl, banner: q.banner, phase: q.phase, endTurn: q.endTurn, units: q.units.map(u => u.key + (u.team ? '*' : '') + '@' + u.x + ',' + u.y + ':' + u.hp + (u.acted ? 'a' : '')).join(' ') })); } actions++; if (!cont) await sleep(50); if (s.turn > 60) throw new Error('turn limit: ch' + (s.chIdx + 1) + ' ' + s.units.map(u => u.key + (u.team === 1 ? '*' : '') + '@' + u.x + ',' + u.y + ':' + u.hp + '/' + u.maxhp).join(' ')); continue; }
+    if (s.scene === 'gameover') { retries++; if (retries > 10) throw new Error('too many defeats'); console.log('  defeated -> retry; last battle state: ch' + (lastBattle.chIdx + 1) + ' turn ' + lastBattle.turn + ' units ' + lastBattle.units.map(u => u.name + '(' + u.team + ') ' + u.hp + '/' + u.maxhp + '@' + u.x + ',' + u.y).join(' ')); await press(page, 'z'); await sleep(100); continue; }
+    if (s.scene === 'base') { await page.evaluate(() => { __tac.campAuto(); __tac.campGo(); }); await sleep(100); continue; }
     if (s.scene === 'title') { await press(page, 'z'); await sleep(100); continue; }
     await press(page, 'z'); await sleep(25);
   }

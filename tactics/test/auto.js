@@ -43,10 +43,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await fr.waitForFunction(() => { const s = __tac.state(); return !s.auto && s.ready; }, null, { timeout: 20000 });
   const n0 = (await S()).units.filter(u => u.team === 0 && u.acted).length; await sleep(1500); const s2 = await S();
   if (s2.units.filter(u => u.team === 0 && u.acted).length !== n0 || s2.phase !== 0 || s2.auto) throw new Error('auto kept playing after being switched off');
-  await page.keyboard.press('ArrowRight'); await sleep(150); const s3 = await S(); if (s3.cursor.x === s2.cursor.x) throw new Error('cursor did not respond after auto off');
+  for (let i = 0; i < 40 && (await S()).dlg; i++) { await page.keyboard.press('z'); await sleep(120); } // a mid-battle talk may be on screen
+  const s2b = await S(); s2.cursor = s2b.cursor;
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowUp'); await sleep(200); const s3 = await S(); if (s3.cursor.x === s2.cursor.x && s3.cursor.y === s2.cursor.y && s2.cursor.y > 0) throw new Error('cursor did not respond after auto off ' + JSON.stringify(s2.cursor) + ' mode ' + s3.mode + ' ready ' + s3.ready);
   console.log('auto off mid-phase: control returned');
   // speed toggle
   await tapBtn('#bSpeed'); if ((await S()).speedX !== 2) throw new Error('speed toggle failed');
+  // auto mode also handles the camp between chapters: it shops, picks skills and starts the next chapter by itself
+  await page.goto('file://' + path.join(__dirname, 'frame.html'));
+  fr = null; for (let i = 0; i < 60 && !fr; i++) { fr = page.frames().find(f => f !== page.mainFrame()); await sleep(100); }
+  await fr.waitForFunction(() => window.__tac && __tac.state().scene === 'title', null, { timeout: 15000 });
+  await fr.evaluate(() => { __tac.speed(10); __tac.setAuto(true); __tac.start(2, true); });
+  await fr.waitForFunction(() => __tac.state().scene === 'base', null, { timeout: 15000 }); const g0 = (await S()).gold;
+  await fr.waitForFunction(() => __tac.state().scene === 'battle', null, { timeout: 20000 }); const g1 = (await S()).gold;
+  if (!(g1 < 920)) throw new Error('auto camp did not spend gold: 920 -> ' + g1); // start(2, true) gives 120 + 400*2 gold; auto mode shops before the first frame
+  console.log('auto camp OK: gold 920 ->', g1);
   await ctx.close(); await b.close();
   if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
   console.log('AUTO OK');

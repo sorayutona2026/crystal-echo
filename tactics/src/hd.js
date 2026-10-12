@@ -8,12 +8,13 @@ const ART_FACING = { leon: 'right', mira: 'right', luka: 'right', sophia: 'right
 const ART_NAME = { leon: 'レオン', mira: 'ミラ', luka: 'ルカ', sophia: 'ソフィア', jin: 'ジン', garud: 'ガルド', verza: 'ヴェルザ', goblin: 'ゴブリン', skeleton: 'スケルトン', slime: 'スライム' };
 const HD = { cv: null, x: null, k: 1, holes: [], ui: [], cache: {}, collect: false };
 function artOf(x) { const s = typeof x === 'string' ? x : x.sprite; return ART_OF_SPRITE[s] || s; }
-function initHD() { HD.cv = document.getElementById('cvh'); HD.x = HD.cv.getContext('2d'); }
+const BGL = { cv: null, x: null, cache: {} };   // #cvb: painted backgrounds / battlefield, below the pixel layer
+function initHD() { HD.cv = document.getElementById('cvh'); HD.x = HD.cv.getContext('2d'); BGL.cv = document.getElementById('cvb'); BGL.x = BGL.cv.getContext('2d'); }
 function syncHD() { // match the position/size of the game canvas, at device resolution
   if (!HD.cv || !cv) return; const dpr = Math.min(window.devicePixelRatio || 1, 3), r = cv.getBoundingClientRect(), pr = appEl.getBoundingClientRect();
   const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
-  if (HD.cv.width !== w || HD.cv.height !== h) { HD.cv.width = w; HD.cv.height = h; }
-  HD.cv.style.left = (r.left - pr.left) + 'px'; HD.cv.style.top = (r.top - pr.top) + 'px'; HD.cv.style.width = r.width + 'px'; HD.cv.style.height = r.height + 'px'; HD.k = w / W;
+    for (const c of [HD.cv, BGL.cv]) { if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } c.style.left = (r.left - pr.left) + 'px'; c.style.top = (r.top - pr.top) + 'px'; c.style.width = r.width + 'px'; c.style.height = r.height + 'px'; }
+  HD.k = w / W;
 }
 // scaled copies (halving steps avoid aliasing); variants: null | 'gray' | 'white'
 function hdScaled(id, kind, w, h, variant) {
@@ -52,4 +53,30 @@ function drawPortrait(spriteOrId, x, y, size, team) {
     g.strokeStyle = team === 1 ? '#ff7a7a' : (team === 0 ? '#7fb0ff' : '#d8dfff'); g.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
     g.strokeStyle = 'rgba(255,255,255,0.18)'; g.strokeRect(x + 1.5, y + 1.5, size - 3, size - 3);
   });
+}
+
+// ---- painted backgrounds (cover-fit, darkened, vignette) and the painted ch1 battlefield, drawn on #cvb ----
+const BGI = {};   // name -> Image  (assets/gpt/bg_<name>.webp)
+function bgCover(name, dim, w, h) {
+  const key = name + '|' + dim + '|' + w + 'x' + h; if (BGL.cache[key]) return BGL.cache[key];
+  const im = BGI[name]; if (!im) return null; const c = cvs(w, h), g = c.getContext('2d');
+  const sc = Math.max(w / im.width, h / im.height) * 1.03, dw = im.width * sc, dh = im.height * sc;
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(im, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  g.fillStyle = 'rgba(6,8,30,' + dim + ')'; g.fillRect(0, 0, w, h);
+  const gr = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.hypot(w, h) * 0.55); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.62)'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  const bg = g.createLinearGradient(0, h * 0.55, 0, h); bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(1, 'rgba(0,0,10,0.35)'); g.fillStyle = bg; g.fillRect(0, h * 0.55, w, h * 0.45);
+  const keys = Object.keys(BGL.cache); if (keys.length > 12) delete BGL.cache[keys[0]];
+  return BGL.cache[key] = c;
+}
+function useBg(name, dim) { G.bgReq = { name, dim: dim == null ? 0.4 : dim }; }
+function bgRender() {
+  const g = BGL.x; if (!g || !BGL.cv.width) return; const w = BGL.cv.width, h = BGL.cv.height;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#06070f'; g.fillRect(0, 0, w, h);
+  if (G.bgReq) { const c = bgCover(G.bgReq.name, G.bgReq.dim, w, h); if (c) g.drawImage(c, 0, 0); }
+  if (G.paintReq && G.S && G.S.ch.paint) {
+    const im = A.img['gpt/' + G.S.ch.paint + '.webp']; if (!im) return; const k = HD.k, z = camOn() ? Engine.zoom : 1;
+    g.setTransform(k * z, 0, 0, k * z, (-Cam.x + (G.shx || 0) / z) * k * z, (-Cam.y + (G.shy || 0) / z) * k * z); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(im, OX(), OY(), G.S.w * TS, G.S.h * TS);
+    if (!camOn()) { g.setTransform(1, 0, 0, 1, 0, 0); }
+  }
 }

@@ -1,15 +1,17 @@
 <style>
 html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 #tac{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0b0b14;-webkit-user-select:none;user-select:none;touch-action:none;font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Meiryo","IPAGothic","WenQuanYi Zen Hei",sans-serif}
-#tac canvas{display:block;image-rendering:pixelated;background:#000;touch-action:none}
-#tac .pad{position:absolute;display:flex;gap:8px;z-index:2}
+#tac canvas{display:block;image-rendering:pixelated;background:transparent;touch-action:none}
+#tac #cv{position:relative;z-index:1}
+#tac #cvb{background:#06070f;position:absolute;left:0;top:0;pointer-events:none;z-index:0;image-rendering:auto}
+#tac .pad{position:absolute;display:flex;gap:8px;z-index:3}
 #tac button{white-space:nowrap;font:bold 12px/1 "Hiragino Kaku Gothic ProN","Noto Sans JP","Meiryo","IPAGothic","WenQuanYi Zen Hei",sans-serif;color:#eef;background:#27305a;border:2px solid #7f8fe0;border-radius:10px;padding:0 10px;min-width:50px;height:44px;touch-action:manipulation}
 #tac button.auto.on{background:#c98a10;border-color:#ffe27a;color:#fff;box-shadow:0 0 10px #ffd24a}
 #tac button.ok{background:#1f6a3a;border-color:#7fe0a0}
 #tac button:active{background:#4a58a8}
 #tac button.end{background:#6a2a2a;border-color:#e08f8f}
 #pads{display:contents}
-#tac #cvh{background:transparent;position:absolute;left:0;top:0;pointer-events:none;z-index:1}
+#tac #cvh{background:transparent;position:absolute;left:0;top:0;pointer-events:none;z-index:2}
 #tac #cv2{display:none;background:#0b0b14}
 #tac.port{flex-direction:column;justify-content:flex-start;padding-top:8px;box-sizing:border-box;gap:0}
 #tac.port.bt #cv2{display:block}
@@ -22,6 +24,7 @@ html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 #tac.land button{width:70px;padding:0;font-size:12px;height:40px}
 </style>
 <div id="tac" class="port">
+<canvas id="cvb"></canvas>
 <canvas id="cv" width="320" height="240"></canvas>
 <canvas id="cvh"></canvas>
 <canvas id="cv2" width="320" height="136"></canvas>

@@ -11,11 +11,14 @@ function cvs(w, h) { const c = document.createElement('canvas'); c.width = w; c.
 function pxColor(im, x, y) { const c = cvs(1, 1), g = c.getContext('2d'); g.drawImage(im, x, y, 1, 1, 0, 0, 1, 1); const d = g.getImageData(0, 0, 1, 1).data; return d; }
 // 16x16 tile canvases (terrain), pre-composited on grass where the art is transparent
 const TILE = {};
-let DECO = {}, FXS = {}, BGS = {}, ICONS = {};
+let DECO = {}, FXS = {}, ICONS = {};
 const THEMES = {
   bright: { tint: null, density: 0.34, flat: ['fl', 'fl', 'fl', 'fl', 'fl', 'tuft', 'tuft', 'tuft', 'clover', 'flw', 'stone', 'sun', 'stick'] },
   mossy: { tint: 'rgba(20,80,60,0.20)', density: 0.36, flat: ['moss', 'moss', 'moss', 'mush', 'tuft', 'tuft', 'stone', 'stick', 'pebble', 'flw', 'fl'] },
-  harsh: { tint: 'rgba(60,40,30,0.34)', density: 0.24, flat: ['stick', 'stick', 'pebble', 'crack', 'crack', 'crack', 'stone', 'tuft', 'pebble', 'bone', 'stick', 'crack', 'skull'], dead: true }
+  harsh: { tint: 'rgba(60,40,30,0.34)', density: 0.24, flat: ['stick', 'stick', 'pebble', 'crack', 'crack', 'crack', 'stone', 'tuft', 'pebble', 'bone', 'stick', 'crack', 'skull'], dead: true },
+  mist: { tint: 'rgba(60,110,120,0.26)', density: 0.30, flat: ['moss', 'moss', 'mush', 'mush', 'tuft', 'tuft', 'stone', 'stick', 'pebble', 'flw'] },
+  ash: { tint: 'rgba(70,60,56,0.38)', density: 0.30, flat: ['pebble', 'crack', 'crack', 'bone', 'stone', 'stick', 'pebble', 'skull', 'crack', 'bone'], dead: true },
+  altar: { tint: 'rgba(70,40,120,0.34)', density: 0.22, flat: ['crack', 'pebble', 'stone', 'crack', 'stick', 'pebble'], dead: true }
 };
 function buildTiles() {
   const T = MANIFEST.tiles;
@@ -37,7 +40,7 @@ function buildTiles() {
   const over = n => { const c = cvs(16, 16), g = c.getContext('2d'); g.drawImage(grass, 0, 0); g.drawImage(raw(n), 0, 0); return c; };
   ART_LOAD();
   FXS = {}; for (const n in (MANIFEST.fx || {})) { const d = MANIFEST.fx[n], im = A.img[d.file]; FXS[n] = { img: im, n: d.n, fw: Math.floor(im.width / d.n), fh: im.height }; }
-  BGS = {}; for (const n in (MANIFEST.bg || {})) BGS[n] = A.img[MANIFEST.bg[n].file];
+  for (const n in (MANIFEST.backgrounds || {})) BGI[n] = A.img[MANIFEST.backgrounds[n].file];
   ICONS = {}; for (const n in (MANIFEST.icons || {})) ICONS[n] = A.img[MANIFEST.icons[n].file];
   DECO = {}; for (const n in (MANIFEST.deco || {})) { const d = MANIFEST.deco[n], c = cvs(d.w, d.h); c.getContext('2d').drawImage(A.img[d.file], d.x, d.y, d.w, d.h, 0, 0, d.w, d.h); DECO[n] = c; }
   TILE.deco = ['deco_flower', 'deco_flowers', 'deco_tuft', 'deco_stone'].map(raw);
@@ -241,12 +244,6 @@ function spriteRim(id, dir, row, team) {
   for (const [dx, dy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) g.drawImage(src, dx, dy);
   g.globalCompositeOperation = 'source-in'; g.fillStyle = team === 0 ? '#5fa8ff' : '#ff5a5a'; g.fillRect(0, 0, 18, 18);
   return RIM[key] = c;
-}
-function drawBgImage(g, name, dim, t) { // painted background scaled to the screen, slowly drifting
-  const im = BGS[name]; if (!im) return; g.imageSmoothingEnabled = true;
-  const dx = Math.sin((t || 0) / 400) * 6; const yo = G.yOff || 0; g.drawImage(im, 0, 0, im.width, im.height, -8 + dx, -6 - yo, W + 16, H + 12 + 2 * yo); g.imageSmoothingEnabled = false;
-  g.fillStyle = 'rgba(6,8,30,' + dim + ')'; g.fillRect(0, -yo, W, H + 2 * yo);
-  const gr = g.createRadialGradient(W / 2, H / 2, 70, W / 2, H / 2, 230); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = gr; g.fillRect(0, -yo, W, H + 2 * yo);
 }
 function weaponIcon(u) {
   const m = { spear: 'w_lance', gold: 'w_lance', dagger: 'w_sai', bow: 'w_bow', tome: 'i_scroll-fire', dark: 'i_scroll-fire', staff: 'i_life-pot', axe: 'w_axe', sword: 'w_sword', slime: 'i_heart' };

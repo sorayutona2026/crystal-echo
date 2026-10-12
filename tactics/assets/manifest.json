@@ -726,23 +726,7 @@
       "n": 6
     }
   },
-  "bg": {
-    "15": {
-      "file": "bg/15.png"
-    },
-    "19": {
-      "file": "bg/19.png"
-    },
-    "12": {
-      "file": "bg/12.png"
-    },
-    "2": {
-      "file": "bg/2.png"
-    },
-    "3": {
-      "file": "bg/3.png"
-    }
-  },
+  "bg": {},
   "icons": {
     "w_sword": {
       "file": "icons/w_sword.png"
@@ -812,6 +796,37 @@
     "slime": {
       "face": "gpt/face_slime.webp",
       "full": "gpt/full_slime.webp"
+    }
+  },
+  "backgrounds": {
+    "title": {
+      "file": "gpt/bg_title.webp"
+    },
+    "village": {
+      "file": "gpt/bg_village.webp"
+    },
+    "ford": {
+      "file": "gpt/bg_ford.webp"
+    },
+    "forest": {
+      "file": "gpt/bg_forest.webp"
+    },
+    "ruins": {
+      "file": "gpt/bg_ruins.webp"
+    },
+    "fort": {
+      "file": "gpt/bg_fort.webp"
+    },
+    "altar": {
+      "file": "gpt/bg_altar.webp"
+    },
+    "camp": {
+      "file": "gpt/bg_camp.webp"
+    }
+  },
+  "paint": {
+    "map_ch1": {
+      "file": "gpt/map_ch1.webp"
     }
   }
 }

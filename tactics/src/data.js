@@ -1,5 +1,5 @@
 'use strict';
-// ===== data: terrain, weapons, classes, units, chapters, story =====
+// ===== data: terrain, weapons, classes, skills, items, units (chapters and story live in story.js) =====
 const TERRAIN = {
   '.': { name: '草原', cost: 1, avo: 0, def: 0 },
   '=': { name: '道', cost: 1, avo: 0, def: 0 },
@@ -7,25 +7,47 @@ const TERRAIN = {
   '^': { name: '山', cost: 3, avo: 30, def: 2 },
   '~': { name: '水', cost: 99, avo: 0, def: 0, block: true },
   '#': { name: '砦', cost: 1, avo: 20, def: 2, heal: 0.2 },
+  'V': { name: '村', cost: 1, avo: 10, def: 1 },
   // blocking scenery (drawn from `props` / sprites; units can neither enter nor cross)
   'H': { name: '民家', cost: 99, avo: 0, def: 0, block: true },
   'A': { name: '天幕', cost: 99, avo: 0, def: 0, block: true },
   'R': { name: '廃墟', cost: 99, avo: 0, def: 0, block: true },
-  'P': { name: '障害物', cost: 99, avo: 0, def: 0, block: true }
+  'P': { name: '障害物', cost: 99, avo: 0, def: 0, block: true },
+  'F': { name: '柵', cost: 99, avo: 0, def: 0, block: true },
+  'M': { name: '岩山', cost: 99, avo: 0, def: 0, block: true }
 };
-// names[tier]: tier 0 basic, 1 steel, 2 silver (player gear improves per chapter); might +2 per tier
+// enemy weapons (and the family icon / animation of the heroes' weapons)
 const WEAPONS = {
-  spear:  { names: ['鉄の槍', '鋼の槍', '銀の槍'], tri: 'spear', type: 'phys', might: 6, hit: 85, min: 1, max: 1 },
-  bow:    { names: ['鉄の弓', '鋼の弓', '銀の弓'], type: 'phys', might: 5, hit: 85, min: 2, max: 2 },
-  tome:   { names: ['ファイア', 'エルファイア', 'ボルガノン'], type: 'mag', might: 5, hit: 85, min: 1, max: 2 },
-  staff:  { names: ['ライブ', 'リライブ', 'ミラクル'], type: 'heal', might: 4, hit: 100, min: 1, max: 1 },
-  dagger: { names: ['短剣', '鋼の短剣', '銀の短剣'], tri: 'sword', type: 'phys', might: 4, hit: 95, min: 1, max: 1 },
+  spear:  { names: ['鉄の槍'], tri: 'spear', type: 'phys', might: 6, hit: 85, min: 1, max: 1 },
+  bow:    { names: ['鉄の弓'], type: 'phys', might: 5, hit: 85, min: 2, max: 2 },
+  tome:   { names: ['ファイア'], type: 'mag', might: 5, hit: 85, min: 1, max: 2 },
+  staff:  { names: ['ライブ'], type: 'heal', might: 4, hit: 100, min: 1, max: 1 },
+  dagger: { names: ['短剣'], tri: 'sword', type: 'phys', might: 4, hit: 95, min: 1, max: 1 },
   axe:    { names: ['手斧'], tri: 'axe', type: 'phys', might: 5, hit: 75, min: 1, max: 1 },
   sword:  { names: ['骨の剣'], tri: 'sword', type: 'phys', might: 5, hit: 80, min: 1, max: 1 },
   slime:  { names: ['溶解液'], type: 'phys', might: 3, hit: 80, min: 1, max: 1 },
-  dark:   { names: ['ダークボルト'], type: 'mag', might: 5, hit: 80, min: 1, max: 2 },
+  dark:   { names: ['ダークボルト'], type: 'mag', might: 5, hit: 80, min: 1, max: 1 + 1 },
   gold:   { names: ['黄金の大槍'], tri: 'spear', type: 'phys', might: 7, hit: 85, min: 1, max: 1 }
 };
+// weapon items (heroes): fam = family (icon / animation), tier 0 iron, 1 steel, 2 silver, 3 special
+const PRICE = { steel: 260, silver: 520, special: 640 };
+function wfam(fam, tri, type, list) { // list: [id, name, might, hit, price, tier, extra]
+  for (const [id, name, might, hit, price, tier, ex] of list) WITEMS[id] = Object.assign({ id, name, fam, tri, type, might, hit, price, tier, min: 1, max: type === 'mag' ? 2 : 1, crit: 0 }, ex || {});
+}
+const WITEMS = {};
+wfam('spear', 'spear', 'phys', [['iron_spear', '鉄の槍', 6, 85, 0, 0], ['steel_spear', '鋼の槍', 8, 82, PRICE.steel, 1], ['silver_spear', '銀の槍', 10, 80, PRICE.silver, 2], ['lion_spear', '獅子の槍', 12, 72, PRICE.special, 3, { crit: 6 }]]);
+wfam('bow', null, 'phys', [['iron_bow', '鉄の弓', 5, 85, 0, 0, { min: 2, max: 2 }], ['steel_bow', '鋼の弓', 7, 82, PRICE.steel, 1, { min: 2, max: 2 }], ['silver_bow', '銀の弓', 9, 80, PRICE.silver, 2, { min: 2, max: 2 }], ['long_bow', '長弓', 7, 74, PRICE.special, 3, { min: 2, max: 3 }]]);
+wfam('tome', null, 'mag', [['fire', 'ファイア', 5, 85, 0, 0], ['elfire', 'エルファイア', 7, 82, PRICE.steel, 1], ['bolgano', 'ボルガノン', 9, 78, PRICE.silver, 2], ['raikou', '雷光の書', 11, 70, PRICE.special, 3, { crit: 8 }]]);
+wfam('staff', null, 'heal', [['live', 'ライブ', 4, 100, 0, 0], ['relive', 'リライブ', 6, 100, PRICE.steel, 1], ['miracle', 'ミラクル', 8, 100, PRICE.silver, 2], ['holy', '聖なる杖', 10, 100, PRICE.special, 3]]);
+wfam('dagger', 'sword', 'phys', [['dagger', '短剣', 4, 95, 0, 0], ['steel_dagger', '鋼の短剣', 6, 92, PRICE.steel, 1], ['silver_dagger', '銀の短剣', 8, 90, PRICE.silver, 2], ['viper', '毒蛇の牙', 6, 100, PRICE.special, 3, { crit: 20 }]]);
+wfam('tome', null, 'mag', [['light', '光の書', 6, 88, 0, 0], ['light2', '聖光の書', 9, 85, PRICE.silver, 2]]);
+for (const id of ['light', 'light2']) { WITEMS[id].fam = 'tome'; WITEMS[id].light = true; WITEMS[id].noshop = id === 'light'; }
+const START_WID = { leon: 'iron_spear', mira: 'iron_bow', luka: 'fire', sophia: 'live', jin: 'dagger' };
+const ITEMS = {
+  potion: { name: '傷薬', heal: 15, price: 40, desc: 'HPを15回復' },
+  hipotion: { name: '特傷薬', heal: 30, price: 100, desc: 'HPを30回復', stage: 2 }
+};
+const MAX_ITEMS = 3;
 const STATS = ['hp', 'str', 'mag', 'skl', 'spd', 'def', 'res'];
 const STAT_JP = { hp: 'HP', str: '力', mag: '魔力', skl: '技', spd: '速さ', def: '守備', res: '魔防', mov: '移動' };
 // base: stats at Lv1; gr: growth rates (%)
@@ -37,11 +59,13 @@ const HEROES = {
   jin:    { name: 'ジン', cls: 'シーフ', sprite: 'hero_thief', wpn: 'dagger', base: { hp: 18, str: 5, mag: 0, skl: 7, spd: 9, def: 2, res: 1, mov: 6 }, gr: { hp: 65, str: 45, mag: 0, skl: 50, spd: 60, def: 25, res: 20 } }
 };
 const ENEMY_T = {
-  goblin:   { name: 'ゴブリン', cls: 'ゴブリン', sprite: 'enemy_goblin', wpn: 'axe', base: { hp: 18, str: 5, mag: 0, skl: 3, spd: 4, def: 2, res: 0, mov: 5 }, gr: { hp: 70, str: 40, mag: 0, skl: 30, spd: 30, def: 30, res: 15 } },
-  slime:    { name: 'スライム', cls: 'スライム', sprite: 'enemy_slime', wpn: 'slime', base: { hp: 14, str: 3, mag: 0, skl: 2, spd: 3, def: 1, res: 0, mov: 4 }, gr: { hp: 70, str: 40, mag: 0, skl: 30, spd: 30, def: 25, res: 10 } },
-  skeleton: { name: 'スケルトン', cls: 'スケルトン', sprite: 'enemy_skeleton', wpn: 'sword', base: { hp: 20, str: 6, mag: 0, skl: 4, spd: 4, def: 4, res: 0, mov: 4 }, gr: { hp: 70, str: 45, mag: 0, skl: 35, spd: 35, def: 35, res: 15 } },
-  darkmage: { name: 'ダークメイジ', cls: 'ダークメイジ', sprite: 'enemy_darkmage', wpn: 'dark', base: { hp: 16, str: 0, mag: 6, skl: 5, spd: 4, def: 1, res: 5, mov: 4 }, gr: { hp: 60, str: 0, mag: 45, skl: 35, spd: 35, def: 15, res: 40 } },
-  boss:     { name: 'ガルド', cls: '金角将軍', sprite: 'enemy_boss', wpn: 'gold', base: { hp: 38, str: 9, mag: 0, skl: 7, spd: 5, def: 7, res: 2, mov: 4 }, gr: { hp: 80, str: 50, mag: 0, skl: 40, spd: 35, def: 40, res: 25 } }
+  goblin:   { name: 'ゴブリン', cls: 'ゴブリン', sprite: 'enemy_goblin', wpn: 'axe', gold: 16, base: { hp: 18, str: 5, mag: 0, skl: 3, spd: 4, def: 2, res: 0, mov: 5 }, gr: { hp: 70, str: 40, mag: 0, skl: 30, spd: 30, def: 30, res: 15 } },
+  slime:    { name: 'スライム', cls: 'スライム', sprite: 'enemy_slime', wpn: 'slime', gold: 10, base: { hp: 14, str: 3, mag: 0, skl: 2, spd: 3, def: 1, res: 0, mov: 4 }, gr: { hp: 70, str: 40, mag: 0, skl: 30, spd: 30, def: 25, res: 10 } },
+  skeleton: { name: 'スケルトン', cls: 'スケルトン', sprite: 'enemy_skeleton', wpn: 'sword', gold: 22, base: { hp: 20, str: 6, mag: 0, skl: 4, spd: 4, def: 4, res: 0, mov: 4 }, gr: { hp: 70, str: 45, mag: 0, skl: 35, spd: 35, def: 35, res: 15 } },
+  darkmage: { name: 'ダークメイジ', cls: 'ヴェルザの司祭', sprite: 'enemy_darkmage', wpn: 'dark', gold: 28, base: { hp: 16, str: 0, mag: 6, skl: 5, spd: 4, def: 1, res: 5, mov: 4 }, gr: { hp: 60, str: 0, mag: 45, skl: 35, spd: 35, def: 15, res: 40 } },
+  volk:     { name: '司祭ヴォルク', cls: '灰の司祭', sprite: 'enemy_darkmage', wpn: 'dark', gold: 140, boss: true, aura: '170,90,255', base: { hp: 36, str: 0, mag: 9, skl: 7, spd: 6, def: 3, res: 8, mov: 4 }, gr: { hp: 80, str: 0, mag: 50, skl: 40, spd: 35, def: 25, res: 40 } },
+  boss:     { name: 'ガルド', cls: '金角将軍', sprite: 'enemy_boss', wpn: 'gold', gold: 200, boss: true, base: { hp: 38, str: 9, mag: 0, skl: 7, spd: 5, def: 7, res: 2, mov: 4 }, gr: { hp: 80, str: 50, mag: 0, skl: 40, spd: 35, def: 40, res: 25 } },
+  verza:    { name: '闇の司祭ヴェルザ', cls: '星堕としの司祭', sprite: 'enemy_darkmage', wpn: 'dark', gold: 0, boss: true, aura: '200,60,255', base: { hp: 44, str: 0, mag: 11, skl: 8, spd: 7, def: 4, res: 10, mov: 4 }, gr: { hp: 80, str: 0, mag: 50, skl: 40, spd: 35, def: 25, res: 40 } }
 };
 function scaledStats(base, gr, lv) { // deterministic growth for enemies / late joiners
   const s = Object.assign({}, base);
@@ -58,129 +82,52 @@ const SP = {
   sophia: { name: '祈り', kind: 'pray', desc: '2マス以内の味方全員を回復' },
   jin: { name: '奇襲', kind: 'ambush', desc: '威力+2・命中+30・必ず2回攻撃' }
 };
+// passive skills: choose 1 of 2 at Lv5 and 1 of 2 at Lv10. m = modifiers (dmg dealt, taken reduction, hit, avo, crit, spd, heal)
+const SKILLS = {
+  guard: { name: '守護', desc: '受けるダメージ-2', m: { taken: 2 } }, charge: { name: '突撃', desc: '与えるダメージ+2', m: { dmg: 2 } },
+  rapid: { name: '連射', desc: '速さ+3(追撃しやすい)', m: { spd: 3 } }, eagle: { name: '鷹の目', desc: '命中+15', m: { hit: 15 } },
+  amp: { name: '魔力増幅', desc: '与えるダメージ+3', m: { dmg: 3 } }, quick: { name: '詠唱短縮', desc: '速さ+2・命中+10', m: { spd: 2, hit: 10 } },
+  mercy: { name: '慈愛', desc: '回復量+4', m: { heal: 4 } }, bless: { name: '加護', desc: '受けるダメージ-1・回避+10', m: { taken: 1, avo: 10 } },
+  dodge: { name: '回避', desc: '回避+15', m: { avo: 15 } }, vital: { name: '急所', desc: '必殺率+20', m: { crit: 20 } },
+  immov: { name: '不動', desc: '受けるダメージ-3', m: { taken: 3 } }, blaze: { name: '烈火', desc: '与えるダメージ+3', m: { dmg: 3 } },
+  rapid2: { name: '速射', desc: '速さ+4', m: { spd: 4 } }, snipe: { name: '狙い撃ち', desc: '命中+20・必殺率+10', m: { hit: 20, crit: 10 } },
+  sage: { name: '大賢者の知恵', desc: '与えるダメージ+4', m: { dmg: 4 } }, flash: { name: '瞬唱', desc: '速さ+4・命中+10', m: { spd: 4, hit: 10 } },
+  saint: { name: '聖女の慈悲', desc: '回復量+6', m: { heal: 6 } }, halo: { name: '光の加護', desc: '受けるダメージ-2・回避+10', m: { taken: 2, avo: 10 } },
+  shadow: { name: '影走り', desc: '回避+25', m: { avo: 25 } }, assassin: { name: '暗殺術', desc: '必殺率+35', m: { crit: 35 } }
+};
+const SKILL_PICKS = { // [Lv5 pair, Lv10 pair]
+  leon: [['guard', 'charge'], ['immov', 'blaze']], mira: [['rapid', 'eagle'], ['rapid2', 'snipe']], luka: [['amp', 'quick'], ['sage', 'flash']],
+  sophia: [['mercy', 'bless'], ['saint', 'halo']], jin: [['dodge', 'vital'], ['shadow', 'assassin']]
+};
+const PROMO = { // class change at Lv10 with a 勇者の証
+  leon: { cls: 'パラディン', d: { hp: 5, str: 3, def: 3, res: 2, skl: 2, spd: 2, mov: 1 }, desc: '移動+1・全能力が伸びる' },
+  mira: { cls: 'スナイパー', d: { hp: 4, str: 3, skl: 5, spd: 2, def: 1, res: 1 }, desc: '攻撃と技が大きく伸びる' },
+  luka: { cls: '賢者', d: { hp: 4, mag: 4, skl: 2, spd: 2, res: 3 }, heal: true, desc: '魔法に加えて杖で回復もできる' },
+  sophia: { cls: '司祭', d: { hp: 4, mag: 3, res: 2, skl: 2, spd: 1, def: 1 }, light: true, desc: '光の魔法で攻撃もできる' },
+  jin: { cls: 'アサシン', d: { hp: 4, str: 3, skl: 3, spd: 3, def: 1 }, crit: 10, desc: '必殺率+10・全能力が伸びる' }
+};
+// bonds: points gain +1 per turn when two allies who both acted end the turn adjacent
+const BOND_AT = [0, 3, 7, 12], BOND_RANK = ['', 'C', 'B', 'A'];
+const BOND_FX = [{ hit: 0, avo: 0, crit: 0 }, { hit: 5, avo: 5, crit: 0 }, { hit: 8, avo: 8, crit: 3 }, { hit: 12, avo: 12, crit: 6 }];
+const BOND_PAIRS = [['leon', 'mira'], ['leon', 'jin'], ['mira', 'sophia'], ['luka', 'sophia'], ['jin', 'mira']];
+const bondKey = (a, b) => a < b ? a + '-' + b : b + '-' + a;
+const bondLevel = (pts) => pts >= BOND_AT[3] ? 3 : pts >= BOND_AT[2] ? 2 : pts >= BOND_AT[1] ? 1 : 0;
 function weaponOf(u) {
-  const w = WEAPONS[u.wpn], t = Math.min(u.tier || 0, w.names.length - 1);
-  const o = { name: w.names[t], type: w.type, tri: w.tri || null, might: w.might + (w.names.length > 1 ? 2 * t : 0), hit: w.hit, min: w.min, max: w.max };
+  let o;
+  if (u.wid && WITEMS[u.wid]) { const w = WITEMS[u.wid]; o = { name: w.name, type: w.type, tri: w.tri || null, might: w.might + (u.forge || 0), hit: w.hit, min: w.min, max: w.max, crit: w.crit || 0 }; }
+  else { const w = WEAPONS[u.wpn]; o = { name: w.names[0], type: w.type, tri: w.tri || null, might: w.might, hit: w.hit, min: w.min, max: w.max, crit: 0 }; }
   const k = u.spActive;
   if (k === 'shot') { o.min = 2; o.max = 3; o.might += 3; o.hit += 10; o.name = '狙撃'; }
   else if (k === 'meteor') { o.min = 1; o.max = 3; o.might += 3; o.hit += 10; o.name = 'メテオ'; }
   else if (k === 'ambush') { o.might += 2; o.hit += 30; o.name = '奇襲'; }
+  else if (k === 'heal') { o = { name: 'ライブ', type: 'heal', tri: null, might: 4, hit: 100, min: 1, max: 1, crit: 0 }; }
   return o;
 }
 function makeHero(id, lv) {
   const d = HEROES[id], s = scaledStats(d.base, d.gr, lv);
-  return Object.assign({ id, key: id, name: d.name, cls: d.cls, sprite: d.sprite, team: 0, lv, exp: 0, wpn: d.wpn, tier: 0, maxhp: s.hp, hp: s.hp, ai: null, boss: false, lord: id === 'leon', dir: 'down' }, s, { hp: s.hp });
+  return Object.assign({ id, key: id, name: d.name, cls: d.cls, sprite: d.sprite, team: 0, lv, exp: 0, wpn: d.wpn, wid: START_WID[id], tier: 0, forge: 0, items: ['potion', 'potion'], skills: [], promoted: false, canHeal: id === 'sophia', injured: 0, maxhp: s.hp, hp: s.hp, ai: null, boss: false, lord: id === 'leon', dir: 'down' }, s, { hp: s.hp });
 }
 function makeEnemy(t, lv, x, y, ai, extra) {
   const d = ENEMY_T[t], s = scaledStats(d.base, d.gr, lv);
-  return Object.assign({ id: t + '_' + x + '_' + y, key: t, name: d.name, cls: d.cls, sprite: d.sprite, team: 1, lv, exp: 0, wpn: d.wpn, tier: 0, maxhp: s.hp, ai: ai || 'aggro', boss: t === 'boss', lord: false, x, y, dir: 'left' }, s, { hp: s.hp }, extra || {});
+  return Object.assign({ id: t + '_' + x + '_' + y, key: t, name: d.name, cls: d.cls, sprite: d.sprite, team: 1, lv, exp: 0, wpn: d.wpn, tier: 0, gold: d.gold || 0, aura: d.aura || null, items: [], skills: [], maxhp: s.hp, ai: ai || 'aggro', boss: !!d.boss, lord: false, x, y, dir: 'left' }, s, { hp: s.hp }, extra || {});
 }
-const SPEAKERS = {
-  leon: { name: 'レオン', face: 'hero_knight' }, mira: { name: 'ミラ', face: 'hero_archer' },
-  luka: { name: '老魔道士ルカ', face: 'hero_mage' }, sophia: { name: 'ソフィア', face: 'hero_healer' },
-  jin: { name: 'ジン', face: 'hero_thief' }, boss: { name: '金角将軍ガルド', face: 'enemy_boss' },
-  dmage: { name: '闇の司祭ヴェルザ', face: 'enemy_darkmage' }, goblin: { name: 'ゴブリン', face: 'enemy_goblin' }
-};
-const mk = rows => rows.map(r => Array.isArray(r) ? r.join('') : r);
-const CHAPTERS = [
-  {
-    title: '第一章', name: '国境の狼煙', goal: '敵を全滅させよ', win: 'rout', bgm: 'field',
-    theme: 'bright',
-    props: { '4,3': 'sign', '10,6': 'barrel', '13,9': 'cart' },
-    map: mk([
-      'HHHH......^^....', 'HHHH....==.^^...', 'HHHH====......T.', '..==P.~~......T.',
-      '==...~~~.TT.....', '...T..~~~.T.....', '..TT...~..P.^...', '......T....^^...',
-      '.=======...T....', '.=..T.....T..P..', '.=......~~......', '.=.......~......']),
-    party: [['leon', 2, 9], ['mira', 3, 10], ['luka', 2, 10]],
-    enemies: [['goblin', 12, 2, 1, 'aggro'], ['goblin', 11, 5, 1, 'aggro'], ['slime', 13, 4, 1, 'aggro'], ['goblin', 10, 1, 1, 'wait'], ['slime', 13, 7, 1, 'wait']],
-    join: [],
-    pre: [
-      [null, 'フェルナ王国、北の国境。夜明けの空を、黒き軍勢の狼煙が焦がしていた。'],
-      ['leon', '狼煙だ…! 国境の砦が燃えている。'],
-      ['mira', '見て、ゴブリンの群れよ。しかも隊列を組んでる。ただの野盗じゃないわ。'],
-      ['luka', 'ふぉっふぉ、黒き軍勢の斥候じゃな。若き騎士殿、ここはおぬしの出番じゃぞ。'],
-      ['leon', '俺が…? 隊長はまだ戻っていないのに。'],
-      ['mira', '迷ってる暇なんてないでしょ、レオン! 指揮はあなたよ!'],
-      ['leon', '…わかった。ここから先へは、一歩も通さない!'],
-      [null, '【ヒント】味方を選んで移動先を決め、「攻撃」で敵を倒そう。青が移動範囲、赤が攻撃範囲。レオンが倒れると敗北。']
-    ],
-    post: [
-      ['mira', 'ふう…片付いたわね。怪我はない、レオン?'],
-      ['leon', 'ああ。だが妙だ。ゴブリンが、旗の下で戦っていた。'],
-      ['luka', '黒き軍勢は、この国をまるごと呑み込む気じゃ。南の渡しへ急ぐぞ。味方と合流できるはずじゃ。'],
-      ['leon', '守るんだ。この旗の下に集まった者たちを、必ず。']
-    ]
-  },
-  {
-    title: '第二章', name: '骸骨の渡し', goal: '敵を全滅させよ', win: 'rout', bgm: 'field',
-    theme: 'mossy', props: { '10,5': 'grave', '13,11': 'campfire' },
-    map: mk([
-      ['..TT....', '~~', '......TT'], ['.....T..', '~~', '...^^...'], ['..=====.', '~~', '..^^^..T'],
-      ['..======', '==', '=======.'], ['..=.....', '~~', '.....T..'], ['.TT.....', '~~', 'P...T...'],
-      ['......T.', '~~', '..^^....'], ['.....TT.', '~~', '....^...'], ['..=..R..', '~~', '........'],
-      ['..======', '==', '=====...'], ['..=...R.', '~~', '.T......'], ['.=......', '~~', '...P.AAA'],
-      ['.=......', '~~', '.....AAA']]),
-    party: [['leon', 2, 6], ['mira', 1, 7], ['luka', 2, 8], ['sophia', 1, 5], ['jin', 3, 7]],
-    enemies: [['skeleton', 12, 3, 2, 'aggro'], ['skeleton', 12, 9, 2, 'aggro'], ['skeleton', 14, 5, 2, 'aggro'], ['skeleton', 14, 7, 2, 'wait'],
-      ['skeleton', 15, 1, 2, 'wait'], ['darkmage', 16, 4, 2, 'wait'], ['darkmage', 16, 10, 2, 'wait']],
-    join: ['sophia', 'jin'],
-    pre: [
-      [null, '南の渡し場。川の向こうで、死者の兵が骨を鳴らしていた。'],
-      ['sophia', 'お待ちください! 負傷した方が、まだ橋のたもとに…!'],
-      ['leon', '君は…? 神官か?'],
-      ['sophia', 'ソフィアと申します。癒しの術が使えます。わたくしにも、戦わせてください。'],
-      ['jin', 'おっと、そこの隊長さん。俺も雇ってくれないか? 前金で銀貨三枚だ。'],
-      ['mira', '出たわね、コソ泥。さっきから荷車を覗いてたの、気づいてたんだから。'],
-      ['jin', '人聞きが悪いなあ。…ま、骸骨どもに金目の物はなさそうだし、今回は後払いでいいぜ。'],
-      ['luka', 'あやつらを操っておるのは、闇の司祭じゃ。術者を叩けば、骨は崩れるぞい。'],
-      ['leon', 'ソフィア、ジン、頼む。みんなで橋を渡ろう!'],
-      [null, '【ヒント】森・山・砦では回避と守備が上がる。ヒーラーは隣の味方を杖で回復できる。']
-    ],
-    post: [
-      ['sophia', '皆さま、お怪我は…あら、レオン様、腕から血が。'],
-      ['leon', 'かすり傷だ。それより、最後に司祭が何か言っていたな。'],
-      ['dmage', 'ガルド将軍が…丘の砦で…お待ちかね…よ…。'],
-      ['jin', '砦ってのは、あの黄金の旗の…。やれやれ、金の匂いと厄介事の匂いがするぜ。'],
-      ['mira', '行こう。国境を取り戻すんだ!']
-    ]
-  },
-  {
-    title: '第三章', name: '金角の砦', goal: '敵将ガルドを倒せ', win: 'boss', bgm: 'boss',
-    theme: 'harsh', props: { '14,2': 'banner', '18,2': 'banner', '13,4': 'cart_broken', '10,6': 'grave', '5,9': 'grave', '14,3': 'torch', '18,3': 'torch' },
-    map: mk([
-      '..TT.....^^^......TT', '....T....^^....###..', '..T.....==....P###P.', '....====..T...P...P.',
-      '~~..=.....T..P.=.=..', '~...=..~~...T.==....', '....=..~~.P^..=...T.', '...==..~~.^^.==.....',
-      '..=T.......^..=..TT.', '..=..PT..====..T....', '..==.TT.==..........', '...=.......T....T...',
-      '.===....T.....^^....', '.=......T..T........', '.=..................']),
-    party: [['leon', 2, 12], ['mira', 3, 13], ['luka', 1, 13], ['sophia', 3, 11], ['jin', 4, 12]],
-    enemies: [['goblin', 9, 9, 3, 'aggro'], ['goblin', 12, 6, 3, 'aggro'], ['slime', 13, 10, 3, 'aggro'], ['slime', 11, 5, 3, 'aggro'],
-      ['skeleton', 10, 7, 3, 'aggro'], ['skeleton', 14, 7, 3, 'aggro'], ['skeleton', 16, 3, 3, 'wait'],
-      ['darkmage', 13, 3, 3, 'aggro'], ['darkmage', 16, 5, 3, 'aggro'], ['goblin', 11, 9, 3, 'aggro'], ['skeleton', 12, 4, 3, 'aggro'], ['darkmage', 15, 4, 3, 'wait'], ['boss', 16, 2, 4, 'hold']],
-    join: [],
-    pre: [
-      [null, '丘の上の古い砦。黄金の旗が、重い風にはためいている。'],
-      ['boss', '来たか、小さな旗の騎士よ。我が名はガルド。黒き軍勢の金角将軍だ。'],
-      ['leon', '国境を荒らす理由を言え!'],
-      ['boss', '理由? 星を砕くためだ。この国の灯を、ひとつ残らずな。'],
-      ['sophia', 'そんな…。'],
-      ['jin', 'でかい口だな。あの金ピカの兜、いい値で売れそうだ。'],
-      ['luka', '若いの、あやつは砦の上におる。守りは固いぞ。遠くから削るか、囲んで叩くか…考えるのじゃ。'],
-      ['mira', '大丈夫。あたしたち、ここまで一緒に来たんだもん。'],
-      ['leon', 'みんな、力を貸してくれ。…行くぞ!']
-    ],
-    post: [
-      ['boss', '見事…だ。だが…星は、もう…。'],
-      ['leon', '終わったんだ…。'],
-      ['mira', 'やったね、隊長!'],
-      ['sophia', '皆さま、ご無事で何よりです。'],
-      ['jin', '報酬は、全員で朝日を見られること…なんてな。ま、前金もきっちりもらうけど。'],
-      ['luka', 'ふぉっふぉ。旗は折れなんだな、レオン。'],
-      ['leon', 'ああ。この戦旗が掲げられる限り、俺たちは何度でも立ち上がる。']
-    ]
-  }
-];
-const ENDING_TEXT = [
-  'こうして国境に、朝が戻った。',
-  '星砕きの戦旗は、辺境の空に高く翻っている。',
-  '――旗の下に集った、五つの小さな星とともに。'
-];
