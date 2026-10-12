@@ -218,9 +218,45 @@ def make_map():
     json.dump({'cols': len(xs) - 1, 'rows': len(ys) - 1, 'cell': C, 'xs': xs, 'ys': ys}, open(out / 'map_ch1.json', 'w'))
     return out_im.size
 
+# ---------------------------------------------------------------- painted ch2-5 battlefields (2x2 sheet)
+# The faint grid of these panels is irregular / invisible in dark areas, so it cannot be measured like ch1's.
+# ch2 shows ~28x30 px cells in the water (-> 27x17); ch3-5 are subdivided at the intended 24x16 (~32 px).
+PANELS = {'ch6': (31, 20), 'ch2': (27, 17), 'ch3': (24, 16), 'ch4': (24, 16), 'ch5': (24, 16)}
+SHEET_CELL = 48
+def make_sheet_maps():
+    im = Image.open(src / 'map_sheet_ch2-5.png').convert('RGB'); a = np.array(im).astype(int)
+    light = (a.min(axis=2) >= 225)
+    gx = runs(light.mean(axis=0) > 0.95); gy = runs(light.mean(axis=1) > 0.95)
+    assert len(gx) == 1 and len(gy) == 1, (gx, gy)
+    xs = [0, gx[0][0], gx[0][1], im.width]; ys = [0, gy[0][0], gy[0][1], im.height]
+    boxes = {'ch2': (xs[0], ys[0], xs[1], ys[1]), 'ch3': (xs[2], ys[0], xs[3], ys[1]), 'ch4': (xs[0], ys[2], xs[1], ys[3]), 'ch5': (xs[2], ys[2], xs[3], ys[3])}
+    sizes = {}
+    boxes['ch6'] = None
+    for name, bx in boxes.items():
+        if bx is None:   # ch6: its own single-panel image, grid ~50 px (measured in the sky), label is wider
+            im6 = Image.open(src / 'map_ch6.png').convert('RGB'); x0, y0, x1, y1 = 0, 0, im6.width, im6.height; p = im6; LB = (4, 4, 510, 74)
+        else:
+            x0, y0, x1, y1 = bx; p = im.crop((x0 + 1, y0 + 1, x1 - 1, y1 - 1)); LB = (2, 2, 300, 48)
+        P = np.array(p).astype(np.float32); H, W = P.shape[:2]
+        # remove the title label (dark rounded box, top-left): clone the terrain 46 px below it, feathered
+        lx0, ly0, lx1, ly1 = LB
+        m = Image.new('L', (W, H), 0); m.paste(255, (lx0, ly0, lx1, ly1)); m = np.array(m.filter(ImageFilter.GaussianBlur(5))).astype(np.float32)[..., None] / 255
+        src_ = np.roll(P, -(ly1 - ly0 + 4), axis=0)
+        P = P * (1 - m) + src_ * m
+        p = Image.fromarray(np.clip(P, 0, 255).astype(np.uint8))
+        cols, rows = PANELS[name]; cw = p.width / cols; ch = p.height / rows
+        o = Image.new('RGB', (cols * SHEET_CELL, rows * SHEET_CELL))
+        for j in range(rows):
+            for i in range(cols):
+                o.paste(p.crop((round(i * cw), round(j * ch), round((i + 1) * cw), round((j + 1) * ch))).resize((SHEET_CELL, SHEET_CELL), Image.LANCZOS), (i * SHEET_CELL, j * SHEET_CELL))
+        o.save(out / ('map_%s.webp' % name), 'WEBP', quality=80, method=6)
+        json.dump({'cols': cols, 'rows': rows, 'cell': SHEET_CELL, 'panel': [x0 + 1, y0 + 1, x1 - 1, y1 - 1]}, open(out / ('map_%s.json' % name), 'w'))
+        sizes[name] = (o.size, (out / ('map_%s.webp' % name)).stat().st_size)
+    return sizes
+
 if __name__ == '__main__':
     cells = make_faces(); print('face cells', cells)
     sizes = make_full(); print('full sizes', sizes)
     contact(sizes)
-    print('backgrounds', make_backgrounds()); print('map', make_map())
+    print('backgrounds', make_backgrounds()); print('map', make_map()); print('sheet maps', make_sheet_maps())
     tot = sum(f.stat().st_size for f in out.glob('*.webp')); print('total webp bytes', tot)

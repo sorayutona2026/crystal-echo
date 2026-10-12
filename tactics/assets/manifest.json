@@ -827,6 +827,21 @@
   "paint": {
     "map_ch1": {
       "file": "gpt/map_ch1.webp"
+    },
+    "map_ch2": {
+      "file": "gpt/map_ch2.webp"
+    },
+    "map_ch3": {
+      "file": "gpt/map_ch3.webp"
+    },
+    "map_ch4": {
+      "file": "gpt/map_ch4.webp"
+    },
+    "map_ch5": {
+      "file": "gpt/map_ch5.webp"
+    },
+    "map_ch6": {
+      "file": "gpt/map_ch6.webp"
     }
   }
 }

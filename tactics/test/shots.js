@@ -32,7 +32,7 @@ const base = async (page, ch) => { await page.evaluate(c => { __tac.speed(4); __
   await press(page, 'Escape', 2); await press(page, 'ArrowDown', 3); await press(page, 'z'); await sleep(250); await press(page, 'z'); await sleep(250);
   await press(page, 'z'); await sleep(2200); await shot(page, '15_support_talk');
   // ---- maps of every chapter (cursor parked so it does not cover anything)
-  for (const [ch, name, cx, cy] of [[1, '20_ch2_defend', 4, 5], [2, '21_ch3_escape_mist', 18, 1], [3, '22_ch4_ash_ruins', 10, 3], [4, '23_ch5_fort_garud', 16, 2], [5, '24_ch6_altar_verza', 9, 1]]) {
+  for (const [ch, name, cx, cy] of [[1, '20_ch2_defend', 6, 5], [2, '21_ch3_escape_mist', 21, 1], [3, '22_ch4_ash_ruins', 20, 6], [4, '23_ch5_fort_garud', 17, 2], [5, '24_ch6_altar_verza', 20, 5]]) {
     await fresh(page); await battle(page, ch); await cursorTo(page, cx, cy); await sleep(900); await shot(page, name);
   }
   // forecast with crit + HUD (ch5)

@@ -14,7 +14,8 @@ const TERRAIN = {
   'R': { name: '廃墟', cost: 99, avo: 0, def: 0, block: true },
   'P': { name: '障害物', cost: 99, avo: 0, def: 0, block: true },
   'F': { name: '柵', cost: 99, avo: 0, def: 0, block: true },
-  'M': { name: '岩山', cost: 99, avo: 0, def: 0, block: true }
+  'M': { name: '岩山', cost: 99, avo: 0, def: 0, block: true },
+  'Z': { name: '虚空', cost: 99, avo: 0, def: 0, block: true }
 };
 // enemy weapons (and the family icon / animation of the heroes' weapons)
 const WEAPONS = {
