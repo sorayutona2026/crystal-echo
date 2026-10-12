@@ -42,3 +42,6 @@ Unmodified copies from the same repository and commit (CC0, Pixel-boy):
 - `fx/nin_5.png`, `fx/nin_18.png` = `ninja-adventure/fx/5.png`, `18.png` (hit spark, smoke puff).
 - `bg/N.png` = `rpg-battle-system/backgrounds/N.png` (N = 15, 19, 12, 2, 3): painted backgrounds for the title, chapter cards, dialogue and ending.
 - `icons/w_{sword,lance,axe,bow,sai}.png` = `ninja-adventure/weapons/*.png`; `icons/i_{scroll-fire,life-pot,kunai,heart}.png` = `ninja-adventure/items/*.png`: weapon and special icons.
+
+## ChatGPT-generated illustrations (Loop 6)
+`assets/gpt/face_<id>.webp` and `assets/gpt/full_<id>.webp` are portraits and full-body illustrations for the five heroes and five enemy types. **ユーザーがChatGPTで生成して提供した画像** (prompts in `GPT_PROMPTS.md`). The originals are kept unmodified in `art-src/gpt_faces_sheet.png` and `art-src/gpt_units_sheet.png` (not embedded in the game). `tools/prep_gpt_art.py` crops the portraits (256x256), separates the figures, removes ground shadows and the colour halo, and resizes them to WebP; it is deterministic and can be re-run.

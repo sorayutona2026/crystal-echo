@@ -7,7 +7,7 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
 (async () => {
   const b = await launch(); const { page, errors } = await open(b, { query: '?seed=3' });
   await page.evaluate(() => __tac.seed(3));
-  await sleep(400); await shot(page, '01_title');
+  await sleep(400); await shot(page, '01_title'); await shot(page, '29_title_art');
   // dialogue with face
   await press(page, 'z'); await waitState(page, () => __tac.state().scene === 'card'); await sleep(900); await shot(page, '02_chapter_card');
   await press(page, 'z'); await sleep(200); await press(page, 'z'); await waitState(page, () => __tac.state().scene === 'dialogue');
@@ -17,6 +17,7 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
   await page.evaluate(() => { __tac.speed(10); });
   for (let i = 0; i < 60; i++) { const s = await st(page); if (s.scene === 'battle' && s.ready) break; await press(page, 'z'); await sleep(50); }
   await page.evaluate(() => __tac.speed(1)); await sleep(300);
+  for (let i = 0; i < 5; i++) { const s0 = await st(page); if (s0.mode === 'idle') break; await press(page, 'x'); await sleep(150); }
   // move range: select leon
   await press(page, 'z'); await waitMode(page, 'move'); await cursorTo(page, 5, 8); await sleep(250); await shot(page, '04_move_range');
   await press(page, 'x'); await sleep(100);
@@ -39,7 +40,7 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
   await page.evaluate(() => __tac.step(8)); await shot(page, '06_attack_moment');
   await page.evaluate(() => __tac.speed(1));
   for (let i = 0; i < 40; i++) { const s = await st(page); if (s.lvl) break; await sleep(100); }
-  await sleep(250); await shot(page, '07_levelup');
+  await sleep(250); await shot(page, '07_levelup'); await shot(page, '28_levelup_art');
   await press(page, 'z'); await sleep(300);
   // end the turn right away (E menu), capturing the enemy phase banner
   await settle(page);
@@ -73,7 +74,7 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
   { const s1 = await st(page), lv = s1.units.find(u => u.key === 'leon');
     await page.evaluate(([x, y]) => __tac.place('slime_13_4', x, y), [lv.x + 1, lv.y]); await sleep(150);
     await doAction(page, { unit: 'leon', from: { x: lv.x, y: lv.y }, dest: { x: lv.x, y: lv.y }, target: 'slime_13_4', kind: 'attack' }, 'forecast');
-    await page.evaluate(() => __tac.speed(0)); await press(page, 'z'); await frames(8); await shot(page, '22_fx_slash'); await page.evaluate(() => __tac.speed(1)); await settle(page); }
+    await page.evaluate(() => __tac.speed(0)); await press(page, 'z'); await frames(8); await shot(page, '22_fx_slash'); await frames(8); await shot(page, '27_cutin'); await page.evaluate(() => __tac.speed(1)); await settle(page); }
   await freshBattle(0);
   { const s1 = await st(page), lk = s1.units.find(u => u.key === 'luka');
     await page.evaluate(([x, y]) => { __tac.place('slime_13_4', x, y); __tac.place('slime_13_7', x, y - 1); }, [lk.x + 3, lk.y]); await sleep(150);
@@ -85,6 +86,15 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
     await page.evaluate(() => __tac.speed(0)); await press(page, 'z'); await frames(14); await shot(page, '24_fx_heal'); await page.evaluate(() => __tac.speed(1)); await settle(page); }
   await freshBattle(0);
   await press(page, 'q'); await sleep(2500); await shot(page, '25_auto_on'); await press(page, 'q'); await sleep(600);
+  // portrait art in dialogue (desktop + phone), boss reveal, HD units vs pixel sprites
+  await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
+  await page.evaluate(() => __tac.talk('sophia', 'お待ちください! 負傷した方が、まだ橋のたもとに…!', 1)); await sleep(300); await shot(page, '26_face_dialogue');
+  await page.evaluate(() => __tac.talk('boss', '来たか、小さな旗の騎士よ。我が名はガルド。黒き軍勢の金角将軍だ。', 2)); await sleep(300); await shot(page, '26_face_dialogue_boss');
+  await page.evaluate(() => __tac.showIntro(70)); await sleep(300); await shot(page, '31_boss_intro');
+  for (const [hd, nm] of [[true, '30_hd_units'], [false, '30_pixel_units']]) {
+    await freshBattle(2); await page.evaluate(v => __tac.setHD(v), hd); await cursorTo(page, 8, 7); await sleep(300); await shot(page, nm);
+  }
+  await page.evaluate(() => __tac.setHD(true));
   // special-command menu (ルカ: メテオ) on the opening position of chapter 1
   await page.reload(); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
   await page.evaluate(() => { __tac.speed(10); __tac.start(0); });
@@ -109,6 +119,11 @@ const shot = async (page, name) => { await page.screenshot({ path: path.join(OUT
     await fr.evaluate(([id, x, y]) => __tac.place(id, x, y), [sl.id, lv.x + 2, lv.y]); await sleep(200);
     await tapT(lv.x, lv.y); await tapT(lv.x + 1, lv.y); await sleep(400); await tapT(lv.x + 2, lv.y); await sleep(400); await shot(pf, '20_phone_tap_forecast');
     await fr.evaluate(() => __tac.speed(0)); await tapT(lv.x + 2, lv.y); await fr.evaluate(() => __tac.step(14)); await shot(pf, '21_phone_tap_attack'); await fr.evaluate(() => __tac.speed(1)); await cx.close(); }
+  { const cx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }); const pf = await cx.newPage();
+    await pf.goto(require('./lib').URL); await pf.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
+    await pf.evaluate(() => { __tac.speed(10); __tac.start(1); }); await pf.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await pf.evaluate(() => __tac.speed(1));
+    for (const [hd, nm] of [[true, '30_hd_units_phone'], [false, '30_pixel_units_phone']]) { await pf.evaluate(v => __tac.setHD(v), hd); await sleep(400); await shot(pf, nm); }
+    await pf.evaluate(() => { __tac.setHD(true); __tac.talk('jin', 'おっと、そこの隊長さん。俺も雇ってくれないか? 前金で銀貨三枚だ。', 1); }); await sleep(300); await shot(pf, '32_phone_portrait_dialogue'); await cx.close(); }
   const p3 = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const pl = await p3.newPage(); await pl.goto(require('./lib').URL); await pl.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
   await pl.evaluate(() => __tac.start(2)); await pl.waitForFunction(() => __tac.state().scene === 'battle' && __tac.state().ready); await sleep(300); await shot(pl, '14_phone_landscape_battle');

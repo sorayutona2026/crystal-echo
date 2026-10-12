@@ -35,6 +35,7 @@ function buildTiles() {
     TILE.grass.push(c);
   }
   const over = n => { const c = cvs(16, 16), g = c.getContext('2d'); g.drawImage(grass, 0, 0); g.drawImage(raw(n), 0, 0); return c; };
+  ART_LOAD();
   FXS = {}; for (const n in (MANIFEST.fx || {})) { const d = MANIFEST.fx[n], im = A.img[d.file]; FXS[n] = { img: im, n: d.n, fw: Math.floor(im.width / d.n), fh: im.height }; }
   BGS = {}; for (const n in (MANIFEST.bg || {})) BGS[n] = A.img[MANIFEST.bg[n].file];
   ICONS = {}; for (const n in (MANIFEST.icons || {})) ICONS[n] = A.img[MANIFEST.icons[n].file];
@@ -243,11 +244,13 @@ function spriteRim(id, dir, row, team) {
 }
 function drawBgImage(g, name, dim, t) { // painted background scaled to the screen, slowly drifting
   const im = BGS[name]; if (!im) return; g.imageSmoothingEnabled = true;
-  const dx = Math.sin((t || 0) / 400) * 6; g.drawImage(im, 0, 0, im.width, im.height, -8 + dx, -6, W + 16, H + 12); g.imageSmoothingEnabled = false;
-  g.fillStyle = 'rgba(6,8,30,' + dim + ')'; g.fillRect(0, 0, W, H);
-  const gr = g.createRadialGradient(W / 2, H / 2, 70, W / 2, H / 2, 230); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  const dx = Math.sin((t || 0) / 400) * 6; const yo = G.yOff || 0; g.drawImage(im, 0, 0, im.width, im.height, -8 + dx, -6 - yo, W + 16, H + 12 + 2 * yo); g.imageSmoothingEnabled = false;
+  g.fillStyle = 'rgba(6,8,30,' + dim + ')'; g.fillRect(0, -yo, W, H + 2 * yo);
+  const gr = g.createRadialGradient(W / 2, H / 2, 70, W / 2, H / 2, 230); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = gr; g.fillRect(0, -yo, W, H + 2 * yo);
 }
 function weaponIcon(u) {
   const m = { spear: 'w_lance', gold: 'w_lance', dagger: 'w_sai', bow: 'w_bow', tome: 'i_scroll-fire', dark: 'i_scroll-fire', staff: 'i_life-pot', axe: 'w_axe', sword: 'w_sword', slime: 'i_heart' };
   return ICONS[m[u.wpn]] || null;
 }
+
+function ART_LOAD() { for (const id in (MANIFEST.art || {})) { const d = MANIFEST.art[id]; ART[id] = { face: A.img[d.face], full: A.img[d.full] }; } }

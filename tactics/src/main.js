@@ -9,8 +9,8 @@ function* waitOk() { // level-up popups etc.; with auto on they close by themsel
   let n = 0;
   for (;;) { if (Input.q.length) { if (Input.q.shift() === 'ok') return; } else { n++; if (G.auto && n > 60) return; yield 1; } }
 }
-function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX })); } catch (e) { } }
-function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; } } catch (e) { } syncButtons(); }
+function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
+function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; if (p.hd === false || p.hd === true || p.hd === 'auto') G.hdUnits = p.hd; } } catch (e) { } syncButtons(); }
 function syncButtons() { const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
 function setAuto(v) { G.auto = v; syncButtons(); savePrefs(); Aud.sfx(v ? 'ok' : 'cancel'); }
 // ---------- visual helpers ----------
@@ -35,6 +35,20 @@ function* banner(textv, color, sub) {
   while (G.banner.t < G.banner.dur) { G.banner.t++; yield 1; }
   G.banner = null;
 }
+function cutinWanted(ev) { return G.cutin && !(G.auto && G.speedX > 1) && !ev.aoe && ART[artOf(ev.att)] && ART[artOf(ev.def)]; }
+function weaponFxName(a) { const w = weaponOf(a), aw = a.wpn; return w.type === 'mag' ? 'rpg_1' : (aw === 'spear' || aw === 'gold') ? 'rpg_3' : aw === 'axe' ? 'rpg_5' : (aw === 'bow' || aw === 'dagger') ? 'rpg_10' : 'rpg_4'; }
+// FE-style attack cut-in (about 0.75s; shortened under auto; any tap/key skips to the result)
+function* cutin(ev, impact) {
+  const short = G.auto, total = short ? 30 : 46, imp = short ? 11 : 16;
+  const c = G.cut = { a: ev.att, d: ev.def, ev, t: 0, total, imp, fx: weaponFxName(ev.att), skip: false }; flushInput(); let done = false;
+  for (c.t = 0; c.t < total; c.t++) {
+    if (Input.q.length) { const k = Input.q.shift(); if (k === 'ok' || k === 'cancel') c.skip = true; }
+    if (c.skip) { if (!done) { impact(); done = true; } break; }
+    if (c.t === imp && !done) { impact(); done = true; }
+    yield 1;
+  }
+  G.cut = null;
+}
 function* strike(ev) {
   const a = ev.att, d = ev.def, dx = d.x - a.x, dy = d.y - a.y, dd = Math.abs(dx) + Math.abs(dy), L = Math.hypot(dx, dy) || 1;
   a.dir = dirOf(dx, dy);
@@ -56,7 +70,9 @@ function* strike(ev) {
       Co.run(tweenHp(d, ev.hpAfter, 16));
     } else { Aud.sfx('miss'); numFx(d, 'MISS', '#c8d0ff', 9); }
   };
-  if (ranged) {
+  const useCut = G.cutNext && cutinWanted(ev); if (useCut) G.cutNext = false;
+  if (useCut) { yield* cutin(ev, impact); }
+  else if (ranged) {
     const p0 = tilePx(a.vx, a.vy), p1 = tilePx(d.vx, d.vy);
     for (let f = 0; f < 22; f++) {
       const k = Math.sin(Math.PI * Math.min(1, f / 10)); a.lx = -dx / L * 2 * k; a.ly = -dy / L * 2 * k;
@@ -69,7 +85,7 @@ function* strike(ev) {
     for (let f = 0; f < 15; f++) { const k = Math.sin(Math.PI * Math.min(1, f / 12)); a.lx = dx / L * 8 * k; a.ly = dy / L * 8 * k; if (f === 5) impact(); yield 1; }
   }
   a.lx = a.ly = 0;
-  yield 10;
+  yield (useCut ? 3 : 10);
   if (ev.kill) { Aud.sfx('kill'); d.fading = true; yield 30; } else yield 4;
 }
 function* playRecord(rec, fast) {
@@ -78,11 +94,13 @@ function* playRecord(rec, fast) {
   if (rec.sp) { Aud.sfx('levelup'); numFx(u, SP[u.key].name + '!', '#ffd24a', 10); burst(u, '#ffd24a', 12); { const up = tilePx(u.vx, u.vy); spawnSpr('rpg_12', up.x, up.y + 6, { scale: 0.28, dur: 3, glow: 1 }); } yield 22; }
   if (rec.buffed.length) { for (const a of rec.buffed) { sparkle(a); numFx(a, '攻撃+2', '#ffb050', 8); } Aud.sfx('heal'); yield 30; }
   if (rec.target && !rec.unit.dead) { u.dir = dirOf(rec.target.x - u.x, rec.target.y - u.y); }
+  G.cutNext = rec.kind === 'attack';
   for (const ev of rec.events) {
     if (ev.type === 'heal') {
       Aud.sfx('heal'); sparkle(ev.def); { const hp = tilePx(ev.def.vx, ev.def.vy); spawnSpr('rpg_7', hp.x, hp.y + 6, { scale: 0.42, dur: 3 }); if (rec.sp === 'pray') spawnSpr('rpg_12', hp.x, hp.y + 6, { scale: 0.22, dur: 3, glow: 1 }); } numFx(ev.def, '+' + ev.dmg, '#6dff8d', 11); yield* tweenHp(ev.def, ev.hpAfter, 20); yield 14;
     } else yield* strike(ev);
   }
+  G.cutNext = false;
   for (const x of rec.exp) {
     if (x.unit.dead) continue;
     numFx(x.unit, 'EXP+' + x.n, '#8fe8ff', 8); yield 14;
@@ -145,10 +163,14 @@ function menuPick() {
   }
   G.targets = targetsFrom(G.S, G.sel, G.sel.x, G.sel.y).sort((a, b) => a.y - b.y || a.x - b.x); G.ti = 0; G.cursor = { x: G.targets[0].x, y: G.targets[0].y }; G.menu = null; G.mode = 'target'; Aud.sfx('ok');
 }
+const hdLabel = () => G.hdUnits === 'auto' ? '自動' : G.hdUnits ? 'イラスト' : 'ドット';
 function openSys() {
-  const S = G.S;
-  openMenu([{ label: 'ターン終了', fn: () => { G.menu = null; G.mode = 'idle'; G.endTurn = true; Aud.sfx('ok'); } }, { label: 'とじる', fn: () => { G.menu = null; G.mode = 'idle'; Aud.sfx('cancel'); } }], 120, 90, 80);
-  G.mode = 'sysmenu'; Aud.sfx('ok');
+  const mk = () => [
+    { label: 'ターン終了', fn: () => { G.menu = null; G.mode = 'idle'; G.endTurn = true; Aud.sfx('ok'); } },
+    { label: '戦闘アニメ ' + (G.cutin ? 'ON' : 'OFF'), desc: '攻撃のカットイン演出(タップで飛ばせる)', name: '戦闘アニメ', fn: () => { G.cutin = !G.cutin; savePrefs(); G.menu.items[1].label = '戦闘アニメ ' + (G.cutin ? 'ON' : 'OFF'); Aud.sfx('ok'); } },
+    { label: '表示 ' + hdLabel(), desc: 'マップ上のユニット: 自動(縦持ちはイラスト) / イラスト / ドット', name: 'ユニット表示', fn: () => { G.hdUnits = G.hdUnits === 'auto' ? true : G.hdUnits === true ? false : 'auto'; savePrefs(); G.menu.items[2].label = '表示 ' + hdLabel(); Aud.sfx('ok'); } },
+    { label: 'とじる', fn: () => { G.menu = null; G.mode = 'idle'; Aud.sfx('cancel'); } }];
+  openMenu(mk(), 100, 70, 120); G.mode = 'sysmenu'; Aud.sfx('ok');
 }
 function battleInput(a) {
   const S = G.S, c = G.cursor;
@@ -210,6 +232,8 @@ function tapMap(px, py) {
 }
 function pumpTaps() {
   for (const t of Input.taps) {
+    if (G.cut) { G.cut.skip = true; continue; }
+    if (G.scene === 'intro') { Input.q.push('ok'); continue; }
     const r = Touch.hit(t.x, t.y);
     if (r) { r.fn(); continue; }
     if (G.scene === 'battle' && G.auto) { setAuto(false); continue; } // a tap on the field stops auto (after the current action)
@@ -245,6 +269,11 @@ function* chapterCard(idx) {
   Aud.bgm('title');
   while (G.card.t < G.card.dur) { G.card.t++; yield 1; if (Input.q.shift() === 'ok' && G.card.t > 30) break; }
   G.card = null;
+}
+function* bossIntro() {
+  G.scene = 'intro'; flushInput(); Aud.bgm('boss'); G.intro = { t: 0 };
+  while (G.intro.t < 130) { G.intro.t++; yield 1; if (Input.q.shift() === 'ok' && G.intro.t > 20) break; }
+  G.intro = null;
 }
 function* titleScene() {
   G.scene = 'title'; flushInput(); Aud.bgm('title'); const items = [{ label: 'はじめから' }, { label: 'つづきから', off: !loadGame() }]; G.title = { idx: 0, items }; G.S = null;
@@ -335,7 +364,7 @@ function* flow() {
     let toTitle = false;
     for (; idx < CHAPTERS.length && !toTitle;) {
       const ch = CHAPTERS[idx]; G.chIdx = idx;
-      if (!skip) { yield* chapterCard(idx); Aud.bgm('title'); yield* dialogue(ch.pre, idx); }
+      if (!skip) { yield* chapterCard(idx); if (idx === 2) yield* bossIntro(); Aud.bgm('title'); yield* dialogue(ch.pre, idx); }
       skip = false;
       let result;
       for (;;) {
@@ -365,11 +394,15 @@ function step() {
   Co.tick(); stepFx(); camUpdate(); G.t++;
 }
 function render() {
-  { const tall = Engine.port && G.scene === 'battle'; if (tall !== Engine.tall) { Engine.tall = tall; fit(); } }
+  HD.collect = true; HD.holes.length = 0; HD.ui.length = 0;
+  { const bm = Engine.port && G.scene === 'battle'; if (bm !== Engine.battleMode || !Engine.fitted) { Engine.battleMode = bm; Engine.fitted = true; fit(); } }
+  G.yOff = (Engine.port && !Engine.battleMode && Engine.vh > H) ? (Engine.vh - H) / 2 : 0;
   ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1;
+  if (G.yOff) { ctx.fillStyle = '#06070f'; ctx.fillRect(0, 0, W, Engine.vh); ctx.translate(0, G.yOff); }
   switch (G.scene) {
     case 'title': drawTitle(); break;
     case 'card': drawCard(); break;
+    case 'intro': drawIntro(); break;
     case 'dialogue': drawDialogue(); break;
     case 'battle': drawBattle(); break;
     case 'gameover': drawGameOver(); break;
@@ -377,6 +410,7 @@ function render() {
     default: rect(0, 0, W, H, '#000'); text('読み込み中…', W / 2, 110, { align: 'center' });
   }
   if (Engine.port && G.scene === 'battle') drawInfoCanvas(); else if (Engine.port) { const c = cv2.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#0b0b14'; c.fillRect(0, 0, cv2.width, cv2.height); }
+  hdRender();
   Touch.flip();
 }
 let _last = 0, _acc = 0;
@@ -388,7 +422,9 @@ function frame(ts) {
 }
 window.__tac = {
   seed: n => seedRng(n), speed: n => { G.speed = n; }, step: n => { for (let i = 0; i < n; i++) step(); render(); },
-  setAuto: v => setAuto(v),
+  talk: (who, txt, bg) => { G.scene = 'dialogue'; G.dlg = { line: [who, txt], bg: bg || 0, n: txt.length, tip: false }; },
+  showIntro: t => { G.scene = 'intro'; G.intro = { t: t || 70 }; },
+  setAuto: v => setAuto(v), setCutin: v => { G.cutin = !!v; savePrefs(); }, setHD: v => { G.hdUnits = v === 'auto' ? 'auto' : !!v; savePrefs(); },
   start: ch => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0 }; },
   hurt: (id, hp) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.hp = hp; u.vhp = hp; u.ghost = hp; } },
   place: (id, x, y) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.x = x; u.y = y; u.vx = x; u.vy = y; } },
@@ -398,10 +434,10 @@ window.__tac = {
   state() {
     const S = G.S;
     return {
-      scene: G.scene, auto: G.auto, speedX: G.speedX, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
+      scene: G.scene, auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
       title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
-      over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
+      over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, yoff: G.yOff || 0, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
       targets: (G.targets || []).map(t => t.id), ti: G.ti,
       units: S ? S.units.filter(u => !u.dead).map(u => ({ id: u.id, key: u.key, name: u.name, team: u.team, x: u.x, y: u.y, hp: u.hp, maxhp: u.maxhp, lv: u.lv, exp: u.exp, acted: !!u.acted, boss: u.boss })) : []
     };

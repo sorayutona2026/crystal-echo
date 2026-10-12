@@ -11,7 +11,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   let fr = null; for (let i = 0; i < 60 && !fr; i++) { fr = page.frames().find(f => f !== page.mainFrame()); await sleep(100); }
   await fr.waitForFunction(() => window.__tac && __tac.state().scene === 'title', null, { timeout: 15000 });
   const S = () => fr.evaluate(() => __tac.state());
-  const tapL = async (x, y) => { const r = await fr.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh }; }); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + r.l + x / 320 * r.w, fe.y + r.t + y / r.vh * r.h); await sleep(120); };
+  const tapL = async (x, y) => { const r = await fr.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh, yo: __tac.state().yoff }; }); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + r.l + x / 320 * r.w, fe.y + r.t + (y + r.yo) / r.vh * r.h); await sleep(120); };
   const tapBtn = async sel => { const bx = await (await fr.$(sel)).boundingBox(); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + bx.x + bx.width / 2, fe.y + bx.y + bx.height / 2); await sleep(150); };
   await tapL(160, 190); // はじめから
   await fr.evaluate(() => __tac.speed(6));

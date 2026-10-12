@@ -771,5 +771,47 @@
     "i_heart": {
       "file": "icons/i_heart.png"
     }
+  },
+  "art": {
+    "leon": {
+      "face": "gpt/face_leon.webp",
+      "full": "gpt/full_leon.webp"
+    },
+    "mira": {
+      "face": "gpt/face_mira.webp",
+      "full": "gpt/full_mira.webp"
+    },
+    "luka": {
+      "face": "gpt/face_luka.webp",
+      "full": "gpt/full_luka.webp"
+    },
+    "sophia": {
+      "face": "gpt/face_sophia.webp",
+      "full": "gpt/full_sophia.webp"
+    },
+    "jin": {
+      "face": "gpt/face_jin.webp",
+      "full": "gpt/full_jin.webp"
+    },
+    "garud": {
+      "face": "gpt/face_garud.webp",
+      "full": "gpt/full_garud.webp"
+    },
+    "verza": {
+      "face": "gpt/face_verza.webp",
+      "full": "gpt/full_verza.webp"
+    },
+    "goblin": {
+      "face": "gpt/face_goblin.webp",
+      "full": "gpt/full_goblin.webp"
+    },
+    "skeleton": {
+      "face": "gpt/face_skeleton.webp",
+      "full": "gpt/full_skeleton.webp"
+    },
+    "slime": {
+      "face": "gpt/face_slime.webp",
+      "full": "gpt/full_slime.webp"
+    }
   }
 }

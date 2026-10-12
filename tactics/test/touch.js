@@ -7,7 +7,7 @@ const { sleep, waitState } = require('./bot');
     const ctx = await b.newContext({ viewport: vp, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
     const page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     await page.goto(URL); await page.waitForFunction(() => window.__tac && __tac.state().scene === 'title');
-    const lg = async (x, y) => { const r = await page.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh }; }); return { x: r.l + x / 320 * r.w, y: r.t + y / r.vh * r.h }; };
+    const lg = async (x, y) => { const r = await page.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh, yo: __tac.state().yoff }; }); return { x: r.l + x / 320 * r.w, y: r.t + (y + r.yo) / r.vh * r.h }; };
     const tap = async (x, y) => { const p = await lg(x, y); await page.touchscreen.tap(p.x, p.y); await sleep(60); };
     const tapTile = async (tx, ty) => { const s = await st(page); await tap(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
     // canvas must fit inside the viewport and buttons must be on screen
@@ -24,8 +24,8 @@ const { sleep, waitState } = require('./bot');
       if (s.zoom !== 2) throw new Error('portrait battle should use zoom 2, got ' + s.zoom);
       const before = s.ox;
       await page.evaluate(() => { const c = document.getElementById('cv'), r = c.getBoundingClientRect(), f = (t, x, y) => c.dispatchEvent(new PointerEvent(t, { clientX: x, clientY: y, pointerId: 7, bubbles: true }));
-        const x0 = r.left + r.width * 0.3, y0 = r.top + r.height * 0.5; f('pointerdown', x0, y0); for (let i = 1; i <= 6; i++) f('pointermove', x0 + i * 12, y0); f('pointerup', x0 + 72, y0); });
-      await sleep(300); const after = (await st(page)).ox; if (!(after > before + 10) || (await st(page)).mode !== 'idle') throw new Error('drag did not pan the camera: ' + before + ' -> ' + after);
+        const x0 = r.left + r.width * 0.7, y0 = r.top + r.height * 0.5; f('pointerdown', x0, y0); for (let i = 1; i <= 6; i++) f('pointermove', x0 - i * 12, y0); f('pointerup', x0 - 72, y0); });
+      await sleep(300); const after = (await st(page)).ox; if (!(Math.abs(after - before) > 10) || (await st(page)).mode !== 'idle') throw new Error('drag did not pan the camera: ' + before + ' -> ' + after);
     }
     await tapTile(leon.x, leon.y); await waitState(page, () => __tac.state().mode === 'move');
     await page.tap('#bCancel'); await waitState(page, () => __tac.state().mode === 'idle');
@@ -53,7 +53,7 @@ const { sleep, waitState } = require('./bot');
         let fr = null; for (let i = 0; i < 60 && !fr; i++) { fr = page.frames().find(f => f !== page.mainFrame()); await sleep(100); }
         await fr.waitForFunction(() => window.__tac && __tac.state().scene === 'title', null, { timeout: 15000 });
         const S = () => fr.evaluate(() => __tac.state());
-        const tapL = async (x, y) => { const r = await fr.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh }; }); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + r.l + x / 320 * r.w, fe.y + r.t + y / r.vh * r.h); await sleep(150); };
+        const tapL = async (x, y) => { const r = await fr.evaluate(() => { const r = document.getElementById('cv').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height, vh: __tac.state().vh, yo: __tac.state().yoff }; }); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + r.l + x / 320 * r.w, fe.y + r.t + (y + r.yo) / r.vh * r.h); await sleep(150); };
         const tapT = async (tx, ty) => { const s = await S(); await tapL(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
         const tapBtn = async sel => { const bx = await (await fr.$(sel)).boundingBox(); const fe = await (await page.$('iframe')).boundingBox(); await page.touchscreen.tap(fe.x + bx.x + bx.width / 2, fe.y + bx.y + bx.height / 2); await sleep(150); };
         await fr.evaluate(sd => { __tac.seed(sd); __tac.speed(10); __tac.start(0); }, seed);

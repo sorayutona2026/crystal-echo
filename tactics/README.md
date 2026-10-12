@@ -76,3 +76,9 @@ node test/sim.js 60          # バランス確認(章ごとの勝率・平均レ
 ```
 `play.js` は `window.__tac.suggest()`(敵AIと同じ評価で自軍の行動を提案)を読み、カーソル移動・決定をすべて `page.keyboard` で送ります。
 テスト用フック: `__tac.state()`(状態)、`__tac.suggest()`、`__tac.seed(n)`、`__tac.speed(n)`(固定ステップ倍速)、`__tac.start(章番号 | 'ending')`、`__tac.setExp(id, n)`。
+
+## イラスト素材(ChatGPT 生成)
+- 原本: `art-src/gpt_faces_sheet.png`(顔グラ10枚)、`art-src/gpt_units_sheet.png`(全身10体)。ゲームには埋め込まない。
+- `python3 tools/prep_gpt_art.py` が顔を256x256に切り出し、全身は連結成分で切り分けて影・赤黄のふちを除去し、`assets/gpt/*.webp` に書き出す(`assets/gpt/contact.png` で目視確認)。
+- 描画は `src/hd.js` の高解像度オーバーレイ(`#cvh`)で行い、ドット絵のバッファを通さない。顔グラ(会話・情報欄・レベルアップ)、タイトルの5人、攻撃カットイン、ガルド登場演出、縦持ちのマップ上ユニットに使う。
+- メニュー(Eキー)で「戦闘アニメ ON/OFF」「表示 自動/イラスト/ドット」を切り替えられる(localStorage に保存)。カットインはタップで飛ばせ、オート x2 では省略される。

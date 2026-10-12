@@ -3,7 +3,7 @@
 const G = {
   scene: 'boot', t: 0, roster: null, snap: null, chIdx: 0, S: null, cursor: { x: 0, y: 0 }, mode: 'idle', sel: null, reach: null, moveSet: null, threat: null, orig: null,
   menu: null, targets: [], ti: 0, fc: null, busy: 0, banner: null, fx: [], shake: 0, infoBig: false, showRange: null, endTurn: false, modal: null,
-  dlg: null, speed: 1, auto: false, speedX: 1, title: { idx: 0 }, card: null, over: null, ending: null, lvl: null, phase: 0, hasSave: false
+  dlg: null, speed: 1, auto: false, speedX: 1, hdUnits: 'auto', cutin: true, title: { idx: 0 }, card: null, over: null, ending: null, lvl: null, phase: 0, hasSave: false
 };
 const OX = () => Engine.zoom > 1 ? 0 : Math.floor((W - G.S.w * TS) / 2), OY = () => Engine.zoom > 1 ? 0 : Math.floor((H - G.S.h * TS) / 2);
 // camera (portrait zoom): world px of the view's top-left; follows the cursor smoothly, can be panned by dragging
@@ -159,8 +159,7 @@ function drawIcon(im, x, y, box) { if (!im) return; const sc = im.height > box ?
 // ---------- panels ----------
 function drawUnitPanel(u, x, y) {
   panel(x, y, 128, 50);
-  rect(x + 4, y + 5, 40, 40, '#161a3a'); drawFace(ctx, u.sprite, x + 5, y + 6, 1);
-  ctx.strokeStyle = u.team === 0 ? '#6aa0ff' : '#ff6a6a'; ctx.lineWidth = 1; ctx.strokeRect(x + 4.5, y + 5.5, 39, 39);
+  rect(x + 4, y + 5, 40, 40, '#161a3a'); drawPortrait(u.sprite, x + 4, y + 5, 40, u.team);
   text(u.name, x + 48, y + 4, { size: 9, bold: true });
   text('Lv' + u.lv + ' ' + u.cls, x + 48, y + 14, { size: 7, color: '#b8c4ff' });
   hpBar(x + 60, y + 25, 60, 4, u.vhp, u.maxhp, u.ghost);
@@ -178,12 +177,15 @@ function drawTerrainPanel(x, y, ch) {
   if (T.heal) text('回復20%', x + 36, y + 3, { size: 7, color: '#6f6' });
 }
 function drawBigInfo(u) {
-  const x = 60, y = 40, w = 200, h = 120; panel(x, y, w, h, 0.95);
-  rect(x + 6, y + 6, 40, 40, '#161a3a'); drawFace(ctx, u.sprite, x + 7, y + 7, 1);
-  text(u.name, x + 52, y + 6, { size: 11, bold: true }); text('Lv' + u.lv + '  ' + u.cls + '  EXP ' + u.exp, x + 52, y + 21, { size: 8, color: '#b8c4ff' });
-  text('武器 ' + weaponOf(u).name + (weaponOf(u).type === 'heal' ? ' (回復)' : ' 威力' + weaponOf(u).might + ' 射程' + weaponOf(u).min + (weaponOf(u).max > weaponOf(u).min ? '-' + weaponOf(u).max : '')), x + 52, y + 33, { size: 7 });
+  const x = 40, y = 24, w = 240, h = 150; panel(x, y, w, h, 0.96);
+  const id = artOf(u); hdUI(g => { const im = ART[id] && ART[id].full; if (im) artFull(g, id, x + 40, y + h - 8, Math.min(128, im.height * 0.34), HD.k, { flip: ART_FACING[id] === 'left' }); });
+  const tx = x + 84;
+  text(u.name, tx, y + 7, { size: 11, bold: true }); text('Lv' + u.lv + '  ' + u.cls + (u.team === 0 ? '  EXP ' + u.exp : ''), tx, y + 22, { size: 8, color: '#b8c4ff' });
+  const wp = weaponOf(u); drawIcon(weaponIcon(u), tx - 1, y + 33, 11);
+  text(wp.name + (wp.type === 'heal' ? ' (回復)' : ' 威力' + wp.might + ' 射程' + wp.min + (wp.max > wp.min ? '-' + wp.max : '')), tx + 13, y + 35, { size: 7 });
   const rows = [['HP', Math.round(u.vhp) + '/' + u.maxhp], ['力', u.str], ['魔力', u.mag], ['技', u.skl], ['速さ', u.spd], ['守備', u.def], ['魔防', u.res], ['移動', u.mov]];
-  rows.forEach((r, i) => { const cx = x + 10 + (i % 2) * 96, cy = y + 56 + Math.floor(i / 2) * 14; text(r[0], cx, cy, { size: 9, color: '#ffd24a' }); text(String(r[1]), cx + 80, cy, { size: 9, align: 'right' }); });
+  rows.forEach((r, i) => { const cx = tx + (i % 2) * 74, cy = y + 52 + Math.floor(i / 2) * 15; text(r[0], cx, cy, { size: 9, color: '#ffd24a' }); text(String(r[1]), cx + 66, cy, { size: 9, align: 'right' }); });
+  const sp = SP[u.key]; if (sp && u.team === 0) text('特技 ' + sp.name + (u.spUsed ? '(使用済)' : '') + ': ' + sp.desc, tx, y + 116, { size: 7, color: '#9fe8ff' });
   text('Aキーで閉じる', x + w - 6, y + h - 11, { size: 7, align: 'right', color: '#889' });
 }
 function drawMenu(m) {
@@ -216,6 +218,7 @@ function drawForecast(fc) {
 }
 const VH = () => Engine.vh || H;
 function drawBanner() {
+  if (G.banner && HD.collect) HD.holes.push([0, VH() / 2 - 17, W, 34]);
   const b = G.banner; if (!b) return; const t = b.t;
   const inT = Math.min(1, t / 12), outT = Math.min(1, (b.dur - t) / 12), k = Math.min(inT, outT), h = 32 * k;
   ctx.fillStyle = b.color; ctx.globalAlpha = 0.9; ctx.fillRect(0, VH() / 2 - h / 2, W, h); ctx.globalAlpha = 1;
@@ -223,20 +226,21 @@ function drawBanner() {
   if (k > 0.8) { const off = (1 - Math.min(1, t / 16)) * 60; ctx.globalAlpha = Math.min(1, outT * 2); text(b.text, W / 2 + off, VH() / 2 - 10, { size: 18, bold: true, align: 'center' }); ctx.globalAlpha = 1; }
 }
 function drawLevelUp(L) {
-  const x = 50, y = 30, w = 220, h = 150; panel(x, y, w, h, 0.97);
-  text('LEVEL UP!', x + w / 2, y + 6, { size: 14, bold: true, color: '#ffe860', align: 'center' });
-  rect(x + 8, y + 28, 40, 40, '#161a3a'); drawFace(ctx, L.unit.sprite, x + 9, y + 29, 1);
-  text(L.unit.name, x + 54, y + 28, { size: 11, bold: true }); text(L.unit.cls, x + 54, y + 43, { size: 8, color: '#b8c4ff' });
-  text('Lv ' + (L.up.lv - 1) + ' → ' + L.up.lv, x + 54, y + 54, { size: 10, bold: true, color: '#9fe8ff' });
+  const x = 16, y = 22, w = 288, h = 164; panel(x, y, w, h, 0.97);
+  const id = artOf(L.unit); hdUI(g => { const im = ART[id] && ART[id].full; if (im) artFull(g, id, x + 46, y + h - 8, Math.min(130, im.height * 0.36), HD.k, { flip: ART_FACING[id] === 'left' }); });
+  const tx = x + 96;
+  text('LEVEL UP!', tx + 90, y + 6, { size: 14, bold: true, color: '#ffe860', align: 'center' });
+  text(L.unit.name, tx, y + 26, { size: 11, bold: true }); text(L.unit.cls, tx + 64, y + 29, { size: 8, color: '#b8c4ff' });
+  text('Lv ' + (L.up.lv - 1) + ' → ' + L.up.lv, tx, y + 42, { size: 10, bold: true, color: '#9fe8ff' });
   const names = [['hp', 'HP'], ['str', '力'], ['mag', '魔力'], ['skl', '技'], ['spd', '速さ'], ['def', '守備'], ['res', '魔防']];
   names.forEach(([k, n], i) => {
-    const cx = x + 14 + (i % 2) * 104, cy = y + 76 + Math.floor(i / 2) * 15, up = L.up.gains[k];
-    if (up) rect(cx - 3, cy - 1, 98, 14, 'rgba(255,230,80,0.18)');
-    text(n, cx, cy, { size: 9, color: '#ffd24a' }); text(String(L.up.before[k]), cx + 44, cy, { size: 9, align: 'right', color: up ? '#fff' : '#aab' });
-    text('→', cx + 50, cy, { size: 8, color: '#889' }); text(String(L.up.after[k]), cx + 70, cy, { size: 9, align: 'right', bold: !!up, color: up ? '#ffe860' : '#aab' });
-    if (up && Math.floor(G.t / 8) % 2) text('+1', cx + 74, cy, { size: 8, bold: true, color: '#6f6' });
+    const cx = tx + (i % 2) * 96, cy = y + 62 + Math.floor(i / 2) * 15, up = L.up.gains[k];
+    if (up) rect(cx - 3, cy - 1, 92, 14, 'rgba(255,230,80,0.18)');
+    text(n, cx, cy, { size: 9, color: '#ffd24a' }); text(String(L.up.before[k]), cx + 40, cy, { size: 9, align: 'right', color: up ? '#fff' : '#aab' });
+    text('→', cx + 46, cy, { size: 8, color: '#889' }); text(String(L.up.after[k]), cx + 66, cy, { size: 9, align: 'right', bold: !!up, color: up ? '#ffe860' : '#aab' });
+    if (up && Math.floor(G.t / 8) % 2) text('+1', cx + 70, cy, { size: 8, bold: true, color: '#6f6' });
   });
-  text('決定で閉じる', x + w / 2, y + h - 11, { size: 7, align: 'center', color: '#889' });
+  text('決定で閉じる', x + w - 8, y + h - 11, { size: 7, align: 'right', color: '#889' });
 }
 function drawPhaseLabel(S, x, y) {
   panel(x, y, 96, 14, 0.85);
@@ -246,7 +250,7 @@ function drawPhaseLabel(S, x, y) {
 function cursorUnit() { const S = G.S; return unitAt(S, G.cursor.x, G.cursor.y) || (G.sel && G.sel.x === G.cursor.x && G.sel.y === G.cursor.y ? G.sel : null); }
 // portrait phones: unit/terrain/phase info lives in a separate canvas below the map so it never covers the field
 function drawInfoCanvas() {
-  const S = G.S, main = ctx; ctx = cv2.getContext('2d'); ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false;
+  const S = G.S, main = ctx; ctx = cv2.getContext('2d'); ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false; G.infoPass = true; HD.collect = false;
   rect(0, 0, W, INFO_H, '#0b0b14'); ctx.fillStyle = '#2a3070'; ctx.fillRect(0, 0, W, 1);
   if (S) {
     const cu = cursorUnit();
@@ -281,14 +285,13 @@ window.minimapTap = (x, y) => {
 function drawBattle() {
   const S = G.S; if (!S) return;
   ctx.save();
-  if (G.shake > 0) ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+  G.shx = G.shake > 0 ? (Math.random() - 0.5) * 3 : 0; G.shy = G.shake > 0 ? (Math.random() - 0.5) * 3 : 0; ctx.translate(G.shx, G.shy);
   if (Engine.zoom > 1) { ctx.scale(Engine.zoom, Engine.zoom); ctx.translate(-Cam.x, -Cam.y); }
   drawMap(S, G.t); drawOverlay(S);
-  const us = S.units.filter(u => !u.gone).sort((a, b) => a.vy - b.vy);
-  for (const u of us) drawUnit(u, S);
-  drawFx();
+  const hd = hdOn();
+  if (!hd) { const us = S.units.filter(u => !u.gone).sort((a, b) => a.vy - b.vy); for (const u of us) drawUnit(u, S); drawFx(); }
   drawAtmos(S, G.t);
-  if (G.mode !== 'busyhide') drawCursor(S);
+  if (!hd && G.mode !== 'busyhide') drawCursor(S);
   ctx.restore();
   const left = G.cursor.x >= 10; // flip panels away from the cursor
   const cu = cursorUnit();
@@ -320,8 +323,7 @@ function drawDialogue() {
   const sp = d.line[0] ? SPEAKERS[d.line[0]] : null;
   const bx = sp ? 86 : 16, bw = sp ? 222 : 288, by = 170, bh = 62;
   if (sp) {
-    rect(8, 150, 76, 76, '#0c0e24'); drawFace(ctx, sp.face, 8, 150, 2);
-    ctx.strokeStyle = '#c8d0ff'; ctx.lineWidth = 1; ctx.strokeRect(8.5, 150.5, 75, 75);
+    rect(8, 150, 76, 76, '#0c0e24'); drawPortrait(sp.face, 8, 150, 76, d.line[0] === 'boss' || d.line[0] === 'dmage' || d.line[0] === 'goblin' ? 1 : 0);
   }
   panel(bx, by, bw, bh, 0.92);
   if (sp) { panel(bx + 6, by - 8, tw(sp.name, 9) + 14, 14, 1); text(sp.name, bx + 13, by - 5, { size: 9, bold: true, color: '#ffe860' }); }
@@ -355,7 +357,8 @@ function logoText(txt, x, y, size) { // stylish title lettering: glow, dark outl
 function drawTitle() {
   drawBgImage(ctx, '15', 0.3, G.t);
   drawDrift(46, '#ffe8a0', 3);
-  drawHeroLine(138, 2, ['hero_knight', 'hero_archer', 'hero_mage', 'hero_healer', 'hero_thief'], true);
+  if (ART.leon) hdUI(g => { const ids = ['leon', 'mira', 'luka', 'sophia', 'jin'], xs = [60, 110, 160, 210, 260], hs = { leon: 0.235, mira: 0.235, luka: 0.26, sophia: 0.24, jin: 0.27 }; ids.forEach((id, i) => { const im = ART[id].full, h = im.height * hs[id], bob = Math.sin(G.t / 30 + i) * 1; g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(xs[i], 176, 22, 4, 0, 0, 7); g.fill(); artFull(g, id, xs[i], 176 + bob, h, HD.k, {}); }); });
+  else drawHeroLine(138, 2, ['hero_knight', 'hero_archer', 'hero_mage', 'hero_healer', 'hero_thief'], true);
   const fx = 40, fy = 112; rect(fx, fy, 2, 46, '#c8b070'); const wv = Math.sin(G.t / 10) * 2; ctx.fillStyle = '#d83a3a'; ctx.beginPath(); ctx.moveTo(fx + 2, fy + 2); ctx.lineTo(fx + 24, fy + 6 + wv); ctx.lineTo(fx + 2, fy + 18); ctx.fill();
   logoText('星砕きの戦旗', W / 2, 24, 31);
   text('STARFALL TACTICS', W / 2, 64, { size: 11, bold: true, align: 'center', color: '#e8f0ff', sh: '#102050' });
@@ -401,3 +404,94 @@ function drawEnding() {
   if (t > 380 && Math.floor(G.t / 25) % 2) text('決定でタイトルへ', W / 2, 232, { size: 7, align: 'center', color: '#ffe860' });
   ctx.globalAlpha = 1;
 }
+
+// ---------- hi-DPI overlay: map units drawn from the painted full-body art ----------
+const hdOn = () => !!(HD.x && ART.leon && (G.hdUnits === true || (G.hdUnits === 'auto' && Engine.zoom > 1)));
+function drawUnitHD(u) {
+  if (u.gone) return; const id = artOf(u), im = ART[id]; if (!im) return;
+  const ox = OX(), oy = OY(), f = unitFrame(u), fade = u.dead ? (u.fade || 0) / 30 : 1;
+  const px = ox + u.vx * TS + (u.lx || 0) + (u.kx || 0), py = oy + u.vy * TS + (u.ly || 0) + (u.ky || 0);
+  const acted = u.team === 0 && u.acted && !u.acting && !(G.phase === 1);
+  let by = 0; if (!u.walking && !u.dead && !acted) by = Math.sin((G.t + (u.vx * 7 + u.vy * 13) * 5) / 22) * 0.7; if (G.sel === u && G.mode !== 'idle') by = (Math.floor(G.t / 8) % 2) ? -1.5 : 0;
+  const sink = u.dead ? (1 - fade) * 6 : 0, cx = px + 8, foot = py + 15;
+  if (u.dir === 'left' || u.dir === 'right') u.hface = u.dir; if (!u.hface) u.hface = u.team === 0 ? 'right' : 'left';
+  const h = Math.max(15, im.full.height * 0.072) * (u.boss ? 1.12 : 1), flash = u.flash > 0 && Math.floor(u.flash / 2) % 2 === 0;
+  if (u.boss && !u.dead) { const pu = 0.5 + 0.5 * Math.sin(G.t / 14), gr = ctx.createRadialGradient(cx, foot - 12, 2, cx, foot - 12, 24); gr.addColorStop(0, 'rgba(255,210,70,' + (0.4 + pu * 0.2) + ')'); gr.addColorStop(1, 'rgba(255,160,0,0)'); ctx.fillStyle = gr; ctx.fillRect(cx - 26, foot - 40, 52, 52); }
+  ctx.fillStyle = 'rgba(0,0,0,' + 0.30 * fade + ')'; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, 8.5, 3, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = (u.team === 0 ? 'rgba(90,170,255,' : 'rgba(255,90,90,') + (0.9 * fade) + ')'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, 8.5, 3, 0, 0, 7); ctx.stroke();
+  const ppu = HD.k * Engine.zoom, variant = flash ? 'white' : acted ? 'gray' : null;
+  artFull(ctx, id, cx, foot + f.bob * 0.6 + by + sink, h, ppu, { flip: u.hface !== ART_FACING[id], alpha: fade, variant });
+  if (!u.dead) hpBar(px + 2, py + 16, 12, 2, u.vhp, u.maxhp, u.ghost);
+  if (u.team === 1 && u.boss && !u.dead) text('★', px + 4, py - h + 10, { size: 8, color: '#ffd24a' });
+}
+function hdBattlePass() {
+  const S = G.S, z = Engine.zoom, k = HD.k, g = HD.x, main = ctx;
+  g.setTransform(k * z, 0, 0, k * z, (-Cam.x + (G.shx || 0) / z) * k * z, (-Cam.y + (G.shy || 0) / z) * k * z); ctx = g; g.imageSmoothingEnabled = true;
+  for (const u of S.units.filter(q => !q.gone).sort((a, b) => a.vy - b.vy)) drawUnitHD(u);
+  drawFx(); if (G.mode !== 'busyhide') drawCursor(S);
+  ctx = main;
+}
+function hdRender() {
+  if (!HD.x) return; const g = HD.x; if (G.t % 15 === 0 || !HD.synced) { syncHD(); HD.synced = true; }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, HD.cv.width, HD.cv.height);
+  if (G.scene === 'battle' && G.S && hdOn()) hdBattlePass();
+  g.setTransform(1, 0, 0, 1, 0, 0); const k = HD.k;
+  for (const h of HD.holes) g.clearRect(Math.floor(h[0] * k), Math.floor(h[1] * k), Math.ceil(h[2] * k) + 1, Math.ceil(h[3] * k) + 1);
+  g.setTransform(k, 0, 0, k, 0, (G.yOff || 0) * k); for (const fn of HD.ui) fn(g);
+  if (G.cut) drawCutinHD(g);
+  HD.holes.length = 0; HD.ui.length = 0;
+}
+
+// ---------- attack cut-in (overlay) ----------
+function drawCutinHD(g) {
+  const c = G.cut, t = c.t, vh = VH(), mid = vh / 2, inK = Math.min(1, t / 7), outK = Math.min(1, (c.total - t) / 7), k = Math.max(0, Math.min(inK, outK));
+  g.save(); g.setTransform(HD.k, 0, 0, HD.k, 0, 0);
+  g.fillStyle = 'rgba(0,0,12,' + 0.5 * k + ')'; g.fillRect(0, 0, W, vh);
+  const bh = 150 * k, y0 = mid - bh / 2, gr = g.createLinearGradient(0, y0, 0, y0 + bh); gr.addColorStop(0, 'rgba(22,28,80,0.95)'); gr.addColorStop(0.5, 'rgba(10,12,40,0.97)'); gr.addColorStop(1, 'rgba(22,28,80,0.95)');
+  g.fillStyle = gr; g.fillRect(0, y0, W, bh); g.fillStyle = '#ffd24a'; g.fillRect(0, y0, W, 1.5); g.fillRect(0, y0 + bh - 1.5, W, 1.5);
+  g.save(); g.beginPath(); g.rect(0, y0, W, bh); g.clip(); g.globalAlpha = 0.12; g.fillStyle = '#fff';
+  for (let i = 0; i < 8; i++) { const xx = ((i * 53 + t * 14) % (W + 60)) - 30; g.fillRect(xx, y0, 18, bh); } g.restore();
+  const A = c.a, D = c.d, aLeft = A.team === 0, base = mid + 50;
+  const drawOne = (u, side, role) => {
+    const id = artOf(u), im = ART[id]; if (!im) return; const h = Math.max(54, Math.min(176, im.full.height * 0.5)) * k;
+    let cx = side < 0 ? 84 : 236, off = (1 - inK) * side * 170;
+    if (role === 'a') { const lg = t < c.imp ? Math.max(0, (t - 7) / (c.imp - 7)) : Math.max(0, 1 - (t - c.imp) / 8); off += -side * 34 * lg; }
+    if (role === 'd' && t >= c.imp && t < c.imp + 14) off += Math.sin((t - c.imp) * 2.2) * 5 * (1 - (t - c.imp) / 14);
+    const white = role === 'd' && c.ev.hit && t >= c.imp && t < c.imp + 3, fade = role === 'd' && c.ev.kill && t > c.imp + 12 ? Math.max(0, 1 - (t - c.imp - 12) / 14) : 1;
+    const nat = ART_FACING[id], want = side < 0 ? 'right' : 'left';
+    g.save(); g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx + off, base, h * 0.28, 5, 0, 0, 7); g.fill(); g.restore();
+    artFull(g, id, cx + off, base, h, HD.k, { flip: nat !== want, variant: white ? 'white' : null, alpha: fade });
+    // HP bar + name
+    if (k > 0.9) { const bx = cx + off - 36; g.fillStyle = '#000'; g.fillRect(bx - 1, base + 6, 74, 7); g.fillStyle = '#2a2a3a'; g.fillRect(bx, base + 7, 72, 5);
+      const r = Math.max(0, Math.min(1, u.vhp / u.maxhp)); g.fillStyle = hpColor(r); g.fillRect(bx, base + 7, 72 * r, 5); g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(bx, base + 7, 72 * r, 2);
+      g.font = 'bold 9px ' + FONT; g.textBaseline = 'top'; g.textAlign = 'left'; g.fillStyle = '#000'; g.fillText(u.name + '  HP ' + Math.round(u.vhp), bx + 1, base + 15); g.fillStyle = '#fff'; g.fillText(u.name + '  HP ' + Math.round(u.vhp), bx, base + 14); }
+  };
+  drawOne(aLeft ? A : D, -1, aLeft ? 'a' : 'd'); drawOne(aLeft ? D : A, 1, aLeft ? 'd' : 'a');
+  // slash + damage number on the defender
+  if (t >= c.imp) {
+    const dx = aLeft ? 236 : 84, f = FXS[c.fx], tt = t - c.imp;
+    if (f && tt < f.n * 3) { const sc = 0.62, fr = Math.floor(tt / 3); g.save(); g.imageSmoothingEnabled = true; g.translate(dx, base - 60); if (aLeft === false) g.scale(-1, 1); g.globalCompositeOperation = 'lighter'; g.drawImage(f.img, fr * f.fw, 0, f.fw, f.fh, -f.fw * sc / 2, -f.fh * sc / 2, f.fw * sc, f.fh * sc); g.restore(); }
+    const txt = c.ev.hit ? String(c.ev.dmg) : 'MISS', pop = tt < 8 ? 1 + (8 - tt) * 0.12 : 1, yy = base - 150 - Math.min(12, tt * 1.2);
+    g.font = 'bold ' + (c.ev.hit ? 26 : 18) * pop + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'top'; g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = '#000'; g.strokeText(txt, dx, yy); g.fillStyle = c.ev.hit ? (c.ev.def.team === 0 ? '#ff8080' : '#fff') : '#c8d0ff'; g.fillText(txt, dx, yy);
+    if (c.ev.kill && tt > 4) { g.font = 'bold 12px ' + FONT; g.lineWidth = 3; g.strokeText('撃破!', dx, yy + 30); g.fillStyle = '#ffe860'; g.fillText('撃破!', dx, yy + 30); }
+  }
+  g.restore();
+}
+// ---------- boss reveal (chapter 3) ----------
+function drawIntro() {
+  const t = G.intro.t;
+  drawBgImage(ctx, '2', 0.5, G.t); drawDrift(34, '#ff8a50', 11);
+  ctx.fillStyle = 'rgba(255,40,30,' + Math.max(0, 0.55 - t / 24) + ')'; ctx.fillRect(0, 0, W, H);
+  const k = Math.min(1, t / 26), e = 1 - Math.pow(1 - k, 3);
+  hdUI(g => {
+    const cx = W * 0.7 + (1 - e) * 90, bottom = 236, h = 214 * (0.88 + 0.12 * e), gr = g.createRadialGradient(cx, bottom - h * 0.5, 10, cx, bottom - h * 0.5, 130);
+    gr.addColorStop(0, 'rgba(255,200,60,' + 0.45 * e + ')'); gr.addColorStop(1, 'rgba(255,120,0,0)'); g.fillStyle = gr; g.fillRect(cx - 140, bottom - h - 40, 280, h + 60);
+    artFull(g, 'garud', cx, bottom, h, HD.k, { alpha: e });
+  });
+  const a = Math.min(1, Math.max(0, (t - 20) / 16)); ctx.globalAlpha = a;
+  rect(0, 96, 190, 1, 'rgba(255,210,100,0.8)'); rect(0, 142, 190, 1, 'rgba(255,210,100,0.8)');
+  text('黒き軍勢', 22, 70, { size: 10, color: '#ffb0a0' }); logoText2('金角将軍', 96, 100, 24); text('ガルド', 22, 150, { size: 14, bold: true, color: '#ffe27a' });
+  ctx.globalAlpha = 1;
+  if (t > 40 && Math.floor(G.t / 25) % 2) text('決定でスキップ', 8, 226, { size: 7, color: '#bbb' });
+}
+function logoText2(txt, x, y, size) { ctx.font = 'bold ' + size + 'px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.save(); ctx.shadowColor = 'rgba(255,120,40,0.9)'; ctx.shadowBlur = 12; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = '#2a0800'; ctx.strokeText(txt, x, y); ctx.restore(); const g = ctx.createLinearGradient(0, y, 0, y + size); g.addColorStop(0, '#fff6c8'); g.addColorStop(1, '#e0a020'); ctx.fillStyle = g; ctx.fillText(txt, x, y); }

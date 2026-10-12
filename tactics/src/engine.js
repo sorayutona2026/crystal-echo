@@ -11,7 +11,7 @@ function rnd() { // mulberry32 (game logic randomness; visuals use Math.random)
 const FONT = '"Hiragino Kaku Gothic ProN","Noto Sans JP","Meiryo","IPAGothic","WenQuanYi Zen Hei",sans-serif';
 let cv, cv2, ctx, K = 3, appEl;
 function initCanvas() {
-  appEl = document.getElementById('tac'); cv = document.getElementById('cv'); cv2 = document.getElementById('cv2'); ctx = cv.getContext('2d');
+  appEl = document.getElementById('tac'); if (typeof initHD === 'function') initHD(); cv = document.getElementById('cv'); cv2 = document.getElementById('cv2'); ctx = cv.getContext('2d');
   window.addEventListener('resize', fit); fit();
 }
 function fit() {
@@ -21,10 +21,13 @@ function fit() {
   Engine.zoom = 1; Engine.vh = H;
   if (port) {
     s = Math.min(w / W, (h - 112) / (H + INFO_H)); if (s >= 2) s = Math.floor(s);
-    if (Engine.tall) { // battle on a portrait phone: bigger map (zoom 2) with a camera, filling the height above the panels
-      let s2 = w / W; if (s2 >= 2) s2 = Math.floor(s2);
+    let s2 = w / W; if (s2 >= 2) s2 = Math.floor(s2);
+    if (Engine.battleMode) { // battle on a portrait phone: bigger map (zoom 2) with a camera, filling the height above the panels
       const vh = Math.floor((h - 124 - INFO_H * s2) / s2);
       if (vh >= H) { s = s2; Engine.vh = Math.min(vh, 600); Engine.zoom = 2; }
+    } else { // title / story scenes: the 320x240 scene is centred on a taller painted canvas
+      const vh = Math.floor((h - 124) / s2);
+      if (vh >= H) { s = s2; Engine.vh = Math.min(vh, 600); }
     }
   }
   else {
@@ -35,15 +38,15 @@ function fit() {
     else { s = Math.min((w - 170) / W, h / H); if (s >= 2) s = Math.floor(s); }
   }
   s = Math.max(s, 0.5);
-  appEl.className = (port ? 'port' : 'land') + (padsOff ? ' nopads' : '');
+  appEl.className = (port ? 'port' : 'land') + (padsOff ? ' nopads' : '') + (Engine.battleMode ? ' bt' : '');
   K = Math.max(1, Math.min(6, Math.ceil(s)));
   cv.width = W * K; cv.height = Engine.vh * K;
-  cv2.width = W * K; cv2.height = INFO_H * K; cv2.style.width = Math.round(W * s) + 'px'; cv2.style.height = Math.round(INFO_H * s) + 'px'; Engine.port = port;
+  cv2.width = W * K; cv2.height = INFO_H * K; cv2.style.width = Math.round(W * s) + 'px'; cv2.style.height = Math.round(INFO_H * s) + 'px'; Engine.port = port; if (typeof syncHD === 'function') requestAnimationFrame(syncHD);
   cv.style.width = Math.round(W * s) + 'px'; cv.style.height = Math.round(Engine.vh * s) + 'px';
   cv.style.imageRendering = cv2.style.imageRendering = (s === Math.floor(s)) ? 'pixelated' : 'auto';
   Engine.scale = s;
 }
-const Engine = { scale: 1, zoom: 1, vh: 240, tall: false, port: false };
+const Engine = { scale: 1, zoom: 1, vh: 240, tall: false, port: false, battleMode: false };
 // ----- input -----
 const Input = { q: [], taps: [], pans: [] };
 const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute', q: 'auto', Q: 'auto', t: 'speed', T: 'speed' };
@@ -60,7 +63,7 @@ function initInput() {
     if (!ptr) return; if (!ptr.drag && Math.hypot(e.clientX - ptr.cx, e.clientY - ptr.cy) > 9) ptr.drag = true;
     if (ptr.drag) { const r = cv.getBoundingClientRect(); if (Engine.zoom > 1) Input.pans.push({ dx: (e.clientX - ptr.lx) / r.width * W, dy: (e.clientY - ptr.ly) / r.height * Engine.vh }); ptr.lx = e.clientX; ptr.ly = e.clientY; }
   });
-  cv.addEventListener('pointerup', e => { if (ptr && !ptr.drag) { const p = lp(e); Input.taps.push({ x: p.x, y: p.y }); } ptr = null; });
+  cv.addEventListener('pointerup', e => { if (ptr && !ptr.drag) { const p = lp(e); Input.taps.push({ x: p.x, y: p.y - (G.yOff || 0) }); } ptr = null; });
   cv2.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); const r = cv2.getBoundingClientRect(); if (window.minimapTap) window.minimapTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * INFO_H); });
   cv.addEventListener('pointercancel', () => { ptr = null; });
   const b = (id, a) => document.getElementById(id).addEventListener('click', () => { if (Aud) Aud.unlock(); Input.q.push(a); });
@@ -94,7 +97,8 @@ function text(s, x, y, o) {
   ctx.fillStyle = o.color || '#fff'; ctx.fillText(s, x, y);
 }
 function tw(s, size) { ctx.font = (size || 9) + 'px ' + FONT; return ctx.measureText(s).width; }
-function panel(x, y, w, h, a) { // framed window: gradient body, dark outer line, light rim, inner shade line, gold corner studs
+function panel(x, y, w, h, a) {
+  if (typeof HD !== 'undefined' && HD.collect) HD.holes.push([x - 1, y - 1, w + 2, h + 2]); // framed window: gradient body, dark outer line, light rim, inner shade line, gold corner studs
   const al = a == null ? 0.88 : a;
   const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(26,32,92,' + al + ')'); g.addColorStop(1, 'rgba(8,10,40,' + al + ')');
   ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
