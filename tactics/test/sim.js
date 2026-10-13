@@ -20,7 +20,7 @@ function playChapter(roster, meta, idx) {
     if (S.over) break;
     A.endPlayerPhase(S);
     A.startPhase(S, 1);
-    for (const e of A.alive(S).filter(u => u.team === 1)) { if (S.over || e.dead) continue; const a = A.chooseAction(S, e, {}); A.applyAction(S, e, a.dest, a.target); }
+    for (const e of A.alive(S).filter(u => u.team === 1)) { if (S.over || e.dead) continue; const a = A.chooseAction(S, e, {}); if (a.sp) spUse['E_' + e.key] = (spUse['E_' + e.key] || 0) + 1; A.applyAction(S, e, a.dest, a.target, a.sp); }
     S.turn++; turns++; A.checkOver(S);
   }
   return { S, turns };

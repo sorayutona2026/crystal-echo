@@ -188,8 +188,8 @@ function applyAction(S, u, dest, target, sp, opt) {
         rec.kind = 'attack';
         if (kind) u.spActive = kind;
         rec.events = runCombat(S, u, target, u.x, u.y);
-        if (kind === 'meteor' && !u.dead) { // splash on the foes around the impact point (never misses, no counter)
-          const base = Math.max(1, Math.round(calcDmg(S, u, target, target.x, target.y) * 0.6));
+        if ((kind === 'meteor' || kind === 'starfall') && !u.dead) { // splash on the foes around the impact point (never misses, no counter)
+          const base = Math.max(1, Math.round(calcDmg(S, u, target, target.x, target.y) * (kind === 'starfall' ? 0.5 : 0.6)));
           for (const o of alive(S)) if (o !== target && isFoe(u, o) && dist(o.x, o.y, target.x, target.y) <= 1) {
             o.hp = Math.max(0, o.hp - base); if (o.hp <= 0) o.dead = true;
             rec.events.push({ type: 'hit', att: u, def: o, hit: true, dmg: base, hpAfter: o.hp, kill: o.dead, aoe: true });

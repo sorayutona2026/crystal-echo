@@ -44,6 +44,20 @@ const base = async (page, ch) => { await page.evaluate(c => { __tac.speed(4); __
   await sleep(300); await shot(page, '23_fx_meteor');
   await hold(() => { G.fx = []; const p = tilePx(8, 13); fxHeal(p.x, p.y + 6, false); fxCross(p.x, p.y + 6); const q = tilePx(10, 13); fxHeal(q.x, q.y + 6, true); for (const f of G.fx) { f.L = f.life; f.hold = 18; } });
   await sleep(300); await shot(page, '24_fx_heal');
+  // ---- specials (必殺技) paused mid-sequence: cut-in, meteor, prayer, ambush, boss cut-in (hold = step index inside the sequence)
+  for (const [name, c] of Object.entries({
+    '50_special_cutin': { key: 'leon', t: null, hold: 40, setup: () => { __tac.place('leon', 4, 10); __tac.place('mira', 5, 10); __tac.place('luka', 4, 11); } },
+    '51_meteor': { key: 'luka', t: 'goblin', hold: 24 + 52 + 34 - 4, setup: () => { __tac.place('luka', 2, 10); const gs = G.S.units.filter(u => u.key === 'goblin' || u.key === 'slime'); __tac.place(gs[0].id, 5, 10); __tac.place(gs[1].id, 5, 11); __tac.place(gs[2].id, 6, 10); __tac.place(gs[3].id, 5, 9); } },
+    '52_pray': { key: 'sophia', t: null, hold: 24 + 52 + 22 + 12, setup: () => { __tac.place('sophia', 4, 10); __tac.place('leon', 5, 10); __tac.place('mira', 4, 11); __tac.place('luka', 3, 10); __tac.place('jin', 4, 9); for (const k of ['leon', 'mira', 'luka', 'jin', 'sophia']) __tac.hurt(k, 8); } },
+    '53_ambush': { key: 'jin', t: 'goblin', hold: 24 + 52 + 6 + 9 + 14, setup: () => { __tac.place('jin', 3, 10); const g = G.S.units.find(u => u.key === 'goblin'); __tac.place(g.id, 5, 10); } },
+    '54_boss_cutin': { key: 'boss', t: 'leon', hold: 40, setup: () => { __tac.place('boss', 5, 10); __tac.place('leon', 4, 10); } }
+  })) {
+    await fresh(page); await battle(page, 4); await sleep(300); await page.evaluate(c.setup); await sleep(200);
+    for (let i = 0; i < 30 && (await page.evaluate(() => !!G.dlg)); i++) { await press(page, 'z'); await sleep(60); }
+    await page.evaluate(([k, t, h]) => { __tac.seed(5); __tac.setCutin(true); __tac.setAuto(false); __tac.speed(1); __tac.special(k, t, h); }, [c.key, c.t, c.hold]);
+    await page.waitForFunction(h => { const q = __tac.spState(); return q && q.n >= h; }, c.hold, { timeout: 20000, polling: 10 }); await sleep(120); await shot(page, name);
+    await page.evaluate(() => __tac.spHold(null)); for (let i = 0; i < 80 && (await page.evaluate(() => __tac.busy())); i++) { await press(page, 'z'); await sleep(100); }
+  }
   // forecast with crit + HUD (ch5)
   await fresh(page); await battle(page, 4);
   { const s = await st(page), leon = s.units.find(u => u.key === 'leon'), g = s.units.find(u => u.id.startsWith('goblin'));

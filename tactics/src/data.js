@@ -81,7 +81,10 @@ const SP = {
   mira: { name: '狙撃', kind: 'shot', desc: '射程2〜3・威力+3・命中+10' },
   luka: { name: 'メテオ', kind: 'meteor', desc: '射程1〜3・威力+3・着弾点の周囲1マスにも6割の被害' },
   sophia: { name: '祈り', kind: 'pray', desc: '2マス以内の味方全員を回復' },
-  jin: { name: '奇襲', kind: 'ambush', desc: '威力+2・命中+30・必ず2回攻撃' }
+  jin: { name: '奇襲', kind: 'ambush', desc: '威力+2・命中+30・必ず2回攻撃' },
+  // boss signature moves (enemy side, once per battle; chosen by the AI)
+  boss: { name: '金角断', kind: 'cleave', foe: true, desc: '威力x1.5の渾身の一撃' },
+  verza: { name: '星落とし', kind: 'starfall', foe: true, desc: '威力+2・着弾点の周囲に半分の被害' }
 };
 // passive skills: choose 1 of 2 at Lv5 and 1 of 2 at Lv10. m = modifiers (dmg dealt, taken reduction, hit, avo, crit, spd, heal)
 const SKILLS = {
@@ -121,6 +124,8 @@ function weaponOf(u) {
   if (k === 'shot') { o.min = 2; o.max = 3; o.might += 3; o.hit += 10; o.name = '狙撃'; }
   else if (k === 'meteor') { o.min = 1; o.max = 3; o.might += 3; o.hit += 10; o.name = 'メテオ'; }
   else if (k === 'ambush') { o.might += 2; o.hit += 30; o.name = '奇襲'; }
+  else if (k === 'cleave') { o.might = Math.round(o.might * 1.5); o.name = '金角断'; }
+  else if (k === 'starfall') { o.might += 2; o.name = '星落とし'; }
   else if (k === 'heal') { o = { name: 'ライブ', type: 'heal', tri: null, might: 4, hit: 100, min: 1, max: 1, crit: 0 }; }
   return o;
 }

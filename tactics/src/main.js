@@ -60,7 +60,7 @@ function weaponFxName(a) { const w = weaponOf(a), aw = a.wpn; return w.type === 
 // FE-style attack cut-in (about 0.75s; shortened under auto; any tap/key skips to the result)
 function* cutin(ev, impact) {
   const short = G.auto, total = short ? 30 : 46, imp = short ? 11 : 16;
-  const c = G.cut = { a: ev.att, d: ev.def, ev, t: 0, total, imp, fx: weaponFxName(ev.att), skip: false }; flushInput(); let done = false;
+  const c = G.cut = { a: ev.att, d: ev.def, ev, t: 0, total, imp, fx: weaponFxName(ev.att), skip: false, seed: Array.from({ length: 14 }, Math.random) }; flushInput(); let done = false;
   for (c.t = 0; c.t < total; c.t++) {
     if (Input.q.length) { const k = Input.q.shift(); if (k === 'ok' || k === 'cancel') c.skip = true; }
     if (c.skip) { if (!done) { impact(); done = true; } break; }
@@ -116,11 +116,12 @@ function* playRecord(rec, fast) {
   if (rec.kind === 'escape') { Aud.sfx('heal'); numFx(u, '離脱!', '#8fffb0', 10); sparkle(u); yield 16; u.gone = true; u.acting = false; return; }
   if (rec.kind === 'talk' && rec.target) { Aud.sfx('levelup'); numFx(rec.target, '仲間に!', '#ffe27a', 10); sparkle(rec.target); yield 22; }
   if (rec.kind === 'item') { numFx(u, rec.itemName, '#9fe8ff', 8); yield 8; }
-  if (rec.sp) { Aud.sfx('levelup'); numFx(u, SP[u.key].name + '!', '#ffd24a', 10); burst(u, '#ffd24a', 12); { const up = tilePx(u.vx, u.vy); spawnSpr('rpg_12', up.x, up.y + 6, { scale: 0.28, dur: 3, glow: 1 }); } yield 22; }
-  if (rec.buffed.length) { for (const a of rec.buffed) { sparkle(a); numFx(a, '攻撃+2', '#ffb050', 8); } Aud.sfx('heal'); yield 30; }
+  if (rec.sp && SPX[rec.sp]) { if (rec.target && !u.dead) u.dir = dirOf(rec.target.x - u.x, rec.target.y - u.y); yield* special(rec); yield 6; }
+  else if (rec.sp) { Aud.sfx('levelup'); numFx(u, SP[u.key].name + '!', '#ffd24a', 10); burst(u, '#ffd24a', 12); yield 22; }
   if (rec.target && !rec.unit.dead) { u.dir = dirOf(rec.target.x - u.x, rec.target.y - u.y); }
-  G.cutNext = rec.kind === 'attack';
+  G.cutNext = rec.kind === 'attack' && !rec.sp;
   for (const ev of rec.events) {
+    if (ev.done) continue;
     if (ev.type === 'heal') {
       Aud.sfx('heal'); sparkle(ev.def); { const hp = tilePx(ev.def.vx, ev.def.vy); spawnSpr('rpg_7', hp.x, hp.y + 6, { scale: 0.42, dur: 3 }); if (rec.sp === 'pray') spawnSpr('rpg_12', hp.x, hp.y + 6, { scale: 0.22, dur: 3, glow: 1 }); } numFx(ev.def, '+' + ev.dmg, '#6dff8d', 11); yield* tweenHp(ev.def, ev.hpAfter, 20); yield 14;
     } else yield* strike(ev);
@@ -278,6 +279,7 @@ function tapMap(px, py) {
 function pumpTaps() {
   for (const t of Input.taps) {
     if (G.cut) { G.cut.skip = true; continue; }
+    if (G.sp) { G.sp.skip = true; continue; }
     if (G.scene === 'intro') { Input.q.push('ok'); continue; }
     if (G.dlg && G.scene === 'battle') { Input.q.push('ok'); continue; }
     const r = Touch.hit(t.x, t.y);
@@ -378,7 +380,7 @@ function* enemyPhase() {
     const a = chooseAction(S, e, {});
     if (!a.target && a.dest.x === e.x && a.dest.y === e.y) continue;
     G.cursor = { x: e.x, y: e.y }; yield 6;
-    const rec = applyAction(S, e, a.dest, a.target);
+    const rec = applyAction(S, e, a.dest, a.target, a.sp);
     G.cursor = { x: a.dest.x, y: a.dest.y };
     yield* playRecord(rec, true);
     yield 5;
@@ -504,6 +506,7 @@ window.__tac = {
   bond: (a, b, n) => { if (G.meta) G.meta.bonds[bondKey(a, b)] = n; }, ready2: () => !!G.dlg,
   setLv: (id, lv) => { const u = G.roster && G.roster[id]; if (u) { u.lv = lv; } },
   hurt: (id, hp) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.hp = hp; u.vhp = hp; u.ghost = hp; } },
+  special: (key, tkey, hold) => { const S = G.S, u = S.units.find(q => q.key === key), t = tkey && S.units.find(q => q.key === tkey || q.id === tkey); if (!u) return -1; u.acted = false; G.spHold = hold == null ? null : hold; const rec = applyAction(S, u, null, t || null, true); runBusy(playRecord(rec)); return rec.events.length; }, spHold: n => { G.spHold = n; }, spState: () => G.sp ? { n: G.sp.n, cutT: G.sp.cutT, kind: G.sp.kind } : null, busy: () => G.busy,
   place: (id, x, y) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.x = x; u.y = y; u.vx = x; u.vy = y; } },
   kill: key => { const u = G.S && G.S.units.find(x => x.key === key); if (u) { u.hp = 0; u.dead = true; u.gone = true; checkOver(G.S); } },
   setExp: (id, n) => { if (G.roster && G.roster[id]) G.roster[id].exp = n; },

@@ -190,15 +190,16 @@ function drawFx() {
   }
 }
 function stepFx() {
-  for (const f of G.fx) { f.life--; f.age = (f.age || 0) + 1; f.x += f.vx || 0; f.y += f.vy || 0; if (f.g) f.vy += f.g; }
+  const frozen = G.sp && G.sp.holding; let tickA = !G.hs && !frozen; if (tickA && G.slow != null && G.slow < 1) { G.slowAcc = (G.slowAcc || 0) + G.slow; if (G.slowAcc >= 1) G.slowAcc -= 1; else tickA = false; } const tickS = !G.hs && !frozen;
+  for (const f of G.fx) { if (!(f.sp ? tickS : tickA)) continue; f.life--; f.age = (f.age || 0) + 1; f.x += f.vx || 0; f.y += f.vy || 0; if (f.g) f.vy += f.g; }
   for (const f of G.fx) if (f.hold != null) { f.age = f.hold; f.life = f.L; } // test hook: freeze an effect at a given age
   G.fx = G.fx.filter(f => f.life > 0);
   for (const u of G.S ? G.S.units : []) {
-    if (u.flash > 0) u.flash--; if (u.dead && u.fade > 0 && u.fading) { u.fade--; if (u.fade <= 0) u.gone = true; }
+    if (u.flash > 0) u.flash--; if (u.dead && u.fade > 0 && u.fading && tickA) { u.fade--; if (u.fade <= 0) u.gone = true; }
     if (u.kx || u.ky) { u.kx *= 0.78; u.ky *= 0.78; if (Math.abs(u.kx) < 0.1) u.kx = 0; if (Math.abs(u.ky) < 0.1) u.ky = 0; }
     if (u.ghost != null) { if (u.ghost > u.vhp) u.ghost = Math.max(u.vhp, u.ghost - 0.18); else u.ghost = u.vhp; }
   }
-  if (G.shake > 0) G.shake--; if (G.flashW > 0) G.flashW--;
+  if (G.shake > 0) G.shake--; else G.shakeAmp = 0; if (G.flashW > 0) G.flashW--;
 }
 function drawCursor(S) {
   const c = G.cursor, ox = OX(), oy = OY(), x = ox + c.x * TS, y = oy + c.y * TS, o = Math.floor(G.t / 10) % 2;
@@ -354,14 +355,15 @@ window.minimapTap = (x, y) => {
 function drawBattle() {
   const S = G.S; if (!S) return;
   ctx.save();
-  G.shx = G.shake > 0 ? (Math.random() - 0.5) * 3 : 0; G.shy = G.shake > 0 ? (Math.random() - 0.5) * 3 : 0; ctx.translate(G.shx, G.shy);
+  G.shx = G.shake > 0 ? (Math.random() - 0.5) * (G.shakeAmp || 3) : 0; G.shy = G.shake > 0 ? (Math.random() - 0.5) * (G.shakeAmp || 3) : 0; ctx.translate(G.shx, G.shy);
   if (camOn()) { ctx.scale(Engine.zoom, Engine.zoom); ctx.translate(-Cam.x, -Cam.y); }
   drawMap(S, G.t); drawOverlay(S); drawMarkers(S);
   const hd = hdOn();
-  if (!hd) { const us = S.units.filter(u => !u.gone).sort((a, b) => a.vy - b.vy); for (const u of us) drawUnit(u, S); drawFx(); }
+  if (!hd) { const us = S.units.filter(u => !u.gone && !u.invis).sort((a, b) => a.vy - b.vy); for (const u of us) drawUnit(u, S); drawFx(); }
   drawAtmos(S, G.t);
   if (!hd && G.mode !== 'busyhide') drawCursor(S);
   ctx.restore();
+  if (G.sp) spDimDraw();
   const left = G.cursor.x >= 10; // flip panels away from the cursor
   const cu = cursorUnit();
   if (G.mode !== 'forecast' && !Engine.port) {
@@ -526,7 +528,7 @@ function propItems(S) {
 function hdBattlePass() {
   const S = G.S, z = camOn() ? Engine.zoom : 1, cx0 = camOn() ? Cam.x : 0, cy0 = camOn() ? Cam.y : 0, k = HD.k, g = HD.x, main = ctx;
   g.setTransform(k * z, 0, 0, k * z, (-cx0 + (G.shx || 0) / z) * k * z, (-cy0 + (G.shy || 0) / z) * k * z); ctx = g; g.imageSmoothingEnabled = true;
-  const items = S.units.filter(q => !q.gone).map(q => ({ y: q.vy, fn: () => drawUnitHD(q) })).concat(propItems(S)); items.sort((a, b) => a.y - b.y); for (const it of items) it.fn();
+  const items = S.units.filter(q => !q.gone && !q.invis).map(q => ({ y: q.vy, fn: () => drawUnitHD(q) })).concat(propItems(S)); items.sort((a, b) => a.y - b.y); for (const it of items) it.fn();
   drawFx(); if (G.mode !== 'busyhide') drawCursor(S);
   ctx = main;
 }
@@ -538,6 +540,7 @@ function hdRender() {
   for (const h of HD.holes) g.clearRect(Math.floor(h[0] * k), Math.floor(h[1] * k), Math.ceil(h[2] * k) + 1, Math.ceil(h[3] * k) + 1);
   g.setTransform(k, 0, 0, k, 0, (G.yOff || 0) * k); for (const fn of HD.ui) fn(g);
   if (G.cut) drawCutinHD(g);
+  if (G.sp) drawSpHD(g);
   HD.holes.length = 0; HD.ui.length = 0;
 }
 
@@ -568,8 +571,7 @@ function drawCutinHD(g) {
   drawOne(aLeft ? A : D, -1, aLeft ? 'a' : 'd'); drawOne(aLeft ? D : A, 1, aLeft ? 'd' : 'a');
   // slash + damage number on the defender
   if (t >= c.imp) {
-    const dx = aLeft ? 236 : 84, f = FXS[c.fx], tt = t - c.imp;
-    if (f && tt < f.n * 3) { const sc = 0.62, fr = Math.floor(tt / 3); g.save(); g.imageSmoothingEnabled = true; g.translate(dx, base - 60); if (aLeft === false) g.scale(-1, 1); g.globalCompositeOperation = 'lighter'; g.drawImage(f.img, fr * f.fw, 0, f.fw, f.fh, -f.fw * sc / 2, -f.fh * sc / 2, f.fw * sc, f.fh * sc); g.restore(); }
+    const dx = aLeft ? 236 : 84, tt = t - c.imp; cutFxDraw(g, c, tt, dx, base - 60, aLeft);
     const txt = c.ev.hit ? String(c.ev.dmg) : 'MISS', pop = tt < 8 ? 1 + (8 - tt) * 0.12 : 1, yy = base - 150 - Math.min(12, tt * 1.2);
     g.font = 'bold ' + (c.ev.hit ? 26 : 18) * pop + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'top'; g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = '#000'; g.strokeText(txt, dx, yy); g.fillStyle = c.ev.hit ? (c.ev.def.team === 0 ? '#ff8080' : '#fff') : '#c8d0ff'; g.fillText(txt, dx, yy);
     if (c.ev.kill && tt > 4) { g.font = 'bold 12px ' + FONT; g.lineWidth = 3; g.strokeText('撃破!', dx, yy + 30); g.fillStyle = '#ffe860'; g.fillText('撃破!', dx, yy + 30); }

@@ -2,7 +2,7 @@
 // ===== painted-style combat FX (hi-DPI layer, additive) + vector weapon icons =====
 // FX are plain G.fx entries {kind:'hd', type, ...}; drawFx() draws them on the hd canvas in chibi display mode (the pixel sprite FX stay for the ドット mode).
 const fxHdOn = () => G.scene === 'battle' && typeof hdOn === 'function' && hdOn();
-function hdPush(o) { if (G.fx.length > 260) return; o.kind = 'hd'; o.age = 0; o.vx = o.vx || 0; o.vy = o.vy || 0; if (!o.seed) { o.seed = []; for (let i = 0; i < 14; i++) o.seed.push(Math.random()); } G.fx.push(o); }
+function hdPush(o) { if (G.fx.length > 260) return; o.kind = 'hd'; if (G.sp) o.sp = true; o.age = 0; o.vx = o.vx || 0; o.vy = o.vy || 0; if (!o.seed) { o.seed = []; for (let i = 0; i < 14; i++) o.seed.push(Math.random()); } G.fx.push(o); }
 const FXCOL = { sword: '#bfe6ff', axe: '#ffb868', dagger: '#d4ffd0', spear: '#fff0a8', gold: '#fff0a8', bow: '#fff6c8', tome: '#8fc8ff', dark: '#c47aff', fire: '#ff9a40', heal: '#8dffb0' };
 const fxCol = () => { const a = G.fxA; return (a && FXCOL[a.wpn]) || '#bfe6ff'; };
 // public spawners (positions are map-logical px)
@@ -91,6 +91,7 @@ function drawHdFx(f) {
       for (let i = 0; i < n; i++) { const dl = f.seed[i] * 12, tt = t - dl; if (tt < 0) continue; const lifeP = tt / (L - dl); if (lifeP > 1) continue; const a = Math.sin(Math.PI * lifeP), x = f.x - 8 + f.seed[(i + 3) % 14] * 16 + Math.sin(tt / 6 + i) * 1.6, y = f.y + 6 - tt * (0.35 + f.seed[(i + 7) % 14] * 0.35);
         star4(x, y, (1.4 + f.seed[(i + 1) % 14] * 1.6) * (f.big ? 1.2 : 1), i % 2 ? '#b8ffd0' : '#ffeaa0', a * 0.95); }
       break; }
+    default: if (typeof SPFX !== 'undefined' && SPFX[f.type]) SPFX[f.type](f, t, L, p); break;
     case 'cross': {
       const e = ease(Math.min(1, p / 0.4)), al = Math.sin(Math.PI * p), s = 9 * (0.6 + 0.5 * e); glowDot(f.x, f.y - 6, 14, '#ffe9a0', 0.4 * al);
       ctx.fillStyle = 'rgba(255,240,170,' + 0.55 * al + ')'; ctx.fillRect(f.x - 1.1, f.y - 6 - s, 2.2, s * 2); ctx.fillRect(f.x - s, f.y - 7.1, s * 2, 2.2); ctx.fillStyle = 'rgba(255,255,255,' + al + ')'; ctx.fillRect(f.x - 0.6, f.y - 6 - s * 0.8, 1.2, s * 1.6); ctx.fillRect(f.x - s * 0.8, f.y - 6.6, s * 1.6, 1.2); break; }

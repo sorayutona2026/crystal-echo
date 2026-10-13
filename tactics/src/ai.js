@@ -93,6 +93,17 @@ function chooseAction(S, u, opts) {
         u.spActive = null;
       }
     }
+    // boss signature move (enemy side): once per battle, on the first chance to hit a hero
+    const bsp = !opts.player ? SP[u.key] : null;
+    if (bsp && bsp.foe && !u.spUsed && !healer) {
+      u.spActive = bsp.kind;
+      for (const t of targetsFrom(S, u, s.x, s.y)) {
+        const f = forecast(S, u, t, s.x, s.y), give = Math.min(t.hp, f.a.dmg * f.a.n) * f.a.hit / 100, take = f.d.can ? f.d.dmg * f.d.n * f.d.hit / 100 : 0;
+        const sc = 26 + give - take + (f.a.dmg * f.a.n >= t.hp && f.a.hit >= 60 ? 15 : 0) + tb - s.cost * 0.05;
+        if (!best || sc > best.score) best = { unit: u, dest: { x: s.x, y: s.y }, target: t, score: sc, kind: 'attack', sp: true };
+      }
+      u.spActive = null;
+    }
   }
   if (best && !opts.noAttack) return best;
   if (u.ai === 'wait' && !opts.player) return { unit: u, dest: { x: u.x, y: u.y }, target: null, score: -1, kind: 'wait' };
