@@ -77,8 +77,8 @@ function scaledStats(base, gr, lv) { // deterministic growth for enemies / late 
 const TRI_BEATS = { sword: 'axe', axe: 'spear', spear: 'sword' };
 // hero specials: once per chapter. shot/meteor/ambush modify the weapon for one attack; buff/pray are instant
 const SP = {
-  leon: { name: '鼓舞', kind: 'buff', desc: '隣の味方の攻撃+2(このターン)' },
-  mira: { name: '狙撃', kind: 'shot', desc: '射程2〜3・威力+3・命中+10' },
+  leon: { name: '獅子の号令', kind: 'buff', desc: '隣の味方の攻撃+2(このターン)' },
+  mira: { name: '流星穿ち', kind: 'shot', desc: '射程2〜3・威力+3・命中+10' },
   luka: { name: 'メテオ', kind: 'meteor', desc: '射程1〜3・威力+3・着弾点の周囲1マスにも6割の被害' },
   sophia: { name: '祈り', kind: 'pray', desc: '2マス以内の味方全員を回復' },
   jin: { name: '奇襲', kind: 'ambush', desc: '威力+2・命中+30・必ず2回攻撃' },
@@ -121,7 +121,7 @@ function weaponOf(u) {
   if (u.wid && WITEMS[u.wid]) { const w = WITEMS[u.wid]; o = { name: w.name, type: w.type, tri: w.tri || null, might: w.might + (u.forge || 0), hit: w.hit, min: w.min, max: w.max, crit: w.crit || 0 }; }
   else { const w = WEAPONS[u.wpn]; o = { name: w.names[0], type: w.type, tri: w.tri || null, might: w.might, hit: w.hit, min: w.min, max: w.max, crit: 0 }; }
   const k = u.spActive;
-  if (k === 'shot') { o.min = 2; o.max = 3; o.might += 3; o.hit += 10; o.name = '狙撃'; }
+  if (k === 'shot') { o.min = 2; o.max = 3; o.might += 3; o.hit += 10; o.name = '流星穿ち'; }
   else if (k === 'meteor') { o.min = 1; o.max = 3; o.might += 3; o.hit += 10; o.name = 'メテオ'; }
   else if (k === 'ambush') { o.might += 2; o.hit += 30; o.name = '奇襲'; }
   else if (k === 'cleave') { o.might = Math.round(o.might * 1.5); o.name = '金角断'; }
