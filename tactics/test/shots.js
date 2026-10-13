@@ -35,6 +35,15 @@ const base = async (page, ch) => { await page.evaluate(c => { __tac.speed(4); __
   for (const [ch, name, cx, cy] of [[1, '20_ch2_defend', 6, 5], [2, '21_ch3_escape_mist', 21, 1], [3, '22_ch4_ash_ruins', 20, 6], [4, '23_ch5_fort_garud', 17, 2], [5, '24_ch6_altar_verza', 20, 5]]) {
     await fresh(page); await battle(page, ch); await cursorTo(page, cx, cy); await sleep(900); await shot(page, name);
   }
+  // painted-style combat FX frozen mid-effect (chibi mode)
+  await fresh(page); await battle(page, 0); await cursorTo(page, 9, 13); await sleep(500);
+  const hold = (js) => page.evaluate(js);
+  await hold(() => { G.fx = []; const p = tilePx(9, 12); G.fxA = { wpn: 'sword' }; fxSlash(p.x, p.y + 8, -0.6, 'sword'); const q = tilePx(7, 12); fxSlash(q.x, q.y + 8, 0, 'axe'); const r = tilePx(11, 12); fxThrust(r.x, r.y + 8, 3.1, 'spear'); const w = tilePx(8, 14); fxArrow(w.x - 40, w.y, w.x + 12, w.y + 4); for (const f of G.fx) { f.L = f.life; f.hold = Math.round(f.life * 0.3); } });
+  await sleep(300); await shot(page, '22_fx_slash');
+  await hold(() => { G.fx = []; const p = tilePx(9, 12); fxMeteor(p.x, p.y + 8); const q = tilePx(6, 13); fxBloom(q.x, q.y + 8, '#8fc8ff', 15); const r = tilePx(12, 13); fxBloom(r.x, r.y + 8, '#c47aff', 15); for (const f of G.fx) { f.L = f.life; f.hold = f.type === 'meteor' ? 15 : 6; } });
+  await sleep(300); await shot(page, '23_fx_meteor');
+  await hold(() => { G.fx = []; const p = tilePx(8, 13); fxHeal(p.x, p.y + 6, false); fxCross(p.x, p.y + 6); const q = tilePx(10, 13); fxHeal(q.x, q.y + 6, true); for (const f of G.fx) { f.L = f.life; f.hold = 18; } });
+  await sleep(300); await shot(page, '24_fx_heal');
   // forecast with crit + HUD (ch5)
   await fresh(page); await battle(page, 4);
   { const s = await st(page), leon = s.units.find(u => u.key === 'leon'), g = s.units.find(u => u.id.startsWith('goblin'));

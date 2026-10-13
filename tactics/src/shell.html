@@ -16,7 +16,9 @@ html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 #tac.port{flex-direction:column;justify-content:flex-start;padding-top:8px;box-sizing:border-box;gap:0}
 #tac.port.bt #cv2{display:block}
 #tac.port #pads{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:8px}
-#tac.port .pad{position:static;display:flex;gap:6px}
+#tac.port .pad{position:static;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:100%}
+#tac button.tg.on{background:#8a2a5a;border-color:#ff8fb8;color:#fff;box-shadow:0 0 8px #ff5a8a}
+#tac button:disabled{opacity:.4}
 #tac.nopads .pad{display:none}
 #tac.land .pad{top:0;bottom:0;flex-direction:column;justify-content:center;width:80px}
 #tac.land #padL{left:0;align-items:center}
@@ -29,7 +31,7 @@ html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden}
 <canvas id="cvh"></canvas>
 <canvas id="cv2" width="320" height="136"></canvas>
 <div id="pads">
-<div class="pad" id="padL"><button id="bCancel">キャンセル</button><button id="bOk" class="ok">決定</button><button id="bInfo">情報</button></div>
+<div class="pad" id="padL"><button id="bCancel">キャンセル</button><button id="bOk" class="ok">決定</button><button id="bInfo">情報</button><button id="bUndo">戻す ↺3</button><button id="bDanger" class="tg">危険範囲</button></div>
 <div class="pad" id="padR"><button id="bEnd" class="end">ターン終了</button><button id="bAuto" class="auto">オート</button><button id="bSpeed">速度 x1</button><button id="bMute">音 ON</button></div>
 </div>
 </div>

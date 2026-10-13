@@ -63,3 +63,7 @@ All of these are drawn at device resolution on the hi-DPI layer (`src/hd.js`, ca
 ## Generated in code (Loop 8)
 - `src/ambient.js`: per-chapter living-map overlays (water glints, butterflies, mist, fog, fire glows, embers, torch flicker, light shafts, rune pulses, stars) drawn procedurally; no image assets.
 - `src/audio.js`: the BGM is synthesised with WebAudio only (strings pad, piano/harp arpeggios, cello bass, timpani/taiko, procedurally generated convolution reverb); no audio files.
+
+## ChatGPT-generated map props (Loop 9)
+**ユーザーがChatGPTで生成して提供した画像 (user-generated with ChatGPT).** Original kept unmodified.
+- `art-src/props_sheet.png` (2172x724, magenta #FF00FF background; left to right: closed chest, open chest with gold glow, exit marker (blue banner + glowing ring), defend-village flag) -> `assets/gpt/prop_chest.webp`, `prop_chest_open.webp`, `prop_exit.webp`, `prop_village.webp` via `tools/prep_gpt_art.py` (`make_props`: chibi magenta key + despill; the exit ring's soft glow is un-mixed from magenta into a semi-transparent blue). Drawn on the hi-DPI layer in chibi display mode only (`propItems` in `src/ui.js`); the pixel versions remain for the ドット mode.

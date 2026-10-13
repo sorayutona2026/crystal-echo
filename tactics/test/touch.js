@@ -12,7 +12,7 @@ const { sleep, waitState } = require('./bot');
     const tap = async (x, y) => { const p = await lg(x, y); await page.touchscreen.tap(p.x, p.y); await sleep(60); };
     const tapTile = async (tx, ty) => { const s = await settleCam(() => st(page)); await tap(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
     // canvas must fit inside the viewport and buttons must be on screen
-    const geo = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cv'); return { c: [c.left, c.top, c.right, c.bottom], b: ['bCancel', 'bEnd', 'bInfo', 'bMute'].map(i => { const q = r(i); return [q.left, q.top, q.right, q.bottom]; }), w: innerWidth, h: innerHeight }; });
+    const geo = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cv'); return { c: [c.left, c.top, c.right, c.bottom], b: ['bCancel', 'bEnd', 'bInfo', 'bMute', 'bUndo', 'bDanger'].map(i => { const q = r(i); return [q.left, q.top, q.right, q.bottom]; }), w: innerWidth, h: innerHeight }; });
     for (const q of geo.b.concat([geo.c])) if (q[0] < -0.5 || q[1] < -0.5 || q[2] > geo.w + 0.5 || q[3] > geo.h + 0.5) throw new Error('element off screen ' + JSON.stringify(geo));
     for (let i = 0; i < geo.b.length; i++) for (let j = i + 1; j < geo.b.length; j++) { const a = geo.b[i], c = geo.b[j]; if (a[0] < c[2] && c[0] < a[2] && a[1] < c[3] && c[1] < a[3]) throw new Error('buttons overlap'); }
     // start: tap "はじめから", then tap through dialogue

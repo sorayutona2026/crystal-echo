@@ -49,7 +49,7 @@ function fit() {
 const Engine = { scale: 1, zoom: 1, vh: 240, tall: false, port: false, battleMode: false };
 // ----- input -----
 const Input = { q: [], taps: [], pans: [] };
-const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute', q: 'auto', Q: 'auto', t: 'speed', T: 'speed' };
+const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute', q: 'auto', Q: 'auto', d: 'danger', D: 'danger', u: 'undo', U: 'undo', t: 'speed', T: 'speed' };
 function initInput() {
   window.addEventListener('contextmenu', e => { if (e.target === cv) { e.preventDefault(); Input.q.push('cancel'); } });
   window.addEventListener('keydown', e => {
@@ -67,7 +67,7 @@ function initInput() {
   cv2.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); const r = cv2.getBoundingClientRect(); if (window.minimapTap) window.minimapTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * INFO_H); });
   cv.addEventListener('pointercancel', () => { ptr = null; });
   const b = (id, a) => document.getElementById(id).addEventListener('click', () => { if (Aud) Aud.unlock(); Input.q.push(a); });
-  b('bCancel', 'cancel'); b('bOk', 'ok'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute'); b('bAuto', 'auto'); b('bSpeed', 'speed');
+  b('bCancel', 'cancel'); b('bOk', 'ok'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute'); b('bAuto', 'auto'); b('bSpeed', 'speed'); b('bUndo', 'undo'); b('bDanger', 'danger');
 }
 // tap targets registered by draw code each frame (logical coords)
 const Touch = { rects: [], next: [] };

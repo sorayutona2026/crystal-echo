@@ -9,16 +9,35 @@ function* waitOk() { // level-up popups etc.; with auto on they close by themsel
   let n = 0;
   for (;;) { if (Input.q.length) { if (Input.q.shift() === 'ok') return; } else { n++; if (G.auto && n > 60) return; yield 1; } }
 }
-function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
-function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; G.hdUnits = p.hd !== false; } } catch (e) { } syncButtons(); }
-function syncButtons() { const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
-function setAuto(v) { G.auto = v; syncButtons(); savePrefs(); Aud.sfx(v ? 'ok' : 'cancel'); }
+function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, danger: !!G.danger, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
+function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; G.hdUnits = p.hd !== false; G.danger = !!p.danger; } } catch (e) { } syncButtons(); }
+// ---------- undo (一手戻す): deep snapshot before each player action; restores units / items / chests / gold / bonds / talks / specials and the RNG
+const UNDO_MAX = 10, UNDO_USES = 3;
+function snapState(S) {
+  const rest = {}; for (const k in S) if (k !== 'units' && k !== 'ch' && k !== 'rows' && k !== 'bonds') rest[k] = S[k];
+  return { list: S.units.slice(), units: S.units.map(u => [u, structuredClone(u)]), rest: structuredClone(rest), bonds: S.bonds ? structuredClone(S.bonds) : null, seed: _seed };
+}
+function restoreState(S, sn) {
+  for (const [u, d] of sn.units) { for (const k of Object.keys(u)) delete u[k]; Object.assign(u, structuredClone(d)); }
+  S.units.length = 0; for (const u of sn.list) S.units.push(u);
+  for (const k of Object.keys(sn.rest)) S[k] = structuredClone(sn.rest[k]);
+  if (S.bonds && sn.bonds) { for (const k of Object.keys(S.bonds)) delete S.bonds[k]; Object.assign(S.bonds, structuredClone(sn.bonds)); }
+  _seed = sn.seed;
+  initVisual(S); for (const [u, d] of sn.units) { u.dead = !!d.dead; u.gone = !!(d.dead || d.off); u.fade = d.dead ? 0 : 30; }
+}
+function canUndo() { return G.scene === 'battle' && !!G.S && !G.S.over && G.phase === 0 && !G.auto && !G.busy && !G.endTurn && !G.banner && !G.lvl && !G.dlg && G.mode === 'idle' && G.undo && G.undo.length > 0 && G.undoLeft > 0; }
+function doUndo() {
+  if (!canUndo()) { Aud.sfx('cancel'); return false; }
+  const sn = G.undo.pop(); restoreState(G.S, sn); G.undoLeft--; G.fx = []; deselect(); G.showRange = null; if (sn.cur) G.cursor = { x: sn.cur.x, y: sn.cur.y }; Cam.key = null; Aud.sfx('cancel'); syncButtons(); return true;
+}
+function syncButtons() { const ub = document.getElementById('bUndo'), db = document.getElementById('bDanger'); if (ub) { ub.textContent = '戻す ↺' + (G.undoLeft == null ? UNDO_USES : G.undoLeft); ub.disabled = !(G.scene === 'battle' && G.undo && G.undo.length && G.undoLeft > 0 && G.phase === 0 && !G.auto && !G.busy && !G.endTurn); } if (db) db.classList.toggle('on', !!G.danger); const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
+function setAuto(v) { G.auto = v; if (v) G.undo = []; syncButtons(); savePrefs(); Aud.sfx(v ? 'ok' : 'cancel'); }
 // ---------- visual helpers ----------
 function initVisual(S) { for (const u of S.units) { u.vx = u.x; u.vy = u.y; u.vhp = u.hp; u.ghost = u.hp; u.kx = 0; u.ky = 0; u.fade = 30; u.fading = false; u.gone = false; u.flash = 0; u.lx = 0; u.ly = 0; u.walking = false; u.dead = false; } }
 function tilePx(x, y) { return { x: OX() + x * TS + 8, y: OY() + y * TS }; }
 function numFx(u, textv, color, size) { const p = tilePx(u.vx, u.vy); G.fx.push({ kind: 'num', x: p.x, y: p.y - 4, vy: -0.45, life: 46, text: textv, color, size }); }
-function burst(u, color, n) { const p = tilePx(u.vx, u.vy); for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 0.6 + Math.random() * 1.4; G.fx.push({ kind: 'p', x: p.x, y: p.y + 8, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.5, g: 0.06, life: 18 + (Math.random() * 10 | 0), color, s: 2 }); } }
-function sparkle(u) { const p = tilePx(u.vx, u.vy); for (let i = 0; i < 10; i++) G.fx.push({ kind: 'p', x: p.x - 6 + Math.random() * 12, y: p.y + 14, vx: 0, vy: -0.4 - Math.random() * 0.5, life: 24 + (Math.random() * 12 | 0), color: Math.random() < 0.5 ? '#7dffa0' : '#d8ffe0', s: 2 }); }
+function burst(u, color, n) { const p = tilePx(u.vx, u.vy); if (fxHdOn()) { fxSpark(p.x, p.y + 8, 6 + n * 0.5, color, { life: 14 }); return; } for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 0.6 + Math.random() * 1.4; G.fx.push({ kind: 'p', x: p.x, y: p.y + 8, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.5, g: 0.06, life: 18 + (Math.random() * 10 | 0), color, s: 2 }); } }
+function sparkle(u) { const p = tilePx(u.vx, u.vy); if (fxHdOn()) { fxHeal(p.x, p.y + 6, false); return; } for (let i = 0; i < 10; i++) G.fx.push({ kind: 'p', x: p.x - 6 + Math.random() * 12, y: p.y + 14, vx: 0, vy: -0.4 - Math.random() * 0.5, life: 24 + (Math.random() * 12 | 0), color: Math.random() < 0.5 ? '#7dffa0' : '#d8ffe0', s: 2 }); }
 function dirOf(dx, dy) { return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
 function* tweenHp(u, to, fr) { const from = u.vhp; for (let i = 1; i <= fr; i++) { u.vhp = from + (to - from) * i / fr; yield 1; } u.vhp = to; }
 function* glide(u, path, sp) {
@@ -35,6 +54,7 @@ function* banner(textv, color, sub) {
   while (G.banner.t < G.banner.dur) { G.banner.t++; yield 1; }
   G.banner = null;
 }
+function glowFlash() { G.flashW = Math.max(G.flashW || 0, 3); }
 function cutinWanted(ev) { return G.cutin && !(G.auto && G.speedX > 1) && !ev.aoe && ART[artOf(ev.att)] && ART[artOf(ev.def)]; }
 function weaponFxName(a) { const w = weaponOf(a), aw = a.wpn; return w.type === 'mag' ? 'rpg_1' : (aw === 'spear' || aw === 'gold') ? 'rpg_3' : aw === 'axe' ? 'rpg_5' : (aw === 'bow' || aw === 'dagger') ? 'rpg_10' : 'rpg_4'; }
 // FE-style attack cut-in (about 0.75s; shortened under auto; any tap/key skips to the result)
@@ -56,17 +76,17 @@ function* strike(ev) {
   const impact = () => {
     if (ev.hit) {
       d.flash = 10; G.shake = ev.kill ? 10 : 4; Aud.sfx('hit'); burst(d, '#ffe9a0', 8);
-      const cp = tilePx(d.vx, d.vy), cx = cp.x, cy = cp.y + 8, aw = a.wpn;
+      const cp = tilePx(d.vx, d.vy), cx = cp.x, cy = cp.y + 8, aw = a.wpn, ang = Math.atan2(dy, dx); G.fxA = a;
       if (!ev.aoe) { d.kx = dx / L * 3.5; d.ky = dy / L * 3.5; }
-      if (ev.aoe) spawnSpr('rpg_1', cx, cy, { scale: 0.3, dur: 3, glow: 1 });
+      if (ev.aoe) spawnSpr('rpg_1', cx, cy, { scale: 0.3, dur: 3, glow: 1, aoe: 1 });
       else if (wt === 'mag') { spawnSpr('rpg_1', cx, cy, { scale: 0.34, dur: 3, glow: 1 }); if (a.spActive === 'meteor') spawnSpr('rpg_11', cx, cy - 4, { scale: 0.3, dur: 4 }); }
-      else if (aw === 'spear' || aw === 'gold') spawnSpr('rpg_3', cx, cy, { scale: 0.34, dur: 3, flip: dx < 0 });
-      else if (aw === 'bow') { spawnSpr('nin_5', cx, cy, { scale: 1, dur: 3 }); spawnSpr('rpg_10', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0 }); }
-      else if (aw === 'axe') spawnSpr('rpg_5', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0 });
-      else if (aw === 'dagger') spawnSpr('rpg_10', cx, cy, { scale: 0.32, dur: 3, flip: dx < 0 });
-      else spawnSpr('rpg_4', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0 });
+      else if (aw === 'spear' || aw === 'gold') spawnSpr('rpg_3', cx, cy, { scale: 0.34, dur: 3, flip: dx < 0, ang });
+      else if (aw === 'bow') { spawnSpr('nin_5', cx, cy, { scale: 1, dur: 3 }); spawnSpr('rpg_10', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0, bow: 1, ang }); }
+      else if (aw === 'axe') spawnSpr('rpg_5', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0, ang });
+      else if (aw === 'dagger') spawnSpr('rpg_10', cx, cy, { scale: 0.32, dur: 3, flip: dx < 0, ang });
+      else spawnSpr('rpg_4', cx, cy, { scale: 0.3, dur: 3, flip: dx < 0, ang });
       if (ev.kill) { spawnSpr('nin_18', cx, cy + 2, { scale: 1.3, dur: 4 }); G.flashW = 4; }
-      if (ev.crit) { numFx(d, '必殺 ' + ev.dmg, '#ffd24a', 14); G.shake = 12; G.flashW = 3; } else numFx(d, String(ev.dmg), d.team === 0 ? '#ff7070' : '#fff', ev.dmg >= 10 ? 13 : 11);
+      if (ev.crit && fxHdOn()) { fxSpark(cx, cy, 26, '#ffe27a', { life: 22 }); glowFlash(); } if (ev.crit) { numFx(d, '必殺 ' + ev.dmg, '#ffd24a', 14); G.shake = 12; G.flashW = 3; } else numFx(d, String(ev.dmg), d.team === 0 ? '#ff7070' : '#fff', ev.dmg >= 10 ? 13 : 11);
       Co.run(tweenHp(d, ev.hpAfter, 16));
     } else { Aud.sfx('miss'); numFx(d, 'MISS', '#c8d0ff', 9); }
   };
@@ -76,8 +96,9 @@ function* strike(ev) {
     const p0 = tilePx(a.vx, a.vy), p1 = tilePx(d.vx, d.vy);
     for (let f = 0; f < 22; f++) {
       const k = Math.sin(Math.PI * Math.min(1, f / 10)); a.lx = -dx / L * 2 * k; a.ly = -dy / L * 2 * k;
+      if (f === 4 && wt !== 'mag' && fxHdOn()) fxArrow(p0.x, p0.y + 6, p1.x, p1.y + 6);
       if (f === 4 && wt === 'mag') spawnSpr('rpg_9', p0.x, p0.y + 8, { vx: (p1.x - p0.x) / 8, vy: (p1.y - p0.y) / 8, life: 8, scale: 0.28, dur: 2, rot: Math.atan2(p1.y - p0.y, p1.x - p0.x) + Math.PI, glow: 1 });
-      if (f >= 4 && f < 12 && wt !== 'mag') { const q = (f - 4) / 8; G.fx.push({ kind: 'p', x: p0.x + (p1.x - p0.x) * q - 1, y: p0.y + 8 + (p1.y - p0.y) * q - 1, life: 5, color: wt === 'mag' ? (q % 0.25 < 0.12 ? '#ff9050' : '#ffe060') : '#f4f0d8', s: wt === 'mag' ? 4 : 3 }); }
+      if (f >= 4 && f < 12 && wt !== 'mag' && !fxHdOn()) { const q = (f - 4) / 8; G.fx.push({ kind: 'p', x: p0.x + (p1.x - p0.x) * q - 1, y: p0.y + 8 + (p1.y - p0.y) * q - 1, life: 5, color: wt === 'mag' ? (q % 0.25 < 0.12 ? '#ff9050' : '#ffe060') : '#f4f0d8', s: wt === 'mag' ? 4 : 3 }); }
       if (f === 12) impact();
       yield 1;
     }
@@ -91,7 +112,7 @@ function* strike(ev) {
 function* playRecord(rec, fast) {
   const u = rec.unit; u.acting = true;
   if (rec.path && rec.path.length > 1) yield* glide(u, rec.path, fast ? 3 : 4);
-  if (rec.chest) { Aud.sfx('levelup'); const c = rec.chest; numFx(u, c.item === 'proof' ? '勇者の証!' : '+' + c.gold + 'G', '#ffe27a', 11); burst(u, '#ffe27a', 12); yield 24; }
+  if (rec.chest) { Aud.sfx('levelup'); const c = rec.chest; c.openT = G.t; for (let i = 0; i < 10; i++) { const p = tilePx(c.x, c.y), a = Math.random() * 6.28, s = 0.5 + Math.random() * 1.2; G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 4, vx: Math.cos(a) * s, vy: -0.6 - Math.random() * 1.1, g: 0.05, life: 22 + (Math.random() * 12 | 0), color: '#fff0a0', s: 1.5 }); } numFx(u, c.item === 'proof' ? '勇者の証!' : '+' + c.gold + 'G', '#ffe27a', 11); burst(u, '#ffe27a', 12); yield 24; }
   if (rec.kind === 'escape') { Aud.sfx('heal'); numFx(u, '離脱!', '#8fffb0', 10); sparkle(u); yield 16; u.gone = true; u.acting = false; return; }
   if (rec.kind === 'talk' && rec.target) { Aud.sfx('levelup'); numFx(rec.target, '仲間に!', '#ffe27a', 10); sparkle(rec.target); yield 22; }
   if (rec.kind === 'item') { numFx(u, rec.itemName, '#9fe8ff', 8); yield 8; }
@@ -118,7 +139,7 @@ function moveCursor(dx, dy) { const S = G.S, c = G.cursor; c.x = Math.max(0, Mat
 function openMenu(items, x, y, w) { G.menu = { items, idx: Math.max(0, items.findIndex(i => !i.off)), x, y, w: w || 56 }; }
 function selectUnit(u) {
   const S = G.S; G.sel = u; G.reach = reach(S, u); G.moveSet = new Set(G.reach.stops.map(s => kk(s.x, s.y))); G.threat = threatTiles(S, u, G.reach);
-  G.orig = { x: u.x, y: u.y, dir: u.dir }; G.mode = 'move'; G.showRange = null; Aud.sfx('ok');
+  G.orig = { x: u.x, y: u.y, dir: u.dir }; G.pendingSnap = snapState(S); G.pendingSnap.cur = { x: u.x, y: u.y }; G.mode = 'move'; G.showRange = null; Aud.sfx('ok');
 }
 function deselect() { G.sub = false; G.healMode = false; G.pendingAtk = null; if (G.sel) G.sel.spActive = null; G.spMode = false; G.sel = null; G.reach = null; G.moveSet = null; G.threat = null; G.mode = 'idle'; G.targets = []; G.fc = null; G.menu = null; }
 function runBusy(gen) { G.busy++; Co.run((function* () { try { yield* gen; } finally { G.busy--; flushInput(); } })()); }
@@ -154,7 +175,7 @@ function undoMove() {
   const u = G.sel, o = G.orig; u.x = o.x; u.y = o.y; u.vx = o.x; u.vy = o.y; u.dir = o.dir; G.menu = null; G.mode = 'move'; Aud.sfx('cancel');
 }
 function afterAction() {
-  const S = G.S; const c = G.sel ? { x: G.sel.x, y: G.sel.y } : G.cursor; deselect(); G.cursor = { x: c.x, y: c.y };
+  const S = G.S; if (G.pendingSnap) { G.undo.push(G.pendingSnap); if (G.undo.length > UNDO_MAX) G.undo.shift(); G.pendingSnap = null; } const c = G.sel ? { x: G.sel.x, y: G.sel.y } : G.cursor; deselect(); G.cursor = { x: c.x, y: c.y };
   if (!S.over && !alive(S).some(u => u.team === 0 && !u.acted)) G.endTurn = true;
 }
 function doAction(kind, extra) {
@@ -270,6 +291,8 @@ function pumpTaps() {
     const k = Input.q[i];
     if (k === 'mute') { Input.q.splice(i, 1); Aud.toggle(); }
     else if (k === 'auto') { Input.q.splice(i, 1); if (G.scene === 'battle' || G.scene === 'dialogue' || G.scene === 'title' || G.scene === 'base') setAuto(!G.auto); }
+    else if (k === 'danger') { Input.q.splice(i, 1); if (G.scene === 'battle') { G.danger = !G.danger; syncButtons(); savePrefs(); Aud.sfx('ok'); } }
+    else if (k === 'undo') { Input.q.splice(i, 1); if (G.scene === 'battle') doUndo(); }
     else if (k === 'speed') { Input.q.splice(i, 1); G.speedX = G.speedX === 1 ? 2 : 1; syncButtons(); savePrefs(); Aud.sfx('ok'); }
     else if (k === 'cancel' && G.auto && G.scene === 'battle') { Input.q.splice(i, 1); setAuto(false); }
   }
@@ -365,10 +388,10 @@ function* healRecords(list) { for (const h of list) { Aud.sfx('heal'); sparkle(h
 function* battleTalk(t) { S_talk(t); G.busy++; try { yield* dialogue(t.lines, null, true); } finally { G.busy--; flushInput(); } }
 function S_talk(t) { G.S.talked[t.id] = true; }
 function* battleScene(S, idx) {
-  G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.infoBig = false; G.lvl = null; G.dlg = null; G.why = '';
+  G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.undo = []; G.undoLeft = UNDO_USES; G.pendingSnap = null; G.infoBig = false; G.lvl = null; G.dlg = null; G.why = '';
   Cam.snap = true; Cam.key = null; initVisual(S); const leon = S.units.find(u => u.key === 'leon'); G.cursor = { x: leon.x, y: leon.y };
   for (;;) {
-    G.phase = 0; S.phase = 0; Aud.bgm('field'); G.mode = 'idle'; G.endTurn = false; flushInput();
+    G.phase = 0; S.phase = 0; Aud.bgm('field'); G.mode = 'idle'; G.endTurn = false; G.undo = []; flushInput();
     yield* banner('自軍フェーズ', '#2a5ac8');
     yield* healRecords(startPhase(S, 0));
     while (!G.endTurn && !S.over) {
@@ -488,7 +511,7 @@ window.__tac = {
   state() {
     const S = G.S;
     return {
-      scene: G.scene, dlg: !!G.dlg, gold: G.meta ? G.meta.gold : 0, base: G.scene === 'base' ? { depth: Base.stack.length, title: curView().v.title, rows: allRows(curView().v, curView().e).map(r => r.t), idx: curView().e.idx, geom: Base.geom } : null, auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, chapter: G.chIdx, ready: this.ready(),
+      scene: G.scene, dlg: !!G.dlg, gold: G.meta ? G.meta.gold : 0, base: G.scene === 'base' ? { depth: Base.stack.length, title: curView().v.title, rows: allRows(curView().v, curView().e).map(r => r.t), idx: curView().e.idx, geom: Base.geom } : null, auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, undoLeft: G.undoLeft, undoN: G.undo ? G.undo.length : 0, danger: !!G.danger, dangerN: (G.S && G.danger) ? dangerSet(G.S).size : 0, seed: _seed, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
       title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
       over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, yoff: G.yOff || 0, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,

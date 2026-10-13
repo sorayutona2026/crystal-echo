@@ -875,5 +875,19 @@
     "slime": {
       "file": "gpt/chibi_slime.webp"
     }
+  },
+  "props": {
+    "prop_chest": {
+      "file": "gpt/prop_chest.webp"
+    },
+    "prop_chest_open": {
+      "file": "gpt/prop_chest_open.webp"
+    },
+    "prop_exit": {
+      "file": "gpt/prop_exit.webp"
+    },
+    "prop_village": {
+      "file": "gpt/prop_village.webp"
+    }
   }
 }

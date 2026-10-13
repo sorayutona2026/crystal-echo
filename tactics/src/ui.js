@@ -88,9 +88,26 @@ function drawAtmos(S, t) {
   }
   ctx.globalAlpha = 1; ctx.restore();
 }
+// danger zone: every tile a living enemy can attack next turn (move range + weapon range, same reach rules as the AI); cached until units move / die
+function dangerSet(S) {
+  const sig = S.units.map(u => (u.dead || u.off ? 'x' : u.team + ':' + u.x + ',' + u.y + (u.team === 1 ? weaponOf(u).max : ''))).join('|');
+  if (G._dg && G._dg.sig === sig && G._dg.S === S) return G._dg.set;
+  const set = new Set();
+  for (const e of S.units) { if (e.team !== 1 || e.dead || e.off || !canDamage(e)) continue; const r = e.ai === 'hold' ? { stops: [{ x: e.x, y: e.y }] } : reach(S, e); for (const k of threatTiles(S, e, r)) set.add(k); }
+  G._dg = { sig, S, set }; return set;
+}
+function drawDanger(S, ox, oy) {
+  if (!G.danger || G.phase !== 0) return; const set = dangerSet(S), pulse = 0.5 + 0.5 * Math.sin(G.t / 30);
+  ctx.save(); ctx.fillStyle = 'rgba(210,30,90,' + (0.24 + pulse * 0.06) + ')'; ctx.strokeStyle = 'rgba(255,110,150,0.8)'; ctx.lineWidth = 1; ctx.setLineDash([3, 2]);
+  for (const k of set) { const x = k % 64, y = (k - x) / 64, px = ox + x * TS, py = oy + y * TS; ctx.fillRect(px, py, TS, TS);
+    ctx.beginPath(); if (!set.has(kk(x, y - 1))) { ctx.moveTo(px, py + 0.5); ctx.lineTo(px + TS, py + 0.5); } if (!set.has(kk(x, y + 1))) { ctx.moveTo(px, py + TS - 0.5); ctx.lineTo(px + TS, py + TS - 0.5); }
+    if (!set.has(kk(x - 1, y))) { ctx.moveTo(px + 0.5, py); ctx.lineTo(px + 0.5, py + TS); } if (!set.has(kk(x + 1, y))) { ctx.moveTo(px + TS - 0.5, py); ctx.lineTo(px + TS - 0.5, py + TS); } ctx.stroke(); }
+  ctx.restore();
+}
 function drawOverlay(S) {
   const ox = OX(), oy = OY(), pulse = 0.5 + 0.5 * Math.sin(G.t / 12);
   const cell = (k, fill, line) => { const x = k % 64, y = (k - x) / 64; ctx.fillStyle = fill; ctx.fillRect(ox + x * TS, oy + y * TS, TS, TS); ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.strokeRect(ox + x * TS + 0.5, oy + y * TS + 0.5, TS - 1, TS - 1); };
+  drawDanger(S, ox, oy);
   if ((G.mode === 'move' || G.mode === 'moving') && G.reach) {
     if (G.threat) for (const k of G.threat) if (!G.moveSet.has(k)) cell(k, 'rgba(255,60,60,' + (0.28 + pulse * 0.08) + ')', 'rgba(255,140,140,0.6)');
     for (const k of G.moveSet) cell(k, 'rgba(40,100,255,' + (0.46 + pulse * 0.08) + ')', 'rgba(150,190,255,0.7)');
@@ -100,7 +117,7 @@ function drawOverlay(S) {
       for (const q of p) ctx.fillRect(ox + q.x * TS + 6, oy + q.y * TS + 6, 4, 4);
     }
   }
-  if (G.showRange && (G.mode === 'idle')) { const r = reach(S, G.showRange); for (const s of r.stops) cell(kk(s.x, s.y), 'rgba(60,110,255,0.25)', 'rgba(150,190,255,0.5)'); for (const k of threatTiles(S, G.showRange, r)) cell(k, 'rgba(255,60,60,0.3)', 'rgba(255,140,140,0.6)'); }
+  { const hv = G.mode === 'idle' && !G.showRange && G.phase === 0 ? unitAt(S, G.cursor.x, G.cursor.y) : null, sr = G.showRange || (hv && hv.team === 1 ? hv : null); if (sr && G.mode === 'idle') { const r = reach(S, sr); for (const s of r.stops) cell(kk(s.x, s.y), 'rgba(60,110,255,0.25)', 'rgba(150,190,255,0.5)'); for (const k of threatTiles(S, sr, r)) cell(k, 'rgba(255,60,60,0.3)', 'rgba(255,140,140,0.6)'); } }
   if (G.mode === 'menu' && G.sel) { const w = weaponOf(G.sel); for (let dy = -w.max; dy <= w.max; dy++) for (let dx = -w.max; dx <= w.max; dx++) { const d = Math.abs(dx) + Math.abs(dy); if (d < w.min || d > w.max) continue; const x = G.sel.x + dx, y = G.sel.y + dy; if (inb(S, x, y)) cell(kk(x, y), w.type === 'heal' ? 'rgba(60,220,120,0.3)' : 'rgba(255,60,60,0.3)', 'rgba(255,150,150,0.6)'); } }
   if ((G.mode === 'target' || G.mode === 'forecast') && G.targets) for (const t of G.targets) cell(kk(t.x, t.y), 'rgba(255,50,50,' + (0.35 + pulse * 0.25) + ')', '#ffb0b0');
 }
@@ -110,6 +127,7 @@ function unitFrame(u) { // pose row & bob
 }
 // objective markers: treasure chests, escape exits, the village to defend
 function drawMarkers(S) {
+  if (hdOn() && ART.prop_chest) return; // chibi display: the painted props are drawn on the hi-DPI layer (drawPropsHD)
   const ox = OX(), oy = OY(), pu = 0.5 + 0.5 * Math.sin(G.t / 14);
   for (const e of (S.ch.exits || [])) {
     const x = ox + e[0] * TS, y = oy + e[1] * TS; ctx.fillStyle = 'rgba(80,255,150,' + (0.22 + pu * 0.18) + ')'; ctx.fillRect(x, y, TS, TS);
@@ -151,11 +169,12 @@ function drawUnit(u, S) {
   if (u.team === 2 && !u.dead) text('!', px + 6, py - 8, { size: 9, bold: true, color: '#ffe860' });
 }
 function spawnSpr(name, wx, wy, o) { // sprite-sheet effect centred on a world point
-  const d = FXS[name]; if (!d) return; o = o || {}; const dur = o.dur || 3;
+  o = o || {}; if (fxHdOn() && hdFxFromSpr(name, wx, wy, o)) return; const d = FXS[name]; if (!d) return; const dur = o.dur || 3;
   G.fx.push({ kind: 'spr', d, x: wx, y: wy, vx: o.vx || 0, vy: o.vy || 0, scale: o.scale || 0.4, dur, age: 0, life: o.life || d.n * dur, flip: o.flip ? -1 : 1, rot: o.rot || 0, glow: o.glow });
 }
 function drawFx() {
   for (const f of G.fx) {
+    if (f.kind === 'hd') { drawHdFx(f); continue; }
     if (f.kind === 'num') {
       const age = 46 - f.life, pop = age < 7 ? 1 + (7 - age) * 0.09 : 1, a = Math.min(1, f.life / 14), sz = (f.size || 10) * pop;
       ctx.globalAlpha = a; ctx.font = 'bold ' + sz + 'px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = '#000';
@@ -172,6 +191,7 @@ function drawFx() {
 }
 function stepFx() {
   for (const f of G.fx) { f.life--; f.age = (f.age || 0) + 1; f.x += f.vx || 0; f.y += f.vy || 0; if (f.g) f.vy += f.g; }
+  for (const f of G.fx) if (f.hold != null) { f.age = f.hold; f.life = f.L; } // test hook: freeze an effect at a given age
   G.fx = G.fx.filter(f => f.life > 0);
   for (const u of G.S ? G.S.units : []) {
     if (u.flash > 0) u.flash--; if (u.dead && u.fade > 0 && u.fading) { u.fade--; if (u.fade <= 0) u.gone = true; }
@@ -188,7 +208,8 @@ function drawCursor(S) {
   for (const [cx, cy, sx, sy] of [[x + d, y + d, 1, 1], [x + TS - d, y + d, -1, 1], [x + d, y + TS - d, 1, -1], [x + TS - d, y + TS - d, -1, -1]]) { ctx.moveTo(cx + sx * L, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + sy * L); }
   ctx.stroke();
 }
-function drawIcon(im, x, y, box) { if (!im) return; const sc = im.height > box ? box / im.height : 1, w = im.width * sc, h = im.height * sc; ctx.drawImage(im, Math.round(x + (box - w) / 2), Math.round(y + (box - h) / 2), w, h); }
+function drawIcon(im, x, y, box) { if (!im) return;
+  if (im.vec) { if (HD.x && HD.collect && !G.infoPass) { hdUI(g => { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(im, x, y, box, box); }); } else { ctx.imageSmoothingEnabled = true; ctx.drawImage(im, Math.round(x), Math.round(y), box, box); ctx.imageSmoothingEnabled = false; } return; } const sc = im.height > box ? box / im.height : 1, w = im.width * sc, h = im.height * sc; ctx.drawImage(im, Math.round(x + (box - w) / 2), Math.round(y + (box - h) / 2), w, h); }
 // ---------- panels ----------
 function drawUnitPanel(u, x, y) {
   panel(x, y, 128, 50);
@@ -227,7 +248,7 @@ function drawBigInfo(u) {
   text('Aキーで閉じる', x + w - 6, y + h - 10, { size: 7, align: 'right', color: '#889' });
 }
 function drawMenu(m) {
-  const cur = m.items[m.idx]; if (cur && cur.desc) { panel(40, 4, 240, 15, 0.92); { const ic = cur.act === 'sp' ? ICONS['i_scroll-fire'] : cur.act === 'heal' ? ICONS['i_life-pot'] : cur.act === 'attack' && G.sel ? weaponIcon(G.sel) : null; drawIcon(ic, 44, 6, 11); } text(cur.name || cur.label, 58, 8, { size: 8, bold: true, color: '#ffe860' }); text(cur.desc + (cur.off ? '(使えない)' : ''), 98, 8, { size: 8 }); }
+  const cur = m.items[m.idx]; if (cur && cur.desc) { panel(40, 4, 240, 15, 0.92); { const ic = cur.act === 'sp' ? vecIcon('tome') : cur.act === 'heal' ? vecIcon('potion') : cur.act === 'attack' && G.sel ? weaponIcon(G.sel) : null; drawIcon(ic, 44, 6, 11); } text(cur.name || cur.label, 58, 8, { size: 8, bold: true, color: '#ffe860' }); text(cur.desc + (cur.off ? '(使えない)' : ''), 98, 8, { size: 8 }); }
   const w = m.w || 56, h = m.items.length * 14 + 8;
   panel(m.x, m.y, w, h, 0.95);
   m.items.forEach((it, i) => {
@@ -291,7 +312,7 @@ function objText(S) {
 function drawPhaseLabel(S, x, y) {
   panel(x, y, 100, 24, 0.85);
   const tn = S.ch.win === 'defend' ? 'ターン' + Math.min(S.turn, S.ch.turns) + '/' + S.ch.turns : 'ターン' + S.turn;
-  text(tn + (G.phase === 0 ? ' 自軍' : ' 敵軍'), x + 5, y + 3, { size: 8, bold: true, color: G.phase === 0 ? '#9fc4ff' : '#ff9f9f' });
+  text(tn + (G.phase === 0 ? ' 自軍' : ' 敵軍') + (G.undoLeft != null && G.phase === 0 ? '  ↺' + G.undoLeft : ''), x + 5, y + 3, { size: 8, bold: true, color: G.phase === 0 ? '#9fc4ff' : '#ff9f9f' });
   text(objText(S), x + 5, y + 13, { size: 7, color: '#ffe27a' });
 }
 function cursorUnit() { const S = G.S; return unitAt(S, G.cursor.x, G.cursor.y) || (G.sel && G.sel.x === G.cursor.x && G.sel.y === G.cursor.y ? G.sel : null); }
@@ -479,10 +500,33 @@ function drawUnitHD(u) {
   if (!u.dead && G.S && bondAdj(G.S, u)) drawIcon(ICONS['i_heart'], px + 9, py - h + 10 + Math.sin(G.t / 12), 7);
   if (u.team === 2 && !u.dead) text('!', px + 6, py - h + 8, { size: 9, bold: true, color: '#ffe860' });
 }
+// painted props (chests, exit banners, village flag): y-sorted with the chibis, base on the tile
+function propDraw(id, cx, bottom, h, o) {
+  const im = ART[id] && ART[id].full; if (!im) return; o = o || {}; const w = h * im.width / im.height, ppu = HD.k * (camOn() ? Engine.zoom : 1), c = hdScaled(id, 'full', w * ppu, h * ppu); if (!c) return;
+  ctx.save(); ctx.globalAlpha = o.alpha == null ? 1 : o.alpha; ctx.translate(cx, bottom); if (o.skew) ctx.transform(1, 0, o.skew, 1, 0, 0); if (o.sc) ctx.scale(o.sc[0], o.sc[1]); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(c, -w / 2, -h, w, h); ctx.restore();
+}
+function propItems(S) {
+  const ox = OX(), oy = OY(), t = G.t, L = [], pu = 0.5 + 0.5 * Math.sin(t / 22);
+  for (const e of (S.ch.exits || [])) { const cx = ox + e[0] * TS + 8, by = oy + e[1] * TS + 14, ph = (e[0] * 3 + e[1]) * 0.7;
+    L.push({ y: e[1] - 0.2, fn: () => { const sw = Math.sin(t / 30 + ph); propDraw('prop_exit', cx, by, 26, { skew: sw * 0.018, alpha: 0.86 + pu * 0.14, sc: [1 + pu * 0.025, 1 + pu * 0.025] }); } }); }
+  const v = S.ch.village; if (v) L.push({ y: v.y - 0.2, fn: () => propDraw('prop_village', ox + v.x * TS + 8, oy + v.y * TS + 14, 26, { skew: Math.sin(t / 26) * 0.02 }) });
+  for (const c of S.chests) {
+    if (c.got && !c.openT) { /* picked up, animation not started: still closed */ }
+    const cx = ox + c.x * TS + 8, by = oy + c.y * TS + 14;
+    if (!c.got) L.push({ y: c.y - 0.1, fn: () => { const g = (0.10 + pu * 0.16); ctx.fillStyle = 'rgba(255,226,120,' + g + ')'; ctx.beginPath(); ctx.ellipse(cx, by - 5, 9, 8, 0, 0, 7); ctx.fill(); propDraw('prop_chest', cx, by, 17.5); } });
+    else if (c.openT) { const age = t - c.openT; if (age > 100) continue;
+      L.push({ y: c.y - 0.1, fn: () => { const pop = age < 14 ? 1 + 0.18 * Math.sin(age / 14 * Math.PI) : 1, fade = age > 80 ? 1 - (age - 80) / 20 : 1, ar = Math.min(1, age / 8);
+        if (age < 30) { const gr = ctx.createRadialGradient(cx, by - 8, 1, cx, by - 8, 20); gr.addColorStop(0, 'rgba(255,240,150,' + 0.8 * (1 - age / 30) + ')'); gr.addColorStop(1, 'rgba(255,200,60,0)'); ctx.fillStyle = gr; ctx.fillRect(cx - 22, by - 30, 44, 44); }
+        propDraw('prop_chest', cx, by, 17.5, { alpha: (1 - ar) * fade }); propDraw('prop_chest_open', cx, by, 19, { alpha: ar * fade, sc: [pop, pop] }); } }); }
+    else if (!c.got) { }
+  }
+  return L;
+}
 function hdBattlePass() {
   const S = G.S, z = camOn() ? Engine.zoom : 1, cx0 = camOn() ? Cam.x : 0, cy0 = camOn() ? Cam.y : 0, k = HD.k, g = HD.x, main = ctx;
   g.setTransform(k * z, 0, 0, k * z, (-cx0 + (G.shx || 0) / z) * k * z, (-cy0 + (G.shy || 0) / z) * k * z); ctx = g; g.imageSmoothingEnabled = true;
-  for (const u of S.units.filter(q => !q.gone).sort((a, b) => a.vy - b.vy)) drawUnitHD(u);
+  const items = S.units.filter(q => !q.gone).map(q => ({ y: q.vy, fn: () => drawUnitHD(q) })).concat(propItems(S)); items.sort((a, b) => a.y - b.y); for (const it of items) it.fn();
   drawFx(); if (G.mode !== 'busyhide') drawCursor(S);
   ctx = main;
 }

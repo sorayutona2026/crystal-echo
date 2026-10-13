@@ -245,10 +245,11 @@ function spriteRim(id, dir, row, team) {
   g.globalCompositeOperation = 'source-in'; g.fillStyle = team === 0 ? '#5fa8ff' : '#ff5a5a'; g.fillRect(0, 0, 18, 18);
   return RIM[key] = c;
 }
-function weaponIcon(u) {
-  const m = { spear: 'w_lance', gold: 'w_lance', dagger: 'w_sai', bow: 'w_bow', tome: 'i_scroll-fire', dark: 'i_scroll-fire', staff: 'i_life-pot', axe: 'w_axe', sword: 'w_sword', slime: 'i_heart' };
-  return ICONS[m[u.wpn]] || null;
+function weaponIcon(u) { // vector icons (src/fx_hd.js)
+  const m = { spear: 'spear', gold: 'gold', dagger: 'dagger', bow: 'bow', tome: 'tome', dark: 'dark', staff: 'staff', axe: 'axe', sword: 'sword', slime: 'heart' };
+  return m[u.wpn] ? vecIcon(m[u.wpn]) : null;
 }
 
-function ART_LOAD() { for (const id in (MANIFEST.art || {})) { const d = MANIFEST.art[id]; ART[id] = { face: A.img[d.face], full: A.img[d.full] }; }
+function ART_LOAD() { for (const id in (MANIFEST.props || {})) ART[id] = { full: A.img[MANIFEST.props[id].file] };
+  for (const id in (MANIFEST.art || {})) { const d = MANIFEST.art[id]; ART[id] = { face: A.img[d.face], full: A.img[d.full] }; }
   for (const id in (MANIFEST.chibi || {})) { if (ART[id]) ART[id].chibi = A.img[MANIFEST.chibi[id].file]; } }

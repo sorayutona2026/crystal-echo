@@ -362,8 +362,36 @@ def make_chibi():
     S.save(out / 'chibi_contact.png')
     return sizes, used
 
+PROP_IDS = ['prop_chest', 'prop_chest_open', 'prop_exit', 'prop_village']
+PROP_CUTS = [0, 543, 1119, 1651, 2172]     # props_sheet.png: column bands (sparkles / glow bits join the item of their band)
+PROP_H = {'prop_chest': 120, 'prop_chest_open': 150, 'prop_exit': 220, 'prop_village': 220}
+def make_props():
+    img = Image.open(src / 'props_sheet.png').convert('RGB'); rgb, al, fg = chroma_key(img)
+    a = np.array(img).astype(np.float32); R, G, B = a[..., 0], a[..., 1], a[..., 2]
+    # soft blue glow (exit ring) over magenta: pixel = k*C + (1-k)*magenta  ->  k from the red drop, colour solved back (no pink fringe)
+    k = np.clip((255 - R) / 210.0 - 0.07, 0, 1) * (B > 200) * (G > 40)
+    k = np.where(fg & (al > 200), 0, k); k = np.array(Image.fromarray((k * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))) / 255.0
+    kk = np.maximum(k, 0.02)[..., None]; C = (a - (1 - kk) * np.array([255, 0, 255], np.float32)) / kk
+    C = np.clip(C, 0, 255); C[..., 0] = np.minimum(C[..., 0], 120); C[..., 2] = np.maximum(C[..., 2], 200)
+    glow = k > 0.03
+    rgb2 = np.where(glow[..., None], C, rgb).astype(np.uint8); al2 = np.where(glow, np.maximum(al, (k * 255).astype(np.uint8)), al).astype(np.uint8)
+    out_sz = {}
+    for i, pid in enumerate(PROP_IDS):
+        m = np.zeros(al.shape, bool); m[:, PROP_CUTS[i]:PROP_CUTS[i + 1]] = True
+        lab, info = label(box(fg & m, 2, 'max')[::2, ::2]); big = max(info, key=lambda t: t[1]); labn = fit(np.kron(lab, np.ones((2, 2), np.int32)), al.shape)
+        part = (labn == big[0]) & m & (fg | glow)
+        a_ = np.where(part, al2, 0).astype(np.uint8); c = bleed_colour(rgb2, part & (a_ > 200), 6)
+        im = Image.fromarray(np.dstack([np.clip(c, 0, 255).astype(np.uint8), a_]), 'RGBA'); im = im.crop(im.getbbox())
+        h = PROP_H[pid]; w = max(1, round(im.width * h / im.height)); im = im.resize((w, h), Image.LANCZOS)
+        im.save(out / (pid + '.webp'), 'WEBP', quality=90, method=6, alpha_quality=95); out_sz[pid] = im.size
+    S = Image.new('RGB', (4 * 260, 2 * 240))
+    for row, bg in enumerate([(14, 18, 30), (70, 120, 60)]):
+        for i, pid in enumerate(PROP_IDS):
+            t = Image.new('RGB', (260, 240), bg); im = Image.open(out / (pid + '.webp')).convert('RGBA'); t.paste(im, ((260 - im.width) // 2, 236 - im.height), im); S.paste(t, (i * 260, row * 240))
+    S.save(out / 'prop_contact.png'); return out_sz
+
 if __name__ == '__main__':
-    print('chibi', make_chibi())
+    print('chibi', make_chibi()); print('props', make_props())
     cells = make_faces(); print('face cells', cells)
     sizes = make_full(); print('full sizes', sizes)
     contact(sizes)
