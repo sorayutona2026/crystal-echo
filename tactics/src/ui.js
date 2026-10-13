@@ -3,7 +3,7 @@
 const G = {
   scene: 'boot', t: 0, roster: null, snap: null, chIdx: 0, S: null, cursor: { x: 0, y: 0 }, mode: 'idle', sel: null, reach: null, moveSet: null, threat: null, orig: null,
   menu: null, targets: [], ti: 0, fc: null, busy: 0, banner: null, fx: [], shake: 0, infoBig: false, showRange: null, endTurn: false, modal: null,
-  dlg: null, speed: 1, auto: false, speedX: 1, hdUnits: 'auto', cutin: true, title: { idx: 0 }, card: null, over: null, ending: null, lvl: null, phase: 0, hasSave: false
+  dlg: null, speed: 1, auto: false, speedX: 1, hdUnits: true, cutin: true, title: { idx: 0 }, card: null, over: null, ending: null, lvl: null, phase: 0, hasSave: false
 };
 const camOn = () => Engine.zoom > 1 || !!(G.S && (G.S.w * TS > W || G.S.h * TS > H)); // camera: portrait zoom, or any map larger than the 320x240 view
 const OX = () => camOn() ? 0 : Math.floor((W - G.S.w * TS) / 2), OY = () => camOn() ? 0 : Math.floor((H - G.S.h * TS) / 2);
@@ -30,7 +30,7 @@ function camUpdate() {
 }
 function tileScreen(x, y) { return { x: (OX() + x * TS - Cam.x) * Engine.zoom, y: (OY() + y * TS - Cam.y) * Engine.zoom }; }
 const TEAMCOL = ['#4a90ff', '#ff4a4a', '#ffd24a'];
-const teamRing = (t, a) => (t === 0 ? 'rgba(90,170,255,' : t === 2 ? 'rgba(255,210,70,' : 'rgba(255,90,90,') + a + ')';
+const teamRing = (t, a) => (t === 0 ? 'rgba(90,170,255,' : t === 2 ? 'rgba(90,230,120,' : 'rgba(255,90,90,') + a + ')';
 const NOSTART = '、。，．！？!?）」』】〕…ー・ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ:;,.';
 const NOEND = '（「『【〔';
 function wrapText(s, maxw, size) { // Japanese line breaking (kinsoku): no line starts with closing marks/small kana/ー, none ends with an opening bracket
@@ -451,29 +451,37 @@ function drawEnding() {
 }
 
 // ---------- hi-DPI overlay: map units drawn from the painted full-body art ----------
-const hdOn = () => !!(HD.x && ART.leon && (G.hdUnits === true || (G.hdUnits === 'auto' && Engine.zoom > 1)));
+const hdOn = () => !!(HD.x && ART.leon && ART.leon.chibi && G.hdUnits !== false);
+function chibiStyle(u, id) { // which chibi + size/tint for a unit: generic priests = darker Verza, Volk = purple Verza, bosses bigger
+  let rel = 1, variant = null;
+  if (u.sprite === 'enemy_darkmage') { if (u.key === 'verza') rel = 1.12; else if (u.key === 'volk') { rel = 1.1; variant = 'purple'; } else { rel = 0.94; variant = 'dark'; } }
+  else if (u.boss) rel = 1.12;
+  return { rel, variant };
+}
 function drawUnitHD(u) {
-  if (u.gone) return; const id = artOf(u), im = ART[id]; if (!im) return;
+  if (u.gone) return; const id = artOf(u), im = ART[id]; if (!im || !im.chibi) return;
   const ox = OX(), oy = OY(), f = unitFrame(u), fade = u.dead ? (u.fade || 0) / 30 : 1;
   const px = ox + u.vx * TS + (u.lx || 0) + (u.kx || 0), py = oy + u.vy * TS + (u.ly || 0) + (u.ky || 0);
   const acted = u.team === 0 && u.acted && !u.acting && !(G.phase === 1);
-  let by = 0; if (!u.walking && !u.dead && !acted) by = Math.sin((G.t + (u.vx * 7 + u.vy * 13) * 5) / 22) * 0.7; if (G.sel === u && G.mode !== 'idle') by = (Math.floor(G.t / 8) % 2) ? -1.5 : 0;
-  const sink = u.dead ? (1 - fade) * 6 : 0, cx = px + 8, foot = py + 15;
+  let by = 0; if (!u.walking && !u.dead && !acted) by = Math.sin((G.t + (u.vx * 7 + u.vy * 13) * 5) / 22) * 0.5; if (G.sel === u && G.mode !== 'idle') by = (Math.floor(G.t / 8) % 2) ? -1.5 : 0;
+  const sink = u.dead ? (1 - fade) * 5 : 0, cx = px + 8, foot = py + 14.5;
   if (u.dir === 'left' || u.dir === 'right') u.hface = u.dir; if (!u.hface) u.hface = u.team === 0 ? 'right' : 'left';
-  const h = Math.max(15, im.full.height * 0.072) * (u.boss ? 1.12 : 1), flash = u.flash > 0 && Math.floor(u.flash / 2) % 2 === 0;
-  if (u.boss && !u.dead) { const pu = 0.5 + 0.5 * Math.sin(G.t / 14), ac = u.aura || '255,210,70', gr = ctx.createRadialGradient(cx, foot - 12, 2, cx, foot - 12, 24); gr.addColorStop(0, 'rgba(' + ac + ',' + (0.4 + pu * 0.2) + ')'); gr.addColorStop(1, 'rgba(' + ac + ',0)'); ctx.fillStyle = gr; ctx.fillRect(cx - 26, foot - 40, 52, 52); }
-  ctx.fillStyle = 'rgba(0,0,0,' + 0.30 * fade + ')'; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, 8.5, 3, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = teamRing(u.team, 0.9 * fade); ctx.lineWidth = 0.8; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, 8.5, 3, 0, 0, 7); ctx.stroke();
-  const ppu = HD.k * Engine.zoom, variant = flash ? 'white' : acted ? 'gray' : null;
-  artFull(ctx, id, cx, foot + f.bob * 0.6 + by + sink, h, ppu, { flip: u.hface !== ART_FACING[id], alpha: fade, variant });
+  const st = chibiStyle(u, id), h = TS * 1.5 * (im.chibi.height / 192) * st.rel, flash = u.flash > 0 && Math.floor(u.flash / 2) % 2 === 0;
+  const breath = (u.walking || u.dead || acted) ? 1 : 1 + 0.018 * Math.sin((G.t + (u.vx * 5 + u.vy * 9) * 7) / 20);
+  if (u.boss && !u.dead) { const pu = 0.5 + 0.5 * Math.sin(G.t / 14), ac = u.aura || '255,210,70', gr = ctx.createRadialGradient(cx, foot - h * 0.45, 2, cx, foot - h * 0.45, h * 0.9); gr.addColorStop(0, 'rgba(' + ac + ',' + (0.38 + pu * 0.2) + ')'); gr.addColorStop(1, 'rgba(' + ac + ',0)'); ctx.fillStyle = gr; ctx.fillRect(cx - h, foot - h * 1.5, h * 2, h * 1.7); }
+  const rw = u.boss ? 10.5 : 8.5;
+  ctx.fillStyle = 'rgba(0,0,0,' + 0.34 * fade + ')'; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, rw, 3, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = teamRing(u.team, 0.95 * fade); ctx.lineWidth = 0.9; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, rw, 3, 0, 0, 7); ctx.stroke();
+  const ppu = HD.k * (camOn() ? Engine.zoom : 1), variant = flash ? 'white' : acted ? 'gray' : st.variant;
+  artChibi(ctx, id, cx, foot + f.bob * 0.6 + by + sink, h, ppu, { flip: u.hface === 'right', alpha: fade, variant, sy: breath });
   if (!u.dead) hpBar(px + 2, py + 16, 12, 2, u.vhp, u.maxhp, u.ghost);
-  if (u.team === 1 && u.boss && !u.dead) text('★', px + 4, py - h + 10, { size: 8, color: '#ffd24a' });
-  if (!u.dead && G.S && bondAdj(G.S, u)) drawIcon(ICONS['i_heart'], px + 9, py - h + 8 + Math.sin(G.t / 12), 7);
-  if (u.team === 2 && !u.dead) text('!', px + 6, py - h + 6, { size: 9, bold: true, color: '#ffe860' });
+  if (u.team === 1 && u.boss && !u.dead) text('★', px + 4, py - h + 12, { size: 8, color: '#ffd24a' });
+  if (!u.dead && G.S && bondAdj(G.S, u)) drawIcon(ICONS['i_heart'], px + 9, py - h + 10 + Math.sin(G.t / 12), 7);
+  if (u.team === 2 && !u.dead) text('!', px + 6, py - h + 8, { size: 9, bold: true, color: '#ffe860' });
 }
 function hdBattlePass() {
-  const S = G.S, z = Engine.zoom, k = HD.k, g = HD.x, main = ctx;
-  g.setTransform(k * z, 0, 0, k * z, (-Cam.x + (G.shx || 0) / z) * k * z, (-Cam.y + (G.shy || 0) / z) * k * z); ctx = g; g.imageSmoothingEnabled = true;
+  const S = G.S, z = camOn() ? Engine.zoom : 1, cx0 = camOn() ? Cam.x : 0, cy0 = camOn() ? Cam.y : 0, k = HD.k, g = HD.x, main = ctx;
+  g.setTransform(k * z, 0, 0, k * z, (-cx0 + (G.shx || 0) / z) * k * z, (-cy0 + (G.shy || 0) / z) * k * z); ctx = g; g.imageSmoothingEnabled = true;
   for (const u of S.units.filter(q => !q.gone).sort((a, b) => a.vy - b.vy)) drawUnitHD(u);
   drawFx(); if (G.mode !== 'busyhide') drawCursor(S);
   ctx = main;

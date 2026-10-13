@@ -254,7 +254,116 @@ def make_sheet_maps():
         sizes[name] = (o.size, (out / ('map_%s.webp' % name)).stat().st_size)
     return sizes
 
+# ---------------------------------------------------------------- chibi map sprites (magenta-keyed sheet, art-src/chibi_sheet.png)
+# Overrides (optional, same magenta rules): art-src/chibi_fix_sheet.png = leon+sophia chibis (row 3, 4 columns); art-src/chibi_fix2.png = row of 2 figures garud, verza;
+#   art-src/chibi_override_<id>.png = one figure; art-src/chibi_override_<id1>+<id2>+....png = a left-to-right row of figures with that id list.
+CHIBI_IDS = ['leon', 'mira', 'luka', 'sophia', 'jin', 'garud', 'verza', 'goblin', 'skeleton', 'slime']
+CHIBI_H = 192                       # export height (px) of a hero; ~2x the on-screen size on a desktop window
+CHIBI_REL = {'garud': 1.25, 'goblin': 0.85, 'slime': 0.6}
+FIX_ORDER = ['leon', 'sophia', 'garud', 'verza']
+FIX_Y2, FIX_Y3 = 305, 725      # chibi_fix_sheet.png: full-body row starts at y=305, chibi row at y=725 (row 1 = faces)
+def fit(a, shape):
+    a = a[:shape[0], :shape[1]]; return np.pad(a, ((0, shape[0] - a.shape[0]), (0, shape[1] - a.shape[1])))
+def box(mask, n, kind):
+    f = ImageFilter.MaxFilter if kind == 'max' else ImageFilter.MinFilter
+    return np.array(Image.fromarray((mask * 255).astype(np.uint8)).filter(f(2 * n + 1))) > 127
+
+def chroma_key(img):
+    """-> (rgb uint8, alpha uint8, fg bool).  Magenta background removed, magenta spill on the edge removed, alpha eroded 1px + 1px feather."""
+    a = np.array(img.convert('RGB')).astype(np.int16); R, G, B = a[..., 0], a[..., 1], a[..., 2]
+    m = np.minimum(R, B) - G
+    core = (m > 120) & (R > 140) & (B > 140)
+    lab, info = label(core[::2, ::2]); keep = np.zeros(lab.max() + 1, bool)
+    for (n, cnt, *_r) in info:
+        if cnt >= 300: keep[n] = True           # small enclosed magenta-ish blobs (gems) stay part of the figure
+    kb = fit(np.kron(keep[lab], np.ones((2, 2), bool)), core.shape)
+    bg = core & kb
+    # small enclosed pure-magenta gaps (between staff and body, inside capes) are background too, except compact round blobs: those are gems / orbs
+    pure = (m > 190) & (np.abs(R - B) < 40) & (R > 190) & ~bg
+    pl, pinfo = label(pure[::2, ::2]); plf = fit(np.kron(pl, np.ones((2, 2), np.int32)), pure.shape)
+    for (n, cnt, *_r) in pinfo:
+        compact = cnt <= 45      # tiny pure-magenta specks: gem / orb highlights (those are really that colour); bigger enclosed ones are gaps
+        if not compact: bg |= pure & (plf == n)
+    # fringe pixels (blend of the dark outline and magenta) that missed the core threshold: also background when clearly pink-ish and next to bg
+    near = box(bg, 2, 'max')
+    bg |= near & (m > 70) & (R > 100) & (B > 100) & ~bg
+    fg = ~bg
+    zone = box(bg, 4, 'max') & fg                # despill zone: within 4 px of the background
+    spill = np.clip(np.minimum(R, B) - G, 0, None)
+    spill = np.where(zone, spill, 0)
+    R2 = R - spill; B2 = B - spill
+    rgb = np.dstack([R2, G, B2]).clip(0, 255).astype(np.uint8)
+    # a final guard: any edge pixel still pinker than the picture around it is pulled to its green channel
+    al = box(fg, 1, 'min')                       # erode 1 px
+    al = np.array(Image.fromarray((al * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.9)))   # 1 px feather
+    al = np.where(al > 0, np.clip(al.astype(np.float32) * 1.25, 0, 255), 0).astype(np.uint8)
+    # colour under transparent pixels = nearest figure colour (keeps WebP / resampling free of magenta)
+    c = bleed_colour(rgb, fg & (al > 200), 6)
+    return np.clip(c, 0, 255).astype(np.uint8), al, fg
+
+def chibi_figures(rgb, al, fg):
+    """split a keyed image into figures: big connected parts are the figures, small detached parts join the nearest figure.  -> list of masks, left to right (top row first when 2 rows)"""
+    H, W = fg.shape
+    lab_h, info = label(box(fg, 2, 'max')[::2, ::2])          # 2px grow: merges droplets / staff tips lying next to a figure
+    biggest = max(i[1] for i in info)
+    mains = [i for i in info if i[1] >= max(1500, 0.08 * biggest)]
+    labn = fit(np.kron(lab_h, np.ones((2, 2), np.int32)), (H, W))
+    seeds = np.zeros((H, W), np.int32)
+    for k, i in enumerate(mains): seeds[(labn == i[0]) & fg] = k + 1
+    # every remaining fg pixel (detached small parts) takes the nearest main label
+    seeds = spread(seeds, 40, fg) * fg      # detached specks farther than 40 px from any figure (text labels) are dropped
+    return [seeds == (k + 1) for k in range(len(mains))], [(i[2] * 2, i[3] * 2) for i in mains]
+
+def order_figs(masks, cents, rows=2):
+    idx = list(range(len(masks)))
+    if rows == 2: idx.sort(key=lambda k: (0 if cents[k][1] < 512 else 1, cents[k][0]))
+    else: idx.sort(key=lambda k: cents[k][0])
+    return idx
+
+def crop_fig(rgb, al, mask):
+    ys, xs = np.where(mask); y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    p = 4; y0 = max(0, y0 - p); x0 = max(0, x0 - p); y1 = min(mask.shape[0], y1 + p); x1 = min(mask.shape[1], x1 + p)
+    a = np.where(mask[y0:y1, x0:x1], al[y0:y1, x0:x1], 0).astype(np.uint8)
+    im = Image.fromarray(np.dstack([rgb[y0:y1, x0:x1], a]), 'RGBA'); return im.crop(im.getbbox())
+
+def make_chibi():
+    figs = {}
+    rgb, al, fg = chroma_key(Image.open(src / 'chibi_sheet.png'))
+    masks, cents = chibi_figures(rgb, al, fg)
+    assert len(masks) == 10, 'chibi sheet: found %d figures, expected 10' % len(masks)
+    for fid, k in zip(CHIBI_IDS, order_figs(masks, cents)): figs[fid] = crop_fig(rgb, al, masks[k])
+    used = {}
+    def take(path, ids):
+        rgb, al, fg = chroma_key(Image.open(path)); masks, cents = chibi_figures(rgb, al, fg)
+        assert len(masks) == len(ids), '%s: found %d figures, expected %d (%s)' % (path.name, len(masks), len(ids), ids)
+        for fid, k in zip(ids, order_figs(masks, cents, 1)): figs[fid] = crop_fig(rgb, al, masks[k]); used[fid] = path.name
+    fix = src / 'chibi_fix_sheet.png'
+    if fix.exists():           # 4 columns leon, sophia, garud, verza; row 3 = chibi (rows 1-2 are handled by make_fix_sheet)
+        rgb, al, fg = chroma_key(Image.open(fix).crop((0, FIX_Y3, 1536, 1024)).convert('RGB'))
+        masks, cents = chibi_figures(rgb, al, fg); assert len(masks) == 4, 'chibi_fix_sheet row 3: %d figures' % len(masks)
+        for fid, k in zip(FIX_ORDER, order_figs(masks, cents, 1)):
+            if fid in ('leon', 'sophia'): figs[fid] = crop_fig(rgb, al, masks[k]); used[fid] = fix.name     # garud / verza of this sheet are a redesign: not used
+    fix = src / 'chibi_fix2.png'
+    if fix.exists(): take(fix, ['garud', 'verza'])      # redrawn Garud + Verza (2 figures in a row, text labels ignored)
+    for f in sorted(src.glob('chibi_override_*.png')):
+        ids = f.stem[len('chibi_override_'):].replace(',', '+').split('+')
+        if all(i in CHIBI_IDS for i in ids): take(f, ids)      # an explicit override wins over chibi_fix.png
+        else: print('skip', f.name, '(unknown id)')
+    sizes = {}
+    for fid in CHIBI_IDS:
+        im = figs[fid]; h = round(CHIBI_H * CHIBI_REL.get(fid, 1.0)); w = max(1, round(im.width * h / im.height))
+        im = im.resize((w, h), Image.LANCZOS); im.save(out / ('chibi_%s.webp' % fid), 'WEBP', quality=88, method=6, alpha_quality=95); sizes[fid] = im.size
+    # contact sheet on dark, light and map-green backgrounds
+    S = Image.new('RGB', (10 * 130, 3 * 250)); 
+    for row, bg in enumerate([(14, 18, 30), (245, 245, 245), (70, 120, 60)]):
+        for i, fid in enumerate(CHIBI_IDS):
+            tile = Image.new('RGB', (130, 250), bg); im = Image.open(out / ('chibi_%s.webp' % fid)).convert('RGBA')
+            sc = min(126 / im.width, 246 / im.height); im = im.resize((int(im.width * sc), int(im.height * sc)), Image.LANCZOS); tile.paste(im, ((130 - im.width) // 2, 248 - im.height), im); S.paste(tile, (i * 130, row * 250))
+    S.save(out / 'chibi_contact.png')
+    return sizes, used
+
 if __name__ == '__main__':
+    print('chibi', make_chibi())
     cells = make_faces(); print('face cells', cells)
     sizes = make_full(); print('full sizes', sizes)
     contact(sizes)

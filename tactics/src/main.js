@@ -10,7 +10,7 @@ function* waitOk() { // level-up popups etc.; with auto on they close by themsel
   for (;;) { if (Input.q.length) { if (Input.q.shift() === 'ok') return; } else { n++; if (G.auto && n > 60) return; yield 1; } }
 }
 function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
-function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; if (p.hd === false || p.hd === true || p.hd === 'auto') G.hdUnits = p.hd; } } catch (e) { } syncButtons(); }
+function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; G.hdUnits = p.hd !== false; } } catch (e) { } syncButtons(); }
 function syncButtons() { const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
 function setAuto(v) { G.auto = v; syncButtons(); savePrefs(); Aud.sfx(v ? 'ok' : 'cancel'); }
 // ---------- visual helpers ----------
@@ -187,12 +187,12 @@ function menuPick() {
   if (it.act === 'heal' && !isHealer(G.sel)) { G.sel.spActive = 'heal'; G.healMode = true; }
   G.targets = targetsFrom(G.S, G.sel, G.sel.x, G.sel.y).sort((a, b) => a.y - b.y || a.x - b.x); G.ti = 0; G.cursor = { x: G.targets[0].x, y: G.targets[0].y }; G.menu = null; G.mode = 'target'; Aud.sfx('ok');
 }
-const hdLabel = () => G.hdUnits === 'auto' ? '自動' : G.hdUnits ? 'イラスト' : 'ドット';
+const hdLabel = () => G.hdUnits ? 'チビ' : 'ドット';
 function openSys() {
   const mk = () => [
     { label: 'ターン終了', fn: () => { G.menu = null; G.mode = 'idle'; G.endTurn = true; Aud.sfx('ok'); } },
     { label: '戦闘アニメ ' + (G.cutin ? 'ON' : 'OFF'), desc: '攻撃のカットイン演出(タップで飛ばせる)', name: '戦闘アニメ', fn: () => { G.cutin = !G.cutin; savePrefs(); G.menu.items[1].label = '戦闘アニメ ' + (G.cutin ? 'ON' : 'OFF'); Aud.sfx('ok'); } },
-    { label: '表示 ' + hdLabel(), desc: 'マップ上のユニット: 自動(縦持ちはイラスト) / イラスト / ドット', name: 'ユニット表示', fn: () => { G.hdUnits = G.hdUnits === 'auto' ? true : G.hdUnits === true ? false : 'auto'; savePrefs(); G.menu.items[2].label = '表示 ' + hdLabel(); Aud.sfx('ok'); } },
+    { label: '表示 ' + hdLabel(), desc: 'マップ上のユニット: チビ(イラスト) / ドット', name: 'ユニット表示', fn: () => { G.hdUnits = !G.hdUnits; savePrefs(); G.menu.items[2].label = '表示 ' + hdLabel(); Aud.sfx('ok'); } },
     { label: 'とじる', fn: () => { G.menu = null; G.mode = 'idle'; Aud.sfx('cancel'); } }];
   openMenu(mk(), 100, 70, 120); G.mode = 'sysmenu'; Aud.sfx('ok');
 }
@@ -474,7 +474,7 @@ window.__tac = {
   seed: n => seedRng(n), speed: n => { G.speed = n; }, step: n => { for (let i = 0; i < n; i++) step(); render(); },
   talk: (who, txt, bg) => { G.scene = 'dialogue'; G.dlg = { line: [who, txt], bg: bg || 0, n: txt.length, tip: false }; },
   showIntro: t => { G.scene = 'intro'; G.intro = { t: t || 70 }; },
-  setAuto: v => setAuto(v), setCutin: v => { G.cutin = !!v; savePrefs(); }, setHD: v => { G.hdUnits = v === 'auto' ? 'auto' : !!v; savePrefs(); },
+  setAuto: v => setAuto(v), setCutin: v => { G.cutin = !!v; savePrefs(); }, setHD: v => { G.hdUnits = v === 'auto' ? true : !!v; savePrefs(); },
   start: (ch, base) => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0, base: !!base }; },
   campAuto: () => { if (G.scene === 'base') { autoCamp(G.roster, G.meta, Base.chIdx); baseToast('おまかせで整えました'); } }, campGo: () => { if (G.scene === 'base') Base.go = true; },
   roster: () => JSON.parse(JSON.stringify({ roster: G.roster, meta: G.meta })), give: (gold, proofs) => { if (G.meta) { G.meta.gold += gold || 0; G.meta.proofs += proofs || 0; } },

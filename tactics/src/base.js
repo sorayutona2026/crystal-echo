@@ -151,7 +151,7 @@ function drawBase() {
   if (Base.toastT > 0) { Base.toastT--; const a = Math.min(1, Base.toastT / 20); ctx.globalAlpha = a; panel(60, vh - 40, 200, 20, 0.95); text(Base.toast, 160, vh - 35, { size: 10, bold: true, align: 'center', color: '#ffe860' }); ctx.globalAlpha = 1; }
 }
 function* baseScene(idx) {
-  G.scene = 'base'; flushInput(); Aud.bgm('title'); Base.chIdx = idx; Base.hero = null; Base.go = false; Base.job = null; Base.title = false; Base.autoDone = false; Base.toastT = 0;
+  G.scene = 'base'; flushInput(); Aud.bgm('camp'); Base.chIdx = idx; Base.hero = null; Base.go = false; Base.job = null; Base.title = false; Base.autoDone = false; Base.toastT = 0;
   Base.stack = [{ fn: viewMain, idx: 0, scroll: 0 }]; if (!G.meta.deploy) G.meta.deploy = defaultDeploy(G.roster, idx);
   for (;;) {
     if (Base.go) break; if (Base.title) return 'title';

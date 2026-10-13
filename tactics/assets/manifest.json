@@ -843,5 +843,37 @@
     "map_ch6": {
       "file": "gpt/map_ch6.webp"
     }
+  },
+  "chibi": {
+    "leon": {
+      "file": "gpt/chibi_leon.webp"
+    },
+    "mira": {
+      "file": "gpt/chibi_mira.webp"
+    },
+    "luka": {
+      "file": "gpt/chibi_luka.webp"
+    },
+    "sophia": {
+      "file": "gpt/chibi_sophia.webp"
+    },
+    "jin": {
+      "file": "gpt/chibi_jin.webp"
+    },
+    "garud": {
+      "file": "gpt/chibi_garud.webp"
+    },
+    "verza": {
+      "file": "gpt/chibi_verza.webp"
+    },
+    "goblin": {
+      "file": "gpt/chibi_goblin.webp"
+    },
+    "skeleton": {
+      "file": "gpt/chibi_skeleton.webp"
+    },
+    "slime": {
+      "file": "gpt/chibi_slime.webp"
+    }
   }
 }

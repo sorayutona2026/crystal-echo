@@ -250,4 +250,5 @@ function weaponIcon(u) {
   return ICONS[m[u.wpn]] || null;
 }
 
-function ART_LOAD() { for (const id in (MANIFEST.art || {})) { const d = MANIFEST.art[id]; ART[id] = { face: A.img[d.face], full: A.img[d.full] }; } }
+function ART_LOAD() { for (const id in (MANIFEST.art || {})) { const d = MANIFEST.art[id]; ART[id] = { face: A.img[d.face], full: A.img[d.full] }; }
+  for (const id in (MANIFEST.chibi || {})) { if (ART[id]) ART[id].chibi = A.img[MANIFEST.chibi[id].file]; } }

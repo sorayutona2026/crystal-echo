@@ -35,6 +35,34 @@ function artFull(g, id, cx, bottom, h, ppu, o) {
   const c = hdScaled(id, 'full', w * ppu, h * ppu, o.variant); if (!c) return 0;
   g.save(); if (o.alpha != null) g.globalAlpha = o.alpha; g.translate(cx, bottom); if (o.flip) g.scale(-1, 1); g.imageSmoothingEnabled = true; g.drawImage(c, -w / 2, -h, w, h); g.restore(); return w;
 }
+// chibi map sprite: soft dark outline baked into the cached bitmap (readable on every painted map); variants gray / white / dark / purple
+const CHIBI_PAD = 3;
+function hdChibi(id, w, h, variant) {
+  w = Math.max(2, Math.round(w)); h = Math.max(2, Math.round(h)); const key = 'c' + id + w + 'x' + h + (variant || ''); if (HD.cache[key]) return HD.cache[key];
+  const src = ART[id] && ART[id].chibi; if (!src) return null; let c = src, cw = src.width, ch = src.height;
+  while (cw > w * 2 || ch > h * 2) { cw = Math.max(w, Math.ceil(cw / 2)); ch = Math.max(h, Math.ceil(ch / 2)); const t = cvs(cw, ch), g = t.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(c, 0, 0, cw, ch); c = t; }
+  const pad = Math.max(2, Math.round(CHIBI_PAD * Math.max(1, w / 50))), out = cvs(w + pad * 2, h + pad * 2), g = out.getContext('2d'), tmp = cvs(w, h), tg = tmp.getContext('2d');
+  tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(c, 0, 0, w, h);
+  if (variant) {
+    const d = tg.getImageData(0, 0, w, h), p = d.data;
+    for (let i = 0; i < p.length; i += 4) { if (!p[i + 3]) continue; const r = p[i], gg = p[i + 1], b = p[i + 2];
+      if (variant === 'gray') { const l = (r * 0.3 + gg * 0.59 + b * 0.11) * 0.55 + 30; p[i] = p[i + 1] = p[i + 2] = l; }
+      else if (variant === 'white') { p[i] = p[i + 1] = p[i + 2] = 255; }
+      else if (variant === 'dark') { p[i] = r * 0.72; p[i + 1] = gg * 0.62; p[i + 2] = b * 0.85; }
+      else if (variant === 'purple') { p[i] = Math.min(255, r * 0.8 + b * 0.15); p[i + 1] = gg * 0.55; p[i + 2] = Math.min(255, b * 1.1 + 20); } }
+    tg.putImageData(d, 0, 0);
+  }
+  g.shadowColor = 'rgba(0,0,10,0.9)'; g.shadowBlur = pad * 1.2; g.drawImage(tmp, pad, pad); g.shadowBlur = pad * 0.5; g.shadowColor = 'rgba(0,0,10,0.7)'; g.drawImage(tmp, pad, pad);
+  g.shadowColor = 'transparent'; g.shadowBlur = 0; g.drawImage(tmp, pad, pad); out.pad = pad; out.iw = w; out.ih = h;
+  const keys = Object.keys(HD.cache); if (keys.length > 160) delete HD.cache[keys[0]];
+  return HD.cache[key] = out;
+}
+// chibi: centre x, feet y, height h in current units; o.flip mirrors (art faces down-left), o.sy = breathing scale
+function artChibi(g, id, cx, bottom, h, ppu, o) {
+  o = o || {}; const im = ART[id] && ART[id].chibi; if (!im) return; const w = h * im.width / im.height, c = hdChibi(id, w * ppu, h * ppu, o.variant); if (!c) return;
+  const pw = c.pad / ppu, sy = o.sy || 1; g.save(); if (o.alpha != null) g.globalAlpha = o.alpha; g.translate(cx, bottom); if (o.flip) g.scale(-1, 1); g.scale(1, sy); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(c, -w / 2 - pw, -h - pw + 0.3, w + pw * 2, h + pw * 2); g.restore();
+}
 function artFace(g, id, x, y, size, ppu, o) {
   o = o || {}; const c = hdScaled(id, 'face', size * ppu, size * ppu, o.variant); if (!c) return;
   g.save(); if (o.alpha != null) g.globalAlpha = o.alpha; g.imageSmoothingEnabled = true; g.drawImage(c, x, y, size, size); g.restore();
@@ -77,6 +105,7 @@ function bgRender() {
     const im = A.img['gpt/' + G.S.ch.paint + '.webp']; if (!im) return; const k = HD.k, z = camOn() ? Engine.zoom : 1;
     g.setTransform(k * z, 0, 0, k * z, (-Cam.x + (G.shx || 0) / z) * k * z, (-Cam.y + (G.shy || 0) / z) * k * z); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     g.drawImage(im, OX(), OY(), G.S.w * TS, G.S.h * TS);
+    ambientDraw(g);
     if (!camOn()) { g.setTransform(1, 0, 0, 1, 0, 0); }
   }
 }
