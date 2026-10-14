@@ -44,6 +44,13 @@ function wrapText(s, maxw, size) { // Japanese line breaking (kinsoku): no line 
   }
   if (cur) lines.push(cur); return lines;
 }
+function unitHpBar(u, x, y, w) { // thin on-map bar: full opacity only for damaged / hovered / selected units
+  const hot = u.hp < u.maxhp || G.sel === u || (G.cursor && G.cursor.x === u.x && G.cursor.y === u.y && G.mode !== 'busyhide'), a0 = ctx.globalAlpha; ctx.globalAlpha = a0 * (hot ? 1 : 0.6);
+  const h = 1.4; ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(x - 0.6, y - 0.6, w + 1.2, h + 1.2); ctx.fillStyle = '#2a2a3a'; ctx.fillRect(x, y, w, h);
+  if (u.ghost != null && u.ghost > u.vhp) { ctx.fillStyle = '#fff7c8'; ctx.fillRect(x, y, w * Math.min(1, u.ghost / u.maxhp), h); }
+  const fw = w * Math.max(0, Math.min(1, u.vhp / u.maxhp)); if (fw > 0) { ctx.fillStyle = hpColor(u.vhp / u.maxhp); ctx.fillRect(x, y, fw, h); }
+  ctx.globalAlpha = a0;
+}
 function hpColor(r) { return r > 0.5 ? '#4fe070' : r > 0.25 ? '#f0d040' : '#f05050'; }
 function hpBar(x, y, w, h, hp, max, ghost) { // gradient fill with a white damage trail
   rect(x - 1, y - 1, w + 2, h + 2, '#000'); rect(x, y, w, h, '#2a2a3a');
@@ -150,14 +157,19 @@ function liftOf(u) {
   const S = G.S; if (!S || !S.hts) return 0; const e = 1e-6, x0 = Math.max(0, Math.floor(u.vx + e)), y0 = Math.max(0, Math.floor(u.vy + e)), x1 = Math.min(S.w - 1, Math.ceil(u.vx - e)), y1 = Math.min(S.h - 1, Math.ceil(u.vy - e)), fx = u.vx - x0, fy = u.vy - y0;
   const a = htAt(S, x0, y0) * (1 - fx) + htAt(S, x1, y0) * fx, b = htAt(S, x0, y1) * (1 - fx) + htAt(S, x1, y1) * fx; return (a * (1 - fy) + b * fy) * 3;
 }
-const HT_TINT = ['rgba(0,0,0,0)', 'rgba(80,190,210,0.20)', 'rgba(220,190,70,0.26)', 'rgba(255,140,40,0.34)'];
-function drawHeights(S, ox, oy) {
+const HT_TINT = ['rgba(0,0,0,0)', 'rgba(150,200,210,0.12)', 'rgba(225,200,110,0.17)', 'rgba(250,165,80,0.22)'];
+function drawHeights(S, ox, oy) { // digit-free terraces: warm tint by height, light rim on the higher side of a step, soft drop shadow on the lower side, chevrons on ramps
   if (!G.hts || !S.hts) return;
+  const D = [[0, -1], [1, 0], [0, 1], [-1, 0]];
   for (let y = 0; y < S.h; y++) for (let x = 0; x < S.w; x++) {
     if (terrAt(S, x, y).block) continue; const h = htAt(S, x, y), px = ox + x * TS, py = oy + y * TS;
-    ctx.fillStyle = HT_TINT[h]; ctx.fillRect(px, py, TS, TS);
-    if (h) text(String(h), px + 1, py + 1, { size: 6, bold: true, color: h >= 2 ? '#fff0c0' : '#d8ecff' });
-    if (isRamp(S, x, y)) text('↗', px + 9, py + 8, { size: 7, bold: true, color: '#fff' });
+    if (h) { ctx.fillStyle = HT_TINT[Math.min(3, h)]; ctx.fillRect(px, py, TS, TS); }
+    for (const [dx, dy] of D) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= S.w || ny >= S.h) continue; const nh = htAt(S, nx, ny);
+      if (h > nh) { ctx.fillStyle = 'rgba(255,248,220,0.5)'; if (dx) ctx.fillRect(dx > 0 ? px + TS - 1 : px, py, 1, TS); else ctx.fillRect(px, dy > 0 ? py + TS - 1 : py, TS, 1); }
+      else if (h < nh) { const g = dx ? ctx.createLinearGradient(dx > 0 ? px + TS : px, 0, dx > 0 ? px + TS - 4 : px + 4, 0) : ctx.createLinearGradient(0, dy > 0 ? py + TS : py, 0, dy > 0 ? py + TS - 4 : py + 4); g.addColorStop(0, 'rgba(0,0,20,0.32)'); g.addColorStop(1, 'rgba(0,0,20,0)'); ctx.fillStyle = g; if (dx) ctx.fillRect(dx > 0 ? px + TS - 4 : px, py, 4, TS); else ctx.fillRect(px, dy > 0 ? py + TS - 4 : py, TS, 4); }
+    }
+    if (isRamp(S, x, y)) { ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px + 5, py + 10); ctx.lineTo(px + 8, py + 6); ctx.lineTo(px + 11, py + 10); ctx.stroke(); }
   }
 }
 function drawUnit(u, S) {
@@ -174,13 +186,12 @@ function drawUnit(u, S) {
   if (u.boss && !u.dead) { const pu = 0.5 + 0.5 * Math.sin(G.t / 14), ac = u.aura || '255,210,70', gr = ctx.createRadialGradient(px + 8, py + 9, 2, px + 8, py + 9, 17); gr.addColorStop(0, 'rgba(' + ac + ',' + (0.45 + pu * 0.2) + ')'); gr.addColorStop(1, 'rgba(' + ac + ',0)'); ctx.fillStyle = gr; ctx.fillRect(px - 10, py - 8, 36, 36); }
   // soft shadow + team ring on the ground
   ctx.fillStyle = 'rgba(0,0,0,' + 0.28 * fade + ')'; ctx.beginPath(); ctx.ellipse(px + 8 + lift * 0.5, gy + 14.5 + lift * 0.2, 7 + lift * 0.25, 2.8 + lift * 0.1, 0, 0, 7); ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,' + 0.18 * fade + ')'; ctx.beginPath(); ctx.ellipse(px + 8 + lift * 0.5, gy + 14.5 + lift * 0.2, 5 + lift * 0.2, 1.8 + lift * 0.08, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = teamRing(u.team, 0.85 * fade); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(px + 8, gy + 14.5, 7, 2.8, 0, 0, 7); ctx.stroke(); py -= lift;
+  { const hot = G.sel === u; ctx.strokeStyle = teamRing(u.team, (hot ? 0.95 : 0.4) * fade); ctx.lineWidth = hot ? 1 : 0.6; ctx.beginPath(); ctx.ellipse(px + 8, gy + 14.5, 7, 2.8, 0, 0, 7); ctx.stroke(); } py -= lift;
   // team-coloured rim, then the sprite
   if (!gray && !u.dead) { ctx.globalAlpha = 0.85; ctx.drawImage(spriteRim(u.sprite, u.dir, f.row, u.team), Math.round(px) - 1, Math.round(py + f.bob + by - 1 + sink) - 1); ctx.globalAlpha = 1; }
   drawUnitSprite(ctx, u.sprite, u.dir, f.row, px, py + f.bob + by - 1 + sink, mode, fade);
-  if (!u.dead) hpBar(px + 2, py + 15, 12, 2, u.vhp, u.maxhp, u.ghost);
-  if (u.team === 1 && u.boss && !u.dead) text('★', px + 4, py - 8, { size: 8, color: '#ffd24a' });
+  if (!u.dead) unitHpBar(u, px + 2, py + 15.5, 12);
+  if (u.team === 1 && u.boss && !u.dead) text('★', px + 5, py - 6, { size: 6, color: '#ffd24a' });
   if (!u.dead && S && bondAdj(S, u)) drawIcon(ICONS['i_heart'], px + 9, py - 5 + Math.round(Math.sin(G.t / 12)), 7);
   if (u.team === 2 && !u.dead) text('!', px + 6, py - 8, { size: 9, bold: true, color: '#ffe860' });
 }
@@ -228,25 +239,28 @@ function drawCursor(S) {
 function drawIcon(im, x, y, box) { if (!im) return;
   if (im.vec) { if (HD.x && HD.collect && !G.infoPass) { hdUI(g => { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(im, x, y, box, box); }); } else { ctx.imageSmoothingEnabled = true; ctx.drawImage(im, Math.round(x), Math.round(y), box, box); ctx.imageSmoothingEnabled = false; } return; } const sc = im.height > box ? box / im.height : 1, w = im.width * sc, h = im.height * sc; ctx.drawImage(im, Math.round(x + (box - w) / 2), Math.round(y + (box - h) / 2), w, h); }
 // ---------- panels ----------
-function drawUnitPanel(u, x, y) {
-  panel(x, y, 128, 50);
+function terrLine(ch) { // one line: name / effects / height
+  const T = TERRAIN[ch], S = G.S, hh = S ? htAt(S, G.cursor.x, G.cursor.y) : 0, rp = S && isRamp(S, G.cursor.x, G.cursor.y);
+  const l = (T.avo ? '回避+' + T.avo : '') + (T.def ? ' 防御+' + T.def : '') + (T.heal ? ' 回復20%' : '');
+  return T.name + ' · ' + (l.trim() || '効果なし') + (S && S.hts ? ' · 高さ' + hh + (rp ? '(坂)' : '') : '');
+}
+function hudHeader(S) {
+  const tn = S.ch.win === 'defend' ? 'ターン' + Math.min(S.turn, S.ch.turns) + '/' + S.ch.turns : 'ターン' + S.turn;
+  return tn + (G.phase === 0 ? ' 自軍' : ' 敵軍') + ' · 敵' + alive(S).filter(u => u.team === 1).length + (G.undoLeft != null && G.phase === 0 ? ' · ↺' + G.undoLeft : '');
+}
+function hudBox(x, y, w, h, a) { if (typeof HD !== 'undefined' && HD.collect) HD.holes.push([x - 1, y - 1, w + 2, h + 2]); ctx.fillStyle = 'rgba(10,13,46,' + a + ')'; ctx.fillRect(x, y, w, h); ctx.strokeStyle = 'rgba(160,176,255,' + 0.5 * a + ')'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
+// ONE unit card: face, name/class/Lv, HP bar, weapon, small terrain line
+function drawUnitPanel(u, x, y, w) {
+  w = w || 128; const h = 58; panel(x, y, w, h);
   rect(x + 4, y + 5, 40, 40, '#161a3a'); drawPortrait(u.sprite, x + 4, y + 5, 40, u.team);
   text(u.name, x + 48, y + 4, { size: 9, bold: true });
-  text('Lv' + u.lv + ' ' + u.cls, x + 48, y + 14, { size: 7, color: '#b8c4ff' });
-  hpBar(x + 60, y + 25, 60, 4, u.vhp, u.maxhp, u.ghost);
-  text('HP', x + 48, y + 23, { size: 7, color: '#ffd24a' });
-  text(Math.round(u.vhp) + '/' + u.maxhp, x + 64, y + 30, { size: 7 });
-  drawIcon(weaponIcon(u), x + 47, y + 37, 11); text(weaponOf(u).name, x + 60, y + 38, { size: 7, color: '#d8e0ff' });
-  if (u.team === 0) text('EXP ' + u.exp, x + 92, y + 38, { size: 7, color: '#9fe8ff' });
-  if (u.acted && u.team === 0) text('行動済', x + 96, y + 4, { size: 7, color: '#999' });
-}
-function drawTerrainPanel(x, y, ch) {
-  const T = TERRAIN[ch], S = G.S, hh = S ? htAt(S, G.cursor.x, G.cursor.y) : 0, rp = S && isRamp(S, G.cursor.x, G.cursor.y);
-  panel(x, y, 70, 36);
-  if (S && S.hts) text('高さ ' + hh + (rp ? '  坂' : ''), x + 5, y + 25, { size: 7, color: hh >= 2 ? '#ffd890' : '#9fd0ff' });
-  text(T.name, x + 5, y + 3, { size: 8, bold: true });
-  const l = (T.avo ? '回避+' + T.avo : '') + ((T.def) ? ' 防御+' + T.def : ''); text(l || '効果なし', x + 5, y + 14, { size: 7, color: '#b8c4ff' });
-  if (T.heal) text('回復20%', x + 36, y + 3, { size: 7, color: '#6f6' });
+  text('Lv' + u.lv + ' ' + u.cls, x + 48, y + 15, { size: 7, color: '#b8c4ff' });
+  if (u.acted && u.team === 0) text('行動済', x + w - 6, y + 4, { size: 7, align: 'right', color: '#999' });
+  const bw = w - 54 - 38; hpBar(x + 48, y + 27, bw, 4, u.vhp, u.maxhp, u.ghost);
+  text(Math.round(u.vhp) + '/' + u.maxhp, x + w - 6, y + 24, { size: 7, align: 'right' });
+  drawIcon(weaponIcon(u), x + 47, y + 34, 11); text(weaponOf(u).name, x + 60, y + 35, { size: 7, color: '#d8e0ff' });
+  if (u.team === 0) text('EXP ' + u.exp, x + w - 6, y + 35, { size: 7, align: 'right', color: '#9fe8ff' });
+  if (G.S) text(terrLine(G.S.rows[u.y][u.x]), x + 5, y + 48, { size: 6, color: '#8f9cd8' });
 }
 function drawBigInfo(u) {
   const x = 40, y = 20, w = 240, h = 168; panel(x, y, w, h, 0.96);
@@ -328,11 +342,13 @@ function objText(S) {
   if (ch.win === 'boss') { const b = S.units.find(u => u.boss); return (b ? b.name : '敵将') + (b && !b.dead ? ' HP' + b.hp : ' 撃破'); }
   return '敵を全滅  残り' + foes;
 }
-function drawPhaseLabel(S, x, y) {
-  panel(x, y, 100, 24, 0.85);
-  const tn = S.ch.win === 'defend' ? 'ターン' + Math.min(S.turn, S.ch.turns) + '/' + S.ch.turns : 'ターン' + S.turn;
-  text(tn + (G.phase === 0 ? ' 自軍' : ' 敵軍') + (G.undoLeft != null && G.phase === 0 ? '  ↺' + G.undoLeft : ''), x + 5, y + 3, { size: 8, bold: true, color: G.phase === 0 ? '#9fc4ff' : '#ff9f9f' });
+function drawPhaseLabel(S, x, y, w) { // compact translucent bar: header + objective; terrain line only briefly after the cursor moves
+  const c = G.cursor, key = c.x + ',' + c.y; if (G.hudKey !== key) { G.hudKey = key; G.hudT = G.t; }
+  const idle = G.t - (G.hudT || 0), fa = (!cursorUnit() && idle < 150) ? Math.min(1, (150 - idle) / 30) : 0;
+  w = w || 170; const h = 24 + Math.round(10 * fa); hudBox(x, y, w, h, 0.6);
+  text(hudHeader(S), x + 5, y + 3, { size: 8, bold: true, color: G.phase === 0 ? '#9fc4ff' : '#ff9f9f' });
   text(objText(S), x + 5, y + 13, { size: 7, color: '#ffe27a' });
+  if (fa > 0) { ctx.globalAlpha = fa; text(terrLine(S.rows[c.y][c.x]), x + 5, y + 24, { size: 7, color: '#b8c4ff' }); ctx.globalAlpha = 1; }
 }
 function cursorUnit() { const S = G.S; return unitAt(S, G.cursor.x, G.cursor.y) || (G.sel && G.sel.x === G.cursor.x && G.sel.y === G.cursor.y ? G.sel : null); }
 // portrait phones: unit/terrain/phase info lives in a separate canvas below the map so it never covers the field
@@ -341,23 +357,15 @@ function drawInfoCanvas() {
   rect(0, 0, W, INFO_H, '#0b0b14'); ctx.fillStyle = '#2a3070'; ctx.fillRect(0, 0, W, 1);
   if (S) {
     const cu = cursorUnit();
-    if (cu) drawUnitPanel(cu, 4, 5); else { panel(4, 5, 128, 50, 0.6); text('マスをタップして', 12, 17, { size: 8, color: '#889' }); text('ユニットを選択', 12, 29, { size: 8, color: '#889' }); }
-    drawPhaseLabel(S, 140, 5); drawTerrainPanel(140, 33, S.rows[G.cursor.y][G.cursor.x]);
-    text('味方 ' + alive(S).filter(u => u.team === 0).length + '  敵 ' + alive(S).filter(u => u.team === 1).length, 246, 8, { size: 8 });
-    if (cu) {
-      const rows = [['力', cu.str], ['魔力', cu.mag], ['技', cu.skl], ['速さ', cu.spd], ['守備', cu.def], ['魔防', cu.res], ['移動', cu.mov], ['射程', weaponOf(cu).min + (weaponOf(cu).max > weaponOf(cu).min ? '-' + weaponOf(cu).max : '')]];
-      rows.forEach((r, i) => { const cx = 6 + (i % 4) * 52, cy = 62 + Math.floor(i / 4) * 13; text(r[0], cx, cy, { size: 8, color: '#ffd24a' }); text(String(r[1]), cx + 46, cy, { size: 8, align: 'right' }); });
-      const sp = SP[cu.key]; if (sp && cu.team === 0) text('特技 ' + sp.name + (cu.spUsed ? '(使用済)' : '') + ' : ' + sp.desc, 6, 97, { size: 7, color: cu.spUsed ? '#778' : '#9fe8ff' });
-    }
-    if (cu && (cu.skills || []).length) text('スキル ' + cu.skills.map(k => SKILLS[k].name).join('・'), 6, 86, { size: 7, color: '#ffd8a0' });
-    text('目的: ' + S.ch.goal, 6, 109, { size: 9, color: '#ffe27a' });
-    text('ドラッグ:地図を動かす  青=移動範囲  赤=攻撃範囲', 6, 122, { size: 7, color: '#889' });
+    text(hudHeader(S), 6, 4, { size: 8, bold: true, color: G.phase === 0 ? '#9fc4ff' : '#ff9f9f' });
+    if (cu) drawUnitPanel(cu, 4, 16, 206);
+    else { panel(4, 16, 206, 58); text(terrLine(S.rows[G.cursor.y][G.cursor.x]), 12, 26, { size: 8, bold: true }); text('目的', 12, 46, { size: 7, color: '#889' }); text(objText(S), 34, 45, { size: 8, color: '#ffe27a' }); }
     drawMinimap(S);
   }
   ctx = main;
 }
 // minimap (portrait): terrain, units and the camera window; tap it to jump there
-const MM = { x: 218, y: 22, w: 98, h: 72, t: 4 };
+const MM = { x: 218, y: 16, w: 98, h: 58, t: 4 };
 function drawMinimap(S) {
   const t = Math.max(2, Math.floor(Math.min(MM.w / S.w, MM.h / S.h))); MM.t = t; const mw = S.w * t, mh = S.h * t, x0 = MM.x + (MM.w - mw) / 2, y0 = MM.y + (MM.h - mh) / 2; MM.ox = x0; MM.oy = y0;
   const col = { '.': '#6a9a3a', '=': '#a08a60', 'T': '#2f6a2a', '^': '#8a6a4a', '~': '#3a8ab0', '#': '#707080', 'M': '#6a6a72', 'V': '#d8c070', 'F': '#6a4a2a', 'H': '#8a3a2a' };
@@ -370,6 +378,13 @@ window.minimapTap = (x, y) => {
   if (!G.S || !camOn() || !MM.ox) return; const tx = (x - MM.ox) / MM.t, ty = (y - MM.oy) / MM.t; if (tx < -1 || ty < -1 || tx > G.S.w + 1 || ty > G.S.h + 1) return;
   const z = Engine.zoom; Cam.tx = tx * TS - W / z / 2; Cam.ty = ty * TS - Engine.vh / z / 2; camClamp(); Cam.key = G.cursor.x + ',' + G.cursor.y;
 };
+function drawHint(S) { // controls hint: chapter 1, turns 1-2, fades out
+  if (S.ch.title !== '第一章' || S.turn > 2 || G.dlg || G.mode === 'forecast') return;
+  if (G.hintS !== S) { G.hintS = S; G.hintT = G.t; }
+  const age = G.t - G.hintT, a = age < 20 ? age / 20 : Math.max(0, Math.min(1, (480 - age) / 60)); if (a <= 0 || G.hintDone) { if (age > 480) G.hintDone = true; return; }
+  const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches, t = coarse ? 'ドラッグ:地図  青=移動  赤=攻撃  ≡:設定' : '矢印:カーソル  Z:決定  X:戻る  Tab:設定';
+  const w = tw(t, 7) + 16, x = W / 2 - w / 2, y = VH() - 18; ctx.globalAlpha = a; hudBox(x, y, w, 13, 0.7); text(t, W / 2, y + 3, { size: 7, align: 'center', color: '#dfe6ff' }); ctx.globalAlpha = 1;
+}
 function drawBattle() {
   const S = G.S; if (!S) return;
   ctx.save();
@@ -385,10 +400,10 @@ function drawBattle() {
   const left = G.cursor.x >= 10; // flip panels away from the cursor
   const cu = cursorUnit();
   if (G.mode !== 'forecast' && !Engine.port) {
-    drawPhaseLabel(S, left ? 4 : W - 100, 4);
-    drawTerrainPanel(left ? 4 : W - 74, 30, S.rows[G.cursor.y][G.cursor.x]);
-    if (cu && !G.infoBig && !G.dlg) drawUnitPanel(cu, left ? 4 : W - 132, H - 54);
+    drawPhaseLabel(S, left ? 4 : W - 174, 4);
+    if (cu && !G.infoBig && !G.dlg) drawUnitPanel(cu, left ? 4 : W - 132, H - 62);
   }
+  drawHint(S);
   if (G.infoBig && cu) drawBigInfo(cu);
   if (G.mode === 'menu' && G.menu) drawMenu(G.menu);
   if (G.mode === 'sysmenu' && G.menu) drawMenu(G.menu);
@@ -525,12 +540,12 @@ function drawUnitHD(u) {
   const breath = (u.walking || u.dead || acted) ? 1 : 1 + 0.018 * Math.sin((G.t + (u.vx * 5 + u.vy * 9) * 7) / 20);
   if (u.boss && !u.dead) { const pu = 0.5 + 0.5 * Math.sin(G.t / 14), ac = u.aura || '255,210,70', gr = ctx.createRadialGradient(cx, foot - h * 0.45, 2, cx, foot - h * 0.45, h * 0.9); gr.addColorStop(0, 'rgba(' + ac + ',' + (0.38 + pu * 0.2) + ')'); gr.addColorStop(1, 'rgba(' + ac + ',0)'); ctx.fillStyle = gr; ctx.fillRect(cx - h, foot - h * 1.5, h * 2, h * 1.7); }
   const rw = u.boss ? 10.5 : 8.5, gf = gy + 14.5; // shadow + ring stay on the ground; high ground gives a longer, softer shadow
-  ctx.fillStyle = 'rgba(0,0,0,' + (0.34 - lift * 0.02) * fade + ')'; ctx.beginPath(); ctx.ellipse(cx + lift * 0.5, gf - 0.5 + lift * 0.2, rw + lift * 0.3, 3 + lift * 0.12, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = teamRing(u.team, 0.95 * fade); ctx.lineWidth = 0.9; ctx.beginPath(); ctx.ellipse(cx, gf - 0.5, rw, 3, 0, 0, 7); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,' + (0.22 - lift * 0.012) * fade + ')'; ctx.beginPath(); ctx.ellipse(cx + lift * 0.5, gf - 0.5 + lift * 0.2, rw + lift * 0.3, 3 + lift * 0.12, 0, 0, 7); ctx.fill();
+  { const hot = G.sel === u; ctx.strokeStyle = teamRing(u.team, (hot ? 0.95 : 0.42) * fade); ctx.lineWidth = hot ? 1 : 0.55; ctx.beginPath(); ctx.ellipse(cx, gf - 0.5, rw * 0.92, 2.8, 0, 0, 7); ctx.stroke(); }
   const ppu = HD.k * (camOn() ? Engine.zoom : 1), variant = flash ? 'white' : acted ? 'gray' : st.variant;
   artChibi(ctx, id, cx, foot + f.bob * 0.6 + by + sink, h, ppu, { flip: u.hface === 'right', alpha: fade, variant, sy: breath });
-  if (!u.dead) hpBar(px + 2, py + 16, 12, 2, u.vhp, u.maxhp, u.ghost);
-  if (u.team === 1 && u.boss && !u.dead) text('★', px + 4, py - h + 12, { size: 8, color: '#ffd24a' });
+  if (!u.dead) unitHpBar(u, px + 2, py + 16.5, 12);
+  if (u.team === 1 && u.boss && !u.dead) text('★', px + 5, py - h + 14, { size: 6, color: '#ffd24a' });
   if (!u.dead && G.S && bondAdj(G.S, u)) drawIcon(ICONS['i_heart'], px + 9, py - h + 10 + Math.sin(G.t / 12), 7);
   if (u.team === 2 && !u.dead) text('!', px + 6, py - h + 8, { size: 9, bold: true, color: '#ffe860' });
 }

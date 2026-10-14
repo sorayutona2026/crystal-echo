@@ -48,7 +48,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowUp'); await sleep(200); const s3 = await S(); if (s3.cursor.x === s2.cursor.x && s3.cursor.y === s2.cursor.y && s2.cursor.y > 0) throw new Error('cursor did not respond after auto off ' + JSON.stringify(s2.cursor) + ' mode ' + s3.mode + ' ready ' + s3.ready);
   console.log('auto off mid-phase: control returned');
   // speed toggle
-  await tapBtn('#bSpeed'); if ((await S()).speedX !== 2) throw new Error('speed toggle failed');
+  await tapBtn('#bMenu'); await tapBtn('#sheet button[data-k=speed]'); await tapBtn('#bMenu'); if ((await S()).speedX !== 2) throw new Error('speed toggle failed');
   // auto mode also handles the camp between chapters: it shops, picks skills and starts the next chapter by itself
   await page.goto('file://' + path.join(__dirname, 'frame.html'));
   fr = null; for (let i = 0; i < 60 && !fr; i++) { fr = page.frames().find(f => f !== page.mainFrame()); await sleep(100); }

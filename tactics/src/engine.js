@@ -1,6 +1,6 @@
 'use strict';
 // ===== engine: canvas scaling, input, rng =====
-const W = 320, H = 240, TS = 16, INFO_H = 136;
+const W = 320, H = 240, TS = 16, INFO_H = 78;
 let _seed = 1;
 function seedRng(n) { _seed = (n >>> 0) || 1; }
 function rnd() { // mulberry32 (game logic randomness; visuals use Math.random)
@@ -23,7 +23,7 @@ function fit() {
     s = Math.min(w / W, (h - 112) / (H + INFO_H)); if (s >= 2) s = Math.floor(s);
     let s2 = w / W; if (s2 >= 2) s2 = Math.floor(s2);
     if (Engine.battleMode) { // battle on a portrait phone: bigger map (zoom 2) with a camera, filling the height above the panels
-      const vh = Math.floor((h - 124 - INFO_H * s2) / s2);
+      const vh = Math.floor((h - 118 - INFO_H * s2) / s2);
       if (vh >= H) { s = s2; Engine.vh = Math.min(vh, 600); Engine.zoom = 2; }
     } else { // title / story scenes: the 320x240 scene is centred on a taller painted canvas
       const vh = Math.floor((h - 124) / s2);
@@ -49,7 +49,7 @@ function fit() {
 const Engine = { scale: 1, zoom: 1, vh: 240, tall: false, port: false, battleMode: false };
 // ----- input -----
 const Input = { q: [], taps: [], pans: [] };
-const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute', q: 'auto', Q: 'auto', d: 'danger', D: 'danger', h: 'height', H: 'height', u: 'undo', U: 'undo', t: 'speed', T: 'speed' };
+const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok', x: 'cancel', X: 'cancel', Escape: 'cancel', Backspace: 'cancel', a: 'info', A: 'info', e: 'end', E: 'end', m: 'mute', M: 'mute', q: 'auto', Q: 'auto', d: 'danger', D: 'danger', h: 'height', H: 'height', u: 'undo', U: 'undo', t: 'speed', T: 'speed', Tab: 'menu' };
 function initInput() {
   window.addEventListener('contextmenu', e => { if (e.target === cv) { e.preventDefault(); Input.q.push('cancel'); } });
   window.addEventListener('keydown', e => {
@@ -67,7 +67,7 @@ function initInput() {
   cv2.addEventListener('pointerdown', e => { e.preventDefault(); if (Aud) Aud.unlock(); const r = cv2.getBoundingClientRect(); if (window.minimapTap) window.minimapTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * INFO_H); });
   cv.addEventListener('pointercancel', () => { ptr = null; });
   const b = (id, a) => document.getElementById(id).addEventListener('click', () => { if (Aud) Aud.unlock(); Input.q.push(a); });
-  b('bCancel', 'cancel'); b('bOk', 'ok'); b('bEnd', 'end'); b('bInfo', 'info'); b('bMute', 'mute'); b('bAuto', 'auto'); b('bSpeed', 'speed'); b('bUndo', 'undo'); b('bDanger', 'danger'); b('bHeight', 'height');
+  b('bCancel', 'cancel'); b('bOk', 'ok'); b('bEnd', 'end'); b('bAuto', 'auto'); b('bUndo', 'undo'); b('bMenu', 'menu');
 }
 // tap targets registered by draw code each frame (logical coords)
 const Touch = { rects: [], next: [] };

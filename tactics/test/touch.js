@@ -12,14 +12,19 @@ const { sleep, waitState } = require('./bot');
     const tap = async (x, y) => { const p = await lg(x, y); await page.touchscreen.tap(p.x, p.y); await sleep(60); };
     const tapTile = async (tx, ty) => { const s = await settleCam(() => st(page)); await tap(s.ox + tx * s.tile + s.tile / 2, s.oy + ty * s.tile + s.tile / 2); };
     // canvas must fit inside the viewport and buttons must be on screen
-    const geo = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cv'); return { c: [c.left, c.top, c.right, c.bottom], b: ['bCancel', 'bEnd', 'bInfo', 'bMute', 'bUndo', 'bDanger'].map(i => { const q = r(i); return [q.left, q.top, q.right, q.bottom]; }), w: innerWidth, h: innerHeight }; });
-    for (const q of geo.b.concat([geo.c])) if (q[0] < -0.5 || q[1] < -0.5 || q[2] > geo.w + 0.5 || q[3] > geo.h + 0.5) throw new Error('element off screen ' + JSON.stringify(geo));
-    for (let i = 0; i < geo.b.length; i++) for (let j = i + 1; j < geo.b.length; j++) { const a = geo.b[i], c = geo.b[j]; if (a[0] < c[2] && c[0] < a[2] && a[1] < c[3] && c[1] < a[3]) throw new Error('buttons overlap'); }
+    const checkGeo = async (ids, tag) => {
+      const geo = await page.evaluate(ids => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cv'); return { c: [c.left, c.top, c.right, c.bottom], b: ids.map(i => { const q = r(i); return [q.left, q.top, q.right, q.bottom, i]; }), w: innerWidth, h: innerHeight }; }, ids);
+      for (const q of geo.b.concat([geo.c])) if (q[0] < -0.5 || q[1] < -0.5 || q[2] > geo.w + 0.5 || q[3] > geo.h + 0.5) throw new Error(tag + ': element off screen ' + JSON.stringify(geo));
+      for (const q of geo.b) if (q[2] - q[0] < 40 || q[3] - q[1] < 36) throw new Error(tag + ': button too small ' + q);
+      for (let i = 0; i < geo.b.length; i++) for (let j = i + 1; j < geo.b.length; j++) { const a = geo.b[i], c = geo.b[j]; if (a[0] < c[2] && c[0] < a[2] && a[1] < c[3] && c[1] < a[3]) throw new Error(tag + ': buttons overlap ' + a[4] + ' ' + c[4]); }
+      const vis = await page.evaluate(() => [...document.querySelectorAll('#tac .pad button')].filter(b => b.offsetParent).map(b => b.id)); return vis;
+    };
     // start: tap "はじめから", then tap through dialogue
     await tap(160, 190); await waitState(page, () => __tac.state().scene !== 'title');
     await page.evaluate(() => __tac.speed(10));
     for (let i = 0; i < 80; i++) { const s = await st(page); if (s.scene === 'battle' && s.ready) break; await tap(160, 120); }
     await page.evaluate(() => __tac.speed(1)); await sleep(200);
+    { const v = await checkGeo(['bUndo', 'bEnd', 'bAuto', 'bMenu'], 'battle idle'); if (v.includes('bCancel') || v.includes('bOk')) throw new Error('context buttons should be hidden when idle: ' + v); }
     let s = await st(page); const leon = s.units.find(u => u.key === 'leon');
     if (vp.height > vp.width) { // portrait: zoomed map + camera; dragging pans, it must not select anything
       if (s.zoom !== 2) throw new Error('portrait battle should use zoom 2, got ' + s.zoom);
@@ -29,6 +34,7 @@ const { sleep, waitState } = require('./bot');
       await sleep(300); const after = (await st(page)).ox; if (!(Math.abs(after - before) > 10) || (await st(page)).mode !== 'idle') throw new Error('drag did not pan the camera: ' + before + ' -> ' + after);
     }
     await tapTile(leon.x, leon.y); await waitState(page, () => __tac.state().mode === 'move');
+    { const v = await checkGeo(['bCancel', 'bUndo', 'bEnd', 'bAuto', 'bMenu'], 'unit selected'); if (!v.includes('bCancel')) throw new Error('cancel should show while selected'); }
     await page.tap('#bCancel'); await waitState(page, () => __tac.state().mode === 'idle');
     await tapTile(leon.x, leon.y); await waitState(page, () => __tac.state().mode === 'move');
     await tapTile(leon.x + 2, leon.y); await waitState(page, () => __tac.state().mode === 'menu');
@@ -40,7 +46,7 @@ const { sleep, waitState } = require('./bot');
     s = await st(page); await tap(s.menu.x + 20, s.menu.y + 11);
     await waitState(page, () => __tac.state().phase === 1); await page.evaluate(() => __tac.speed(10));
     await waitState(page, () => __tac.state().phase === 0 && __tac.state().ready, null, 40000);
-    console.log('touch OK', vp.width + 'x' + vp.height, 'canvas', geo.c.map(Math.round).join(','));
+    console.log('touch OK', vp.width + 'x' + vp.height, 'ok');
     await ctx.close();
   }
   // camp (base) screens by real touches: big rows must be tappable on phones, portrait and landscape

@@ -9,8 +9,8 @@ function* waitOk() { // level-up popups etc.; with auto on they close by themsel
   let n = 0;
   for (;;) { if (Input.q.length) { if (Input.q.shift() === 'ok') return; } else { n++; if (G.auto && n > 60) return; yield 1; } }
 }
-function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, danger: !!G.danger, hts: !!G.hts, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
-function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; G.hdUnits = p.hd !== false; G.danger = !!p.danger; G.hts = !!p.hts; } } catch (e) { } syncButtons(); }
+function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, danger: !!G.danger, hts2: !!G.hts, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
+function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; G.hdUnits = p.hd !== false; G.danger = !!p.danger; G.hts = !!p.hts2; } } catch (e) { } syncButtons(); }
 // ---------- undo (一手戻す): deep snapshot before each player action; restores units / items / chests / gold / bonds / talks / specials and the RNG
 const UNDO_MAX = 10, UNDO_USES = 3;
 function snapState(S) {
@@ -30,7 +30,41 @@ function doUndo() {
   if (!canUndo()) { Aud.sfx('cancel'); return false; }
   const sn = G.undo.pop(); restoreState(G.S, sn); G.undoLeft--; G.fx = []; deselect(); G.showRange = null; if (sn.cur) G.cursor = { x: sn.cur.x, y: sn.cur.y }; Cam.key = null; Aud.sfx('cancel'); syncButtons(); return true;
 }
-function syncButtons() { const ub = document.getElementById('bUndo'), db = document.getElementById('bDanger'); if (ub) { ub.textContent = '戻す ↺' + (G.undoLeft == null ? UNDO_USES : G.undoLeft); ub.disabled = !(G.scene === 'battle' && G.undo && G.undo.length && G.undoLeft > 0 && G.phase === 0 && !G.auto && !G.busy && !G.endTurn); } if (db) db.classList.toggle('on', !!G.danger); const hb = document.getElementById('bHeight'); if (hb) hb.classList.toggle('on', !!G.hts); const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
+function syncButtons() { const ub = document.getElementById('bUndo'); if (ub) { ub.textContent = '戻す ↺' + (G.undoLeft == null ? UNDO_USES : G.undoLeft); ub.disabled = !(G.scene === 'battle' && G.undo && G.undo.length && G.undoLeft > 0 && G.phase === 0 && !G.auto && !G.busy && !G.endTurn); } const a = document.getElementById('bAuto'); if (a) a.classList.toggle('on', G.auto); sheetSync(); ctxButtons(); }
+// contextual buttons: キャンセル only while something is selected/open, 決定 only on the forecast/menus (outside battle both stay for menu navigation)
+function ctxButtons() {
+  const c = document.getElementById('bCancel'), o = document.getElementById('bOk'), u = document.getElementById('bUndo'), e = document.getElementById('bEnd'); if (!c) return;
+  const bt = G.scene === 'battle', sh = sheetOpen();
+  const wantC = !sh && (bt ? (G.mode !== 'idle' || !!G.sel || !!G.infoBig || G.showRange) : (G.scene !== 'title' && G.scene !== 'card' && G.scene !== 'dialogue'));
+  const wantO = !sh && (bt ? (G.mode === 'forecast' || G.mode === 'menu') : (G.scene !== 'title' && G.scene !== 'card' && G.scene !== 'dialogue'));
+  const k = (wantC ? 1 : 0) + (wantO ? 2 : 0) + (bt ? 4 : 0) + (sh ? 8 : 0);
+  if (k === G.ctxKey) return; G.ctxKey = k; c.hidden = !wantC; o.hidden = !wantO; u.hidden = e.hidden = !bt; if (typeof fit === 'function' && Engine.fitted) { /* layout reflows by CSS only */ }
+}
+const sheetOpen = () => { const s = document.getElementById('sheet'); return !!s && !s.hidden; };
+function sheetRows() {
+  const bt = G.scene === 'battle', on = v => '<i class="' + (v ? 'on' : '') + '">' + (v ? 'ON' : 'OFF') + '</i>', r = [];
+  if (bt) r.push(['info', '情報（ユニット詳細）', '<i>▶</i>'], ['danger', '危険範囲', on(G.danger)], ['height', '高低', on(G.hts)]);
+  r.push(['speed', '速度', '<i>x' + G.speedX + '</i>']);
+  if (bt) r.push(['cutin', '戦闘アニメ', on(G.cutin)], ['hd', '表示', '<i>' + hdLabel() + '</i>']);
+  r.push(['mute', '音', on(Aud.on)], ['title', G.titleArm ? 'もう一度タップでタイトルへ' : 'タイトルへ', '<i>▶</i>', 'dn']);
+  return r;
+}
+function sheetSync() {
+  const el = document.getElementById('shRows'); if (!el || !sheetOpen()) return;
+  el.innerHTML = sheetRows().map(r => '<button data-k="' + r[0] + '"' + (r[3] ? ' class="' + r[3] + '"' : '') + '><span>' + r[1] + '</span>' + r[2] + '</button>').join('');
+}
+function sheetToggle(v) {
+  const s = document.getElementById('sheet'); if (!s) return; const open = v == null ? s.hidden : v; if (open === !s.hidden) return;
+  s.hidden = !open; G.titleArm = false; if (open) { sheetSync(); G.sheetWas = G.mode; } ctxButtons(); G.ctxKey = -1; Aud.sfx(open ? 'ok' : 'cancel');
+}
+function sheetAct(k) {
+  if (k === 'info') { sheetToggle(false); G.infoBig = true; return; }
+  if (k === 'danger') G.danger = !G.danger; else if (k === 'height') G.hts = !G.hts; else if (k === 'speed') G.speedX = G.speedX === 1 ? 2 : 1;
+  else if (k === 'cutin') G.cutin = !G.cutin; else if (k === 'hd') G.hdUnits = !G.hdUnits; else if (k === 'mute') { Aud.toggle(); }
+  else if (k === 'title') { if (!G.titleArm) { G.titleArm = true; sheetSync(); return; } location.reload(); return; }
+  savePrefs(); Aud.sfx('ok'); sheetSync();
+}
+(function () { const s = document.getElementById('sheet'); if (!s) return; s.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button[data-k]'); if (b) sheetAct(b.dataset.k); else if (!e.target.closest('.sh')) sheetToggle(false); }); })();
 function setAuto(v) { G.auto = v; if (v) G.undo = []; syncButtons(); savePrefs(); Aud.sfx(v ? 'ok' : 'cancel'); }
 // ---------- visual helpers ----------
 function initVisual(S) { for (const u of S.units) { u.vx = u.x; u.vy = u.y; u.vhp = u.hp; u.ghost = u.hp; u.kx = 0; u.ky = 0; u.fade = 30; u.fading = false; u.gone = false; u.flash = 0; u.lx = 0; u.ly = 0; u.walking = false; u.dead = false; } }
@@ -293,7 +327,10 @@ function pumpTaps() {
   Input.taps.length = 0;
   for (let i = Input.q.length - 1; i >= 0; i--) {
     const k = Input.q[i];
-    if (k === 'mute') { Input.q.splice(i, 1); Aud.toggle(); }
+    if (k === 'menu') { Input.q.splice(i, 1); sheetToggle(); }
+    else if (sheetOpen() && k === 'cancel') { Input.q.splice(i, 1); sheetToggle(false); }
+    else if (sheetOpen() && /^(ok|up|down|left|right|end|info)$/.test(k)) Input.q.splice(i, 1);
+    else if (k === 'mute') { Input.q.splice(i, 1); Aud.toggle(); syncButtons(); }
     else if (k === 'auto') { Input.q.splice(i, 1); if (G.scene === 'battle' || G.scene === 'dialogue' || G.scene === 'title' || G.scene === 'base') setAuto(!G.auto); }
     else if (k === 'height') { Input.q.splice(i, 1); if (G.scene === 'battle') { G.hts = !G.hts; syncButtons(); savePrefs(); Aud.sfx('ok'); } }
     else if (k === 'danger') { Input.q.splice(i, 1); if (G.scene === 'battle') { G.danger = !G.danger; syncButtons(); savePrefs(); Aud.sfx('ok'); } }
@@ -481,6 +518,7 @@ function step() {
 }
 function render() {
   HD.collect = true; HD.holes.length = 0; HD.ui.length = 0; G.bgReq = null; G.paintReq = false;
+  ctxButtons();
   { const bm = Engine.port && G.scene === 'battle'; if (bm !== Engine.battleMode || !Engine.fitted) { Engine.battleMode = bm; Engine.fitted = true; fit(); Cam.snap = true; Cam.key = null; } }
   G.yOff = (Engine.port && !Engine.battleMode && Engine.vh > H && G.scene !== 'base') ? (Engine.vh - H) / 2 : 0;
   ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1; ctx.clearRect(0, 0, W, Engine.vh);
