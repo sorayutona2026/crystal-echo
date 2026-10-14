@@ -9,8 +9,8 @@ function* waitOk() { // level-up popups etc.; with auto on they close by themsel
   let n = 0;
   for (;;) { if (Input.q.length) { if (Input.q.shift() === 'ok') return; } else { n++; if (G.auto && n > 60) return; yield 1; } }
 }
-function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, danger: !!G.danger, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
-function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; G.hdUnits = p.hd !== false; G.danger = !!p.danger; } } catch (e) { } syncButtons(); }
+function savePrefs() { try { localStorage.setItem('starfall_tactics_prefs', JSON.stringify({ auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, danger: !!G.danger, hts: !!G.hts, cutActive: !!G.cut, cutin: G.cutin, hd: G.hdUnits })); } catch (e) { } }
+function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall_tactics_prefs')); if (p) { G.auto = !!p.auto; G.speedX = p.speedX === 2 ? 2 : 1; if (p.cutin === false) G.cutin = false; G.hdUnits = p.hd !== false; G.danger = !!p.danger; G.hts = !!p.hts; } } catch (e) { } syncButtons(); }
 // ---------- undo (一手戻す): deep snapshot before each player action; restores units / items / chests / gold / bonds / talks / specials and the RNG
 const UNDO_MAX = 10, UNDO_USES = 3;
 function snapState(S) {
@@ -30,12 +30,12 @@ function doUndo() {
   if (!canUndo()) { Aud.sfx('cancel'); return false; }
   const sn = G.undo.pop(); restoreState(G.S, sn); G.undoLeft--; G.fx = []; deselect(); G.showRange = null; if (sn.cur) G.cursor = { x: sn.cur.x, y: sn.cur.y }; Cam.key = null; Aud.sfx('cancel'); syncButtons(); return true;
 }
-function syncButtons() { const ub = document.getElementById('bUndo'), db = document.getElementById('bDanger'); if (ub) { ub.textContent = '戻す ↺' + (G.undoLeft == null ? UNDO_USES : G.undoLeft); ub.disabled = !(G.scene === 'battle' && G.undo && G.undo.length && G.undoLeft > 0 && G.phase === 0 && !G.auto && !G.busy && !G.endTurn); } if (db) db.classList.toggle('on', !!G.danger); const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
+function syncButtons() { const ub = document.getElementById('bUndo'), db = document.getElementById('bDanger'); if (ub) { ub.textContent = '戻す ↺' + (G.undoLeft == null ? UNDO_USES : G.undoLeft); ub.disabled = !(G.scene === 'battle' && G.undo && G.undo.length && G.undoLeft > 0 && G.phase === 0 && !G.auto && !G.busy && !G.endTurn); } if (db) db.classList.toggle('on', !!G.danger); const hb = document.getElementById('bHeight'); if (hb) hb.classList.toggle('on', !!G.hts); const a = document.getElementById('bAuto'), sp = document.getElementById('bSpeed'); if (a) a.classList.toggle('on', G.auto); if (sp) sp.textContent = '速度 x' + G.speedX; }
 function setAuto(v) { G.auto = v; if (v) G.undo = []; syncButtons(); savePrefs(); Aud.sfx(v ? 'ok' : 'cancel'); }
 // ---------- visual helpers ----------
 function initVisual(S) { for (const u of S.units) { u.vx = u.x; u.vy = u.y; u.vhp = u.hp; u.ghost = u.hp; u.kx = 0; u.ky = 0; u.fade = 30; u.fading = false; u.gone = false; u.flash = 0; u.lx = 0; u.ly = 0; u.walking = false; u.dead = false; } }
 function tilePx(x, y) { return { x: OX() + x * TS + 8, y: OY() + y * TS }; }
-function numFx(u, textv, color, size) { const p = tilePx(u.vx, u.vy); G.fx.push({ kind: 'num', x: p.x, y: p.y - 4, vy: -0.45, life: 46, text: textv, color, size }); }
+function numFx(u, textv, color, size) { const p = tilePx(u.vx, u.vy); G.fx.push({ kind: 'num', x: p.x, y: p.y - 4 - liftOf(u), vy: -0.45, life: 46, text: textv, color, size }); }
 function burst(u, color, n) { const p = tilePx(u.vx, u.vy); if (fxHdOn()) { fxSpark(p.x, p.y + 8, 6 + n * 0.5, color, { life: 14 }); return; } for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 0.6 + Math.random() * 1.4; G.fx.push({ kind: 'p', x: p.x, y: p.y + 8, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.5, g: 0.06, life: 18 + (Math.random() * 10 | 0), color, s: 2 }); } }
 function sparkle(u) { const p = tilePx(u.vx, u.vy); if (fxHdOn()) { fxHeal(p.x, p.y + 6, false); return; } for (let i = 0; i < 10; i++) G.fx.push({ kind: 'p', x: p.x - 6 + Math.random() * 12, y: p.y + 14, vx: 0, vy: -0.4 - Math.random() * 0.5, life: 24 + (Math.random() * 12 | 0), color: Math.random() < 0.5 ? '#7dffa0' : '#d8ffe0', s: 2 }); }
 function dirOf(dx, dy) { return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
@@ -295,6 +295,7 @@ function pumpTaps() {
     const k = Input.q[i];
     if (k === 'mute') { Input.q.splice(i, 1); Aud.toggle(); }
     else if (k === 'auto') { Input.q.splice(i, 1); if (G.scene === 'battle' || G.scene === 'dialogue' || G.scene === 'title' || G.scene === 'base') setAuto(!G.auto); }
+    else if (k === 'height') { Input.q.splice(i, 1); if (G.scene === 'battle') { G.hts = !G.hts; syncButtons(); savePrefs(); Aud.sfx('ok'); } }
     else if (k === 'danger') { Input.q.splice(i, 1); if (G.scene === 'battle') { G.danger = !G.danger; syncButtons(); savePrefs(); Aud.sfx('ok'); } }
     else if (k === 'undo') { Input.q.splice(i, 1); if (G.scene === 'battle') doUndo(); }
     else if (k === 'speed') { Input.q.splice(i, 1); G.speedX = G.speedX === 1 ? 2 : 1; syncButtons(); savePrefs(); Aud.sfx('ok'); }

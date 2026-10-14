@@ -63,6 +63,12 @@ const base = async (page, ch) => { await page.evaluate(c => { __tac.speed(4); __
   { const s = await st(page), leon = s.units.find(u => u.key === 'leon'), g = s.units.find(u => u.id.startsWith('goblin'));
     await page.evaluate(([id, x, y]) => __tac.place(id, x, y), [g.id, leon.x + 1, leon.y]); await sleep(200);
     await cursorTo(page, leon.x, leon.y); await press(page, 'z'); await waitMode(page, 'move'); await press(page, 'z'); await waitMode(page, 'menu'); await press(page, 'z'); await waitMode(page, 'target'); await press(page, 'z'); await waitMode(page, 'forecast'); await sleep(300); await shot(page, '30_forecast_crit'); }
+  // ---- elevation: height overlay (ch5 fort) and a forecast from high ground
+  await fresh(page); await battle(page, 4); await page.evaluate(() => { G.hts = true; syncButtons(); }); await cursorTo(page, 17, 4); await sleep(900); await shot(page, '70_height_overlay');
+  await fresh(page); await battle(page, 4);
+  { const s = await st(page), leon = s.units.find(u => u.key === 'leon'), g = s.units.find(u => u.id.startsWith('goblin'));
+    await page.evaluate(([a, b]) => { __tac.place(a, 16, 4); __tac.place(b, 16, 5); }, [leon.id, g.id]); await sleep(200);
+    await cursorTo(page, 16, 4); await press(page, 'z'); await waitMode(page, 'move'); await press(page, 'z'); await waitMode(page, 'menu'); await press(page, 'z'); await waitMode(page, 'target'); await press(page, 'z'); await waitMode(page, 'forecast'); await sleep(300); await shot(page, '71_forecast_high'); }
   // ---- trial tower: camp row, a boss floor, secrets
   await fresh(page); await base(page, 2); await page.evaluate(() => { G.meta.tower = { best: 7, claimed: {} }; }); await sleep(250); await press(page, 'ArrowDown', 5); await sleep(250); await shot(page, '60_tower_camp_row');
   await press(page, 'z'); await sleep(300); await shot(page, '61_tower_camp_view');
@@ -84,6 +90,7 @@ const base = async (page, ch) => { await page.evaluate(c => { __tac.speed(4); __
     pg.on('pageerror', e => errors.push('pageerror ' + e.message)); pg.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     await pg.goto(URL); await pg.waitForFunction(() => window.__tac && __tac.state().scene === 'title'); await sleep(300); await shot(pg, '40_phone_' + nm + '_title');
     await battle(pg, 0); await sleep(900); await shot(pg, '41_phone_' + nm + '_ch1');
+    if (nm === 'portrait') { await pg.goto(URL); await pg.waitForFunction(() => window.__tac && __tac.state().scene === 'title'); await battle(pg, 4); await pg.evaluate(() => { G.hts = true; syncButtons(); }); await cursorTo(pg, 17, 4); await sleep(900); await shot(pg, '72_phone_portrait_height'); }
     await pg.goto(URL); await pg.waitForFunction(() => window.__tac && __tac.state().scene === 'title'); await base(pg, 2); await shot(pg, '42_phone_' + nm + '_base');
     await ctx.close();
   }

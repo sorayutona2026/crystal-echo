@@ -1,6 +1,6 @@
 // headless balance simulation: node test/sim.js [runs]  (loads the pure-logic sources; no browser)
 const fs = require('fs'), vm = require('vm'), path = require('path');
-const src = ['engine.js', 'data.js', 'story.js', 'battle.js', 'camp.js', 'ai.js', 'tower.js'].map(f => fs.readFileSync(path.join(__dirname, '../src', f), 'utf8')).join('\n');
+const src = ['engine.js', 'data.js', 'story.js', 'height.js', 'battle.js', 'camp.js', 'ai.js', 'tower.js'].map(f => fs.readFileSync(path.join(__dirname, '../src', f), 'utf8')).join('\n');
 const ctx = vm.createContext({ console });
 vm.runInContext(src + '\nthis.API={seedRng,rnd,CHAPTERS,TERRAIN,newRoster,newMeta,prepareChapter,cloneRoster,alive,chooseAction,suggestAction,applyAction,startPhase,endPlayerPhase,chapterBonus,finishChapter,newBattle,towerChapter,towerDefaultDeploy,towerHealParty,towerBoss,gainExp,checkOver,autoCamp,STATS,distMap,kk,DIRS4,inb,terrAt};', ctx);
 const A = ctx.API, T = A.TERRAIN;

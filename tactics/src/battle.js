@@ -2,7 +2,7 @@
 // ===== battle rules (pure logic; no DOM) =====
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 function newBattle(ch, roster, meta, deploy, keepHp) {
-  const rows = ch.map, S = { rows, w: rows[0].length, h: rows.length, units: [], turn: 1, phase: 0, over: null, why: '', ch, bonds: meta ? meta.bonds : null, gain: { gold: 0, proofs: 0, drops: {}, weapons: [] }, meta: meta || null, found: [], secrets: (ch.secrets || []).map(q => Object.assign({ seen: false, got: false }, q)), chests: (ch.chests || []).map(c => Object.assign({ got: false }, c)), talked: {}, escaped: 0 };
+  const rows = ch.map, S = { rows, hts: ch.hts || null, ramps: ch.ramps || null, w: rows[0].length, h: rows.length, units: [], turn: 1, phase: 0, over: null, why: '', ch, bonds: meta ? meta.bonds : null, gain: { gold: 0, proofs: 0, drops: {}, weapons: [] }, meta: meta || null, found: [], secrets: (ch.secrets || []).map(q => Object.assign({ seen: false, got: false }, q)), chests: (ch.chests || []).map(c => Object.assign({ got: false }, c)), talked: {}, escaped: 0 };
   const ids = (deploy && deploy.length ? deploy : Object.keys(roster).filter(id => !(roster[id].injured > 0) && !(ch.neutral || []).some(n => n.id === id))).slice(0, ch.slots.length);
   ids.forEach((id, i) => { const u = roster[id], [x, y] = ch.slots[i]; u.team = 0; u.x = x; u.y = y; if (!keepHp) u.hp = u.maxhp; u.acted = false; u.dead = false; u.off = false; u.dir = 'right'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; u.deployed = true; S.units.push(u); });
   for (const id in roster) if (!ids.includes(id)) roster[id].deployed = false;
@@ -12,6 +12,16 @@ function newBattle(ch, roster, meta, deploy, keepHp) {
 }
 const inb = (S, x, y) => x >= 0 && y >= 0 && x < S.w && y < S.h;
 const terrAt = (S, x, y) => TERRAIN[S.rows[y][x]] || TERRAIN['.'];
+// ---- elevation: htAt = height 0-3; stepCost = terrain cost + 1 per level climbed (Infinity when blocked or a 2+ climb without a ramp tile) ----
+const htAt = (S, x, y) => S.hts ? S.hts[y].charCodeAt(x) - 48 : 0;
+function isRamp(S, x, y) { if (!S.ramps) return false; if (!S._rs) { S._rs = {}; for (const q of S.ramps) S._rs[kk(q[0], q[1])] = 1; } return !!S._rs[kk(x, y)]; }
+function stepCost(S, x, y, nx, ny) {
+  const T = terrAt(S, nx, ny); if (T.block) return Infinity; const up = htAt(S, nx, ny) - htAt(S, x, y);
+  if (up <= 0) return T.cost; if (up >= 2 && !isRamp(S, x, y) && !isRamp(S, nx, ny)) return Infinity; return T.cost + up;
+}
+const isBow = w => w.type === 'phys' && w.min >= 2;
+const rngMax = (S, u, x, y, w) => { w = w || weaponOf(u); return w.max + (isBow(w) && htAt(S, x, y) >= 2 ? 1 : 0); }; // archers on a height 2+ tile reach one further
+const hiDiff = (S, ax, ay, dx, dy) => htAt(S, ax, ay) - htAt(S, dx, dy);
 const alive = S => S.units.filter(u => !u.dead && !u.off);
 const unitAt = (S, x, y) => S.units.find(u => !u.dead && !u.off && u.x === x && u.y === y) || null;
 const dist = (ax, ay, bx, by) => Math.abs(ax - bx) + Math.abs(ay - by);
@@ -29,9 +39,9 @@ function reach(S, u) {
     if (c > best.get(kk(x, y))) continue;
     for (const [dx, dy] of DIRS4) {
       const nx = x + dx, ny = y + dy; if (!inb(S, nx, ny)) continue;
-      const T = terrAt(S, nx, ny); if (T.block) continue;
+      const sc = stepCost(S, x, y, nx, ny); if (sc === Infinity) continue;
       const o = unitAt(S, nx, ny); if (o && o.team !== u.team) continue;
-      const nc = c + T.cost; if (nc > u.mov) continue;
+      const nc = c + sc; if (nc > u.mov) continue;
       const k = kk(nx, ny); if (best.has(k) && best.get(k) <= nc) continue;
       best.set(k, nc); prev.set(k, kk(x, y)); open.push([nc, nx, ny]);
     }
@@ -51,7 +61,7 @@ function canHealAny(u) { return isHealer(u) || !!u.canHeal; }
 function targetsFrom(S, u, x, y) {
   const w = weaponOf(u), out = [];
   for (const o of alive(S)) {
-    if (o === u) continue; const d = dist(x, y, o.x, o.y); if (d < w.min || d > w.max) continue;
+    if (o === u) continue; const d = dist(x, y, o.x, o.y); if (d < w.min || d > rngMax(S, u, x, y, w)) continue;
     if (w.type === 'heal') { if (o.team === u.team && o.hp < o.maxhp) out.push(o); }
     else if (isFoe(u, o)) out.push(o);
   }
@@ -61,8 +71,8 @@ function healTargets(S, u, x, y) { const k = u.spActive; u.spActive = 'heal'; co
 // tiles the unit threatens (red overlay): all tiles within weapon range of any stop tile
 function threatTiles(S, u, r) {
   const w = weaponOf(u), set = new Set(); if (!canDamage(u)) return set;
-  for (const s of r.stops) for (let dy = -w.max; dy <= w.max; dy++) for (let dx = -w.max; dx <= w.max; dx++) {
-    const d = Math.abs(dx) + Math.abs(dy); if (d < w.min || d > w.max) continue;
+  for (const s of r.stops) for (let M = rngMax(S, u, s.x, s.y, w), dy = -M; dy <= M; dy++) for (let dx = -M; dx <= M; dx++) {
+    const d = Math.abs(dx) + Math.abs(dy); if (d < w.min || d > M) continue;
     const x = s.x + dx, y = s.y + dy; if (inb(S, x, y)) set.add(kk(x, y));
   }
   return set;
@@ -79,14 +89,15 @@ function bonus(S, u, x, y) { // bond bonuses from adjacent allies when standing 
   return m;
 }
 const bondAdj = (S, u) => { for (const o of S.units) { if (o === u || o.dead || o.off || o.team !== u.team || u.team !== 0 || Math.abs(o.x - u.x) + Math.abs(o.y - u.y) !== 1) continue; if (bondLevel((S.bonds || {})[bondKey(u.key, o.key)] || 0)) return true; } return false; };
-function calcDmg(S, a, d, dx, dy) {
-  const w = weaponOf(a), adv = triAdv(a, d), bf = a.atkBuff || 0, extra = sk(a, 'dmg') - sk(d, 'taken');
+function calcDmg(S, a, d, dx, dy, ax, ay) {
+  if (ax == null) { ax = a.x; ay = a.y; }
+  const w = weaponOf(a), adv = triAdv(a, d), bf = a.atkBuff || 0, hd = hiDiff(S, ax, ay, dx, dy), extra = sk(a, 'dmg') - sk(d, 'taken') + (hd > 0 ? Math.min(2, hd) : 0); // high ground: +1 damage per level (max +2)
   if (w.type === 'mag') return Math.max(0, a.mag + w.might + adv + bf + extra - d.res);
   return Math.max(0, a.str + w.might + adv + bf + extra - (d.def + terrAt(S, dx, dy).def));
 }
 function calcHit(S, a, d, ax, ay, dx, dy) {
-  const w = weaponOf(a);
-  return Math.max(0, Math.min(100, w.hit + triAdv(a, d) * 15 + a.skl * 2 + sk(a, 'hit') + bonus(S, a, ax, ay).hit - ((d.spd + sk(d, 'spd')) * 2 + terrAt(S, dx, dy).avo + sk(d, 'avo') + bonus(S, d, dx, dy).avo)));
+  const w = weaponOf(a), hd = w.type === 'mag' ? 0 : hiDiff(S, ax, ay, dx, dy); // tomes ignore height for hit
+  return Math.max(0, Math.min(100, w.hit + triAdv(a, d) * 15 + (hd > 0 ? 15 : hd < 0 ? -15 : 0) + a.skl * 2 + sk(a, 'hit') + bonus(S, a, ax, ay).hit - ((d.spd + sk(d, 'spd')) * 2 + terrAt(S, dx, dy).avo + sk(d, 'avo') + bonus(S, d, dx, dy).avo)));
 }
 function calcCrit(S, a, ax, ay) { return Math.max(0, Math.min(100, Math.floor(a.skl / 4) + weaponOf(a).crit + sk(a, 'crit') + (a.promoCrit || 0) + bonus(S, a, ax, ay).crit)); }
 // special availability: returns null (no special), or the list of targets (may be empty => unusable)
@@ -101,12 +112,12 @@ function spTargets(S, u, x, y) {
 function forecast(S, a, d, ax, ay) {
   if (ax == null) { ax = a.x; ay = a.y; }
   const dd = dist(ax, ay, d.x, d.y), dw = weaponOf(d);
-  const dcan = canDamage(d) && dd >= dw.min && dd <= dw.max;
+  const dcan = canDamage(d) && dd >= dw.min && dd <= rngMax(S, d, d.x, d.y, dw);
   const diff = (a.spd + sk(a, 'spd')) - (d.spd + sk(d, 'spd'));
   const adv = triAdv(a, d);
-  const A = { u: a, dmg: calcDmg(S, a, d, d.x, d.y), hit: calcHit(S, a, d, ax, ay, d.x, d.y), crit: calcCrit(S, a, ax, ay), n: (diff >= 4 || a.spActive === 'ambush') ? 2 : 1, can: true, adv };
-  const D = { u: d, dmg: dcan ? calcDmg(S, d, a, ax, ay) : 0, hit: dcan ? calcHit(S, d, a, d.x, d.y, ax, ay) : 0, crit: dcan ? calcCrit(S, d, d.x, d.y) : 0, n: dcan ? (-diff >= 4 ? 2 : 1) : 0, can: dcan, adv: -adv };
-  return { a: A, d: D, dist: dd };
+  const hiD = hiDiff(S, ax, ay, d.x, d.y), A = { hi: hiD, u: a, dmg: calcDmg(S, a, d, d.x, d.y, ax, ay), hit: calcHit(S, a, d, ax, ay, d.x, d.y), crit: calcCrit(S, a, ax, ay), n: (diff >= 4 || a.spActive === 'ambush') ? 2 : 1, can: true, adv };
+  const D = { hi: -hiD, u: d, dmg: dcan ? calcDmg(S, d, a, ax, ay, d.x, d.y) : 0, hit: dcan ? calcHit(S, d, a, d.x, d.y, ax, ay) : 0, crit: dcan ? calcCrit(S, d, d.x, d.y) : 0, n: dcan ? (-diff >= 4 ? 2 : 1) : 0, can: dcan, adv: -adv };
+  return { a: A, d: D, dist: dd, hi: hiDiff(S, ax, ay, d.x, d.y) };
 }
 // roll a whole combat. returns events with hp after each strike; mutates hp.
 function runCombat(S, a, d, ax, ay) {

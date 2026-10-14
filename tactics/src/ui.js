@@ -90,7 +90,7 @@ function drawAtmos(S, t) {
 }
 // danger zone: every tile a living enemy can attack next turn (move range + weapon range, same reach rules as the AI); cached until units move / die
 function dangerSet(S) {
-  const sig = S.units.map(u => (u.dead || u.off ? 'x' : u.team + ':' + u.x + ',' + u.y + (u.team === 1 ? weaponOf(u).max : ''))).join('|');
+  const sig = S.units.map(u => (u.dead || u.off ? 'x' : u.team + ':' + u.x + ',' + u.y + (u.team === 1 ? weaponOf(u).max : ''))).join('|') + (S.hts ? 'h' : '');
   if (G._dg && G._dg.sig === sig && G._dg.S === S) return G._dg.set;
   const set = new Set();
   for (const e of S.units) { if (e.team !== 1 || e.dead || e.off || !canDamage(e)) continue; const r = e.ai === 'hold' ? { stops: [{ x: e.x, y: e.y }] } : reach(S, e); for (const k of threatTiles(S, e, r)) set.add(k); }
@@ -107,10 +107,10 @@ function drawDanger(S, ox, oy) {
 function drawOverlay(S) {
   const ox = OX(), oy = OY(), pulse = 0.5 + 0.5 * Math.sin(G.t / 12);
   const cell = (k, fill, line) => { const x = k % 64, y = (k - x) / 64; ctx.fillStyle = fill; ctx.fillRect(ox + x * TS, oy + y * TS, TS, TS); ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.strokeRect(ox + x * TS + 0.5, oy + y * TS + 0.5, TS - 1, TS - 1); };
-  drawDanger(S, ox, oy);
+  drawHeights(S, ox, oy); drawDanger(S, ox, oy);
   if ((G.mode === 'move' || G.mode === 'moving') && G.reach) {
     if (G.threat) for (const k of G.threat) if (!G.moveSet.has(k)) cell(k, 'rgba(255,60,60,' + (0.28 + pulse * 0.08) + ')', 'rgba(255,140,140,0.6)');
-    for (const k of G.moveSet) cell(k, 'rgba(40,100,255,' + (0.46 + pulse * 0.08) + ')', 'rgba(150,190,255,0.7)');
+    for (const k of G.moveSet) { cell(k, 'rgba(40,100,255,' + (0.46 + pulse * 0.08) + ')', 'rgba(150,190,255,0.7)'); const pv = G.reach.prev.get(k); if (S.hts && pv !== undefined && htAt(S, k % 64, (k - k % 64) / 64) > htAt(S, pv % 64, (pv - pv % 64) / 64)) text('▲', ox + (k % 64) * TS + 9, oy + ((k - k % 64) / 64) * TS + 1, { size: 6, color: '#ffe9a0' }); } // tiny triangle: reached by climbing
     // path preview
     if (G.mode === 'move' && G.moveSet.has(kk(G.cursor.x, G.cursor.y)) && (G.cursor.x !== G.sel.x || G.cursor.y !== G.sel.y)) {
       const p = pathTo(G.reach, G.cursor.x, G.cursor.y); ctx.fillStyle = 'rgba(255,240,120,0.95)';
@@ -118,7 +118,7 @@ function drawOverlay(S) {
     }
   }
   { const hv = G.mode === 'idle' && !G.showRange && G.phase === 0 ? unitAt(S, G.cursor.x, G.cursor.y) : null, sr = G.showRange || (hv && hv.team === 1 ? hv : null); if (sr && G.mode === 'idle') { const r = reach(S, sr); for (const s of r.stops) cell(kk(s.x, s.y), 'rgba(60,110,255,0.25)', 'rgba(150,190,255,0.5)'); for (const k of threatTiles(S, sr, r)) cell(k, 'rgba(255,60,60,0.3)', 'rgba(255,140,140,0.6)'); } }
-  if (G.mode === 'menu' && G.sel) { const w = weaponOf(G.sel); for (let dy = -w.max; dy <= w.max; dy++) for (let dx = -w.max; dx <= w.max; dx++) { const d = Math.abs(dx) + Math.abs(dy); if (d < w.min || d > w.max) continue; const x = G.sel.x + dx, y = G.sel.y + dy; if (inb(S, x, y)) cell(kk(x, y), w.type === 'heal' ? 'rgba(60,220,120,0.3)' : 'rgba(255,60,60,0.3)', 'rgba(255,150,150,0.6)'); } }
+  if (G.mode === 'menu' && G.sel) { const w = weaponOf(G.sel), M = rngMax(S, G.sel, G.sel.x, G.sel.y, w); for (let dy = -M; dy <= M; dy++) for (let dx = -M; dx <= M; dx++) { const d = Math.abs(dx) + Math.abs(dy); if (d < w.min || d > M) continue; const x = G.sel.x + dx, y = G.sel.y + dy; if (inb(S, x, y)) cell(kk(x, y), w.type === 'heal' ? 'rgba(60,220,120,0.3)' : 'rgba(255,60,60,0.3)', 'rgba(255,150,150,0.6)'); } }
   if ((G.mode === 'target' || G.mode === 'forecast') && G.targets) for (const t of G.targets) cell(kk(t.x, t.y), 'rgba(255,50,50,' + (0.35 + pulse * 0.25) + ')', '#ffb0b0');
 }
 function unitFrame(u) { // pose row & bob
@@ -145,10 +145,25 @@ function drawMarkers(S) {
     if (c.item === 'proof') { ctx.fillStyle = 'rgba(255,255,255,' + (0.4 + pu * 0.5) + ')'; ctx.fillRect(x + 7, y + 1 + Math.round(pu * 2), 2, 2); }
   }
 }
+// elevation visuals: liftOf = interpolated height (bilinear while a unit glides between tiles) x3 screen px; drawHeights = the 高低 overlay
+function liftOf(u) {
+  const S = G.S; if (!S || !S.hts) return 0; const e = 1e-6, x0 = Math.max(0, Math.floor(u.vx + e)), y0 = Math.max(0, Math.floor(u.vy + e)), x1 = Math.min(S.w - 1, Math.ceil(u.vx - e)), y1 = Math.min(S.h - 1, Math.ceil(u.vy - e)), fx = u.vx - x0, fy = u.vy - y0;
+  const a = htAt(S, x0, y0) * (1 - fx) + htAt(S, x1, y0) * fx, b = htAt(S, x0, y1) * (1 - fx) + htAt(S, x1, y1) * fx; return (a * (1 - fy) + b * fy) * 3;
+}
+const HT_TINT = ['rgba(0,0,0,0)', 'rgba(80,190,210,0.20)', 'rgba(220,190,70,0.26)', 'rgba(255,140,40,0.34)'];
+function drawHeights(S, ox, oy) {
+  if (!G.hts || !S.hts) return;
+  for (let y = 0; y < S.h; y++) for (let x = 0; x < S.w; x++) {
+    if (terrAt(S, x, y).block) continue; const h = htAt(S, x, y), px = ox + x * TS, py = oy + y * TS;
+    ctx.fillStyle = HT_TINT[h]; ctx.fillRect(px, py, TS, TS);
+    if (h) text(String(h), px + 1, py + 1, { size: 6, bold: true, color: h >= 2 ? '#fff0c0' : '#d8ecff' });
+    if (isRamp(S, x, y)) text('↗', px + 9, py + 8, { size: 7, bold: true, color: '#fff' });
+  }
+}
 function drawUnit(u, S) {
   if (u.gone) return;
   const ox = OX(), oy = OY();
-  let px = ox + u.vx * TS + (u.lx || 0) + (u.kx || 0), py = oy + u.vy * TS + (u.ly || 0) + (u.ky || 0);
+  let px = ox + u.vx * TS + (u.lx || 0) + (u.kx || 0), py = oy + u.vy * TS + (u.ly || 0) + (u.ky || 0); const lift = liftOf(u), gy = py;
   const f = unitFrame(u), fade = u.dead ? (u.fade || 0) / 30 : 1;
   const gray = u.team === 0 && u.acted && !u.acting && !(G.phase === 1) ? 'gray' : null;
   const mode = (u.flash > 0 && Math.floor(u.flash / 2) % 2 === 0) ? 'white' : gray;
@@ -158,9 +173,9 @@ function drawUnit(u, S) {
   const sink = u.dead ? (1 - fade) * 5 : 0;
   if (u.boss && !u.dead) { const pu = 0.5 + 0.5 * Math.sin(G.t / 14), ac = u.aura || '255,210,70', gr = ctx.createRadialGradient(px + 8, py + 9, 2, px + 8, py + 9, 17); gr.addColorStop(0, 'rgba(' + ac + ',' + (0.45 + pu * 0.2) + ')'); gr.addColorStop(1, 'rgba(' + ac + ',0)'); ctx.fillStyle = gr; ctx.fillRect(px - 10, py - 8, 36, 36); }
   // soft shadow + team ring on the ground
-  ctx.fillStyle = 'rgba(0,0,0,' + 0.28 * fade + ')'; ctx.beginPath(); ctx.ellipse(px + 8, py + 14.5, 7, 2.8, 0, 0, 7); ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,' + 0.18 * fade + ')'; ctx.beginPath(); ctx.ellipse(px + 8, py + 14.5, 5, 1.8, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = teamRing(u.team, 0.85 * fade); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(px + 8, py + 14.5, 7, 2.8, 0, 0, 7); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,' + 0.28 * fade + ')'; ctx.beginPath(); ctx.ellipse(px + 8 + lift * 0.5, gy + 14.5 + lift * 0.2, 7 + lift * 0.25, 2.8 + lift * 0.1, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,' + 0.18 * fade + ')'; ctx.beginPath(); ctx.ellipse(px + 8 + lift * 0.5, gy + 14.5 + lift * 0.2, 5 + lift * 0.2, 1.8 + lift * 0.08, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = teamRing(u.team, 0.85 * fade); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(px + 8, gy + 14.5, 7, 2.8, 0, 0, 7); ctx.stroke(); py -= lift;
   // team-coloured rim, then the sprite
   if (!gray && !u.dead) { ctx.globalAlpha = 0.85; ctx.drawImage(spriteRim(u.sprite, u.dir, f.row, u.team), Math.round(px) - 1, Math.round(py + f.bob + by - 1 + sink) - 1); ctx.globalAlpha = 1; }
   drawUnitSprite(ctx, u.sprite, u.dir, f.row, px, py + f.bob + by - 1 + sink, mode, fade);
@@ -226,8 +241,9 @@ function drawUnitPanel(u, x, y) {
   if (u.acted && u.team === 0) text('行動済', x + 96, y + 4, { size: 7, color: '#999' });
 }
 function drawTerrainPanel(x, y, ch) {
-  const T = TERRAIN[ch];
-  panel(x, y, 70, 25);
+  const T = TERRAIN[ch], S = G.S, hh = S ? htAt(S, G.cursor.x, G.cursor.y) : 0, rp = S && isRamp(S, G.cursor.x, G.cursor.y);
+  panel(x, y, 70, 36);
+  if (S && S.hts) text('高さ ' + hh + (rp ? '  坂' : ''), x + 5, y + 25, { size: 7, color: hh >= 2 ? '#ffd890' : '#9fd0ff' });
   text(T.name, x + 5, y + 3, { size: 8, bold: true });
   const l = (T.avo ? '回避+' + T.avo : '') + ((T.def) ? ' 防御+' + T.def : ''); text(l || '効果なし', x + 5, y + 14, { size: 7, color: '#b8c4ff' });
   if (T.heal) text('回復20%', x + 36, y + 3, { size: 7, color: '#6f6' });
@@ -266,6 +282,7 @@ function drawForecast(fc) {
   const side = (S, cx) => {
     const u = S.u; text(u.name, cx, y + 4, { size: 9, bold: true, color: u.team === 0 ? '#9fc4ff' : '#ff9f9f' });
     drawIcon(weaponIcon(u), cx + 42, y + 3, 11); text(weaponOf(u).name, cx + 54, y + 6, { size: 7, color: '#b8c4ff' });
+    if (S.hi > 0 || (S.hi < 0 && weaponOf(u).type !== 'mag')) text(S.hi > 0 ? '▲高所' : '▼低所', cx + 70, y + 41, { size: 8, bold: true, color: S.hi > 0 ? '#ffd890' : '#8fb4ff' });
     if (S.adv) text(S.adv > 0 ? '▲' : '▼', cx + 100, y + 5, { size: 8, bold: true, color: S.adv > 0 ? '#6dff8d' : '#ff7070' });
     hpBar(cx, y + 20, 56, 4, u.hp, u.maxhp, u.hp + (S.dmgTaken || 0)); text('HP ' + u.hp, cx + 60, y + 16, { size: 8 });
     if (S.can) {
@@ -499,7 +516,7 @@ function chibiStyle(u, id) { // which chibi + size/tint for a unit: generic prie
 function drawUnitHD(u) {
   if (u.gone) return; const id = artOf(u), im = ART[id]; if (!im || !im.chibi) return;
   const ox = OX(), oy = OY(), f = unitFrame(u), fade = u.dead ? (u.fade || 0) / 30 : 1;
-  const px = ox + u.vx * TS + (u.lx || 0) + (u.kx || 0), py = oy + u.vy * TS + (u.ly || 0) + (u.ky || 0);
+  const px = ox + u.vx * TS + (u.lx || 0) + (u.kx || 0), gy = oy + u.vy * TS + (u.ly || 0) + (u.ky || 0), lift = liftOf(u), py = gy - lift;
   const acted = u.team === 0 && u.acted && !u.acting && !(G.phase === 1);
   let by = 0; if (!u.walking && !u.dead && !acted) by = Math.sin((G.t + (u.vx * 7 + u.vy * 13) * 5) / 22) * 0.5; if (G.sel === u && G.mode !== 'idle') by = (Math.floor(G.t / 8) % 2) ? -1.5 : 0;
   const sink = u.dead ? (1 - fade) * 5 : 0, cx = px + 8, foot = py + 14.5;
@@ -507,9 +524,9 @@ function drawUnitHD(u) {
   const st = chibiStyle(u, id), h = TS * 1.5 * (im.chibi.height / 192) * st.rel, flash = u.flash > 0 && Math.floor(u.flash / 2) % 2 === 0;
   const breath = (u.walking || u.dead || acted) ? 1 : 1 + 0.018 * Math.sin((G.t + (u.vx * 5 + u.vy * 9) * 7) / 20);
   if (u.boss && !u.dead) { const pu = 0.5 + 0.5 * Math.sin(G.t / 14), ac = u.aura || '255,210,70', gr = ctx.createRadialGradient(cx, foot - h * 0.45, 2, cx, foot - h * 0.45, h * 0.9); gr.addColorStop(0, 'rgba(' + ac + ',' + (0.38 + pu * 0.2) + ')'); gr.addColorStop(1, 'rgba(' + ac + ',0)'); ctx.fillStyle = gr; ctx.fillRect(cx - h, foot - h * 1.5, h * 2, h * 1.7); }
-  const rw = u.boss ? 10.5 : 8.5;
-  ctx.fillStyle = 'rgba(0,0,0,' + 0.34 * fade + ')'; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, rw, 3, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = teamRing(u.team, 0.95 * fade); ctx.lineWidth = 0.9; ctx.beginPath(); ctx.ellipse(cx, foot - 0.5, rw, 3, 0, 0, 7); ctx.stroke();
+  const rw = u.boss ? 10.5 : 8.5, gf = gy + 14.5; // shadow + ring stay on the ground; high ground gives a longer, softer shadow
+  ctx.fillStyle = 'rgba(0,0,0,' + (0.34 - lift * 0.02) * fade + ')'; ctx.beginPath(); ctx.ellipse(cx + lift * 0.5, gf - 0.5 + lift * 0.2, rw + lift * 0.3, 3 + lift * 0.12, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = teamRing(u.team, 0.95 * fade); ctx.lineWidth = 0.9; ctx.beginPath(); ctx.ellipse(cx, gf - 0.5, rw, 3, 0, 0, 7); ctx.stroke();
   const ppu = HD.k * (camOn() ? Engine.zoom : 1), variant = flash ? 'white' : acted ? 'gray' : st.variant;
   artChibi(ctx, id, cx, foot + f.bob * 0.6 + by + sink, h, ppu, { flip: u.hface === 'right', alpha: fade, variant, sy: breath });
   if (!u.dead) hpBar(px + 2, py + 16, 12, 2, u.vhp, u.maxhp, u.ghost);

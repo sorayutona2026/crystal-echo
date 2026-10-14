@@ -1,7 +1,7 @@
 import pathlib, base64, json
 root = pathlib.Path(__file__).parent
 src = root / 'src'
-order = ['engine.js', 'assets.js', 'hd.js', 'ambient.js', 'audio.js', 'data.js', 'story.js', 'battle.js', 'camp.js', 'ai.js', 'tower.js', 'ui.js', 'fx_hd.js', 'special.js', 'base.js', 'main.js']
+order = ['engine.js', 'assets.js', 'hd.js', 'ambient.js', 'audio.js', 'data.js', 'story.js', 'height.js', 'battle.js', 'camp.js', 'ai.js', 'tower.js', 'ui.js', 'fx_hd.js', 'special.js', 'base.js', 'main.js']
 js = '\n'.join((src / f).read_text() for f in order)
 # embed every PNG referenced by the manifest (and only those) as a data URL
 manifest = json.loads((root / 'assets' / 'manifest.json').read_text())

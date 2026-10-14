@@ -27,7 +27,7 @@ function towerDefaultDeploy(roster) {
 const towerValidDeploy = (roster, list) => !!list && list.includes('leon') && list.length <= TOWER_CAP && list.every(id => roster[id] && towerDeployable(roster[id]));
 // one floor as a chapter-shaped object (the battle code needs nothing else)
 function towerChapter(f, avg0, startF, P) {
-  const R = trng(f * 7919 + 13), mi = towerMapIdx(f), base = CHAPTERS[mi], map = base.map, w = map[0].length, h = map.length, pseudo = { rows: map, w, h };
+  const R = trng(f * 7919 + 13), mi = towerMapIdx(f), base = CHAPTERS[mi], map = base.map, w = map[0].length, h = map.length, pseudo = { rows: map, w, h, hts: base.hts, ramps: base.ramps };
   const walk = (x, y) => !TERRAIN[map[y][x]].block, boss = towerBoss(f);
   const slots = base.slots.map(s => s.slice()), has = (x, y) => slots.some(s => s[0] === x && s[1] === y);
   const near = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (walk(x, y) && !has(x, y)) near.push([x, y, Math.abs(x - slots[0][0]) + Math.abs(y - slots[0][1])]);

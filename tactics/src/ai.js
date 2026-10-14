@@ -8,7 +8,8 @@ function distMap(S, goals) {
     open.sort((a, b) => a[0] - b[0]); const [c, x, y] = open.shift(); if (c > d.get(kk(x, y))) continue;
     for (const [dx, dy] of DIRS4) {
       const nx = x + dx, ny = y + dy; if (!inb(S, nx, ny)) continue; const T = terrAt(S, nx, ny); if (T.block) continue;
-      const nc = c + T.cost, k = kk(nx, ny); if (d.has(k) && d.get(k) <= nc) continue; d.set(k, nc); open.push([nc, nx, ny]);
+      const cl = stepCost(S, nx, ny, x, y); if (cl === Infinity) continue; // walking from the new tile toward the goal: climbing counts
+      const nc = c + T.cost + (cl - terrAt(S, x, y).cost), k = kk(nx, ny); if (d.has(k) && d.get(k) <= nc) continue; d.set(k, nc); open.push([nc, nx, ny]);
     }
   }
   return d;
@@ -20,12 +21,12 @@ function threatAt(S, u, x, y) {
   let tot = 0;
   for (const e of alive(S)) {
     if (!isFoe(e, u) || !canDamage(e)) continue;
-    const w = weaponOf(e), d = dist(e.x, e.y, x, y);
-    if (e.ai === 'hold' ? (d < w.min || d > w.max) : d > e.mov + w.max) continue;
-    if (e.ai === 'wait' && d > e.mov + w.max) continue;
-    const ex = sk(e, 'dmg') - sk(u, 'taken');
+    const w = weaponOf(e), d = dist(e.x, e.y, x, y), rm = rngMax(S, e, e.x, e.y, w) + (e.ai !== 'hold' && isBow(w) && S.hts ? 1 : 0);
+    if (e.ai === 'hold' ? (d < w.min || d > rm) : d > e.mov + rm) continue;
+    const hd = Math.max(htAt(S, e.x, e.y), e.ai === 'hold' ? 0 : Math.min(3, htAt(S, e.x, e.y) + 1)) - htAt(S, x, y); // foes may climb a step before striking
+    const ex = sk(e, 'dmg') - sk(u, 'taken') + (hd > 0 ? Math.min(2, hd) : 0);
     const dm = w.type === 'mag' ? Math.max(0, e.mag + w.might + ex - u.res) : Math.max(0, e.str + w.might + ex - (u.def + terrAt(S, x, y).def));
-    const hit = Math.max(0, Math.min(100, w.hit + e.skl * 2 - (u.spd * 2 + terrAt(S, x, y).avo + sk(u, 'avo')))) / 100;
+    const hit = Math.max(0, Math.min(100, w.hit + e.skl * 2 + (w.type === 'mag' ? 0 : hd > 0 ? 15 : hd < 0 ? -15 : 0) - (u.spd * 2 + terrAt(S, x, y).avo + sk(u, 'avo')))) / 100;
     tot += dm * hit * (e.spd - u.spd >= 4 ? 2 : 1);
   }
   return tot;
@@ -50,7 +51,7 @@ function chooseAction(S, u, opts) {
   }
   for (const s of r.stops) {
     if (hold && (s.x !== u.x || s.y !== u.y)) continue;
-    const T = terrAt(S, s.x, s.y), tb = (T.def * 1.0 + T.avo / 12) * 0.5;
+    const T = terrAt(S, s.x, s.y), hs = htAt(S, s.x, s.y), tb = (T.def * 1.0 + T.avo / 12) * 0.5 + hs * 1.5; // everyone likes high ground
     const th = care ? threatAt(S, u, s.x, s.y) * care * (u.lord ? (u.hp < u.maxhp * 0.5 ? 3 : 1.6) : 1) * (healer ? 1.5 : 1) : 0;
     const cb = player && chestAt(S, s.x, s.y) ? 7 : 0, far = def ? Math.max(0, dist(s.x, s.y, village.x, village.y) - 5) * 2.5 : 0, ep = esc ? 14 : 0;
     for (const t of targetsFrom(S, u, s.x, s.y)) {
@@ -126,7 +127,7 @@ function chooseAction(S, u, opts) {
     else if (goal) sc = -dist(s.x, s.y, goal.x, goal.y) * 1.2;
     else if (def) { const vd = dist(s.x, s.y, village.x, village.y), dd = dmap.get(kk(s.x, s.y)); sc = -Math.max(0, vd - 3) * 3 - Math.max(0, 2 - vd) * 1.5 - (dd == null ? 0 : dd) * 0.15; }
     else { const dd = dmap.get(kk(s.x, s.y)); sc = -(dd == null ? 99 : dd); }
-    sc += (T.def + T.avo / 15) * 0.15;
+    sc += (T.def + T.avo / 15) * 0.15 + htAt(S, s.x, s.y) * 0.3;
     if (player && chestAt(S, s.x, s.y)) sc += 3;
     if (care) {
       const tha = threatAt(S, u, s.x, s.y); sc -= tha * care * (u.lord ? 1.5 : 1) * 0.35 * (healer ? 1.5 : 1); if (u.lord && tha >= u.hp - 1) sc -= 100;
