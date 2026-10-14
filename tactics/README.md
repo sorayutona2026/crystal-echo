@@ -41,6 +41,11 @@ python3 build.py            # dist/tactics.html と test/index.html を生成
 - **必殺**: 必殺率(技/4+武器+スキル+絆)で3倍ダメージ。
 - **戦闘中の会話**: 各章に2〜3個。隣り合ったとき、または特定のターンの開始時に起きる。第2章はレオンがジンの隣で「話す」と仲間になる。
 
+## やり込み要素
+- **試練の塔**(野営地 → 試練の塔。第一章クリアで解放): 6つの戦場を使った何度でも挑める階層。5階ごとにボス(初回突破で専用武器)。次の階へ進むとHPが3割回復。塔の戦闘では誰も負傷しない。敗北すると今回の金貨は失うが経験値は残る。最高到達階はセーブと localStorage に記録し、タイトルにも表示。`src/tower.js`
+- **隠し要素**: 各章に隠し宝2つ(英雄が2マス以内で移動を終えると光る。シーフのジンは4マス)と、条件つきの秘密の会話(第2・4・5・6章)。宝は踏んで「調べる」で入手。章クリア時に「秘密 n/m」を表示。データは `story.js` の `secrets` と `talks`(`secret: true`)。
+- テスト: `node test/tower.js` / `node test/secret.js` / `node test/sim.js tower`
+
 ## 登場人物
 レオン(ナイト・主人公)/ ミラ(アーチャー)/ 老魔道士ルカ(メイジ)/ ソフィア(ヒーラー・2章から)/ ジン(シーフ・2章から)。敵は ゴブリン・スライム・スケルトン・ダークメイジ・金角将軍ガルド。
 
@@ -79,6 +84,8 @@ python3 build.py
 node test/smoke.js
 SEED=1 node test/play.js     # COMPLETE と出れば成功。SEED=2, 3 も通ること
 node test/touch.js
+node test/tower.js            # 試練の塔(野営地から入って1階をクリア→帰還、敗北でも負傷しない)
+node test/secret.js           # 隠し宝(2マスで光る→調べる)と秘密の会話
 node test/shots.js           # test-out/*.png
 node test/sim.js 60          # バランス確認(章ごとの勝率・平均レベル)
 ```

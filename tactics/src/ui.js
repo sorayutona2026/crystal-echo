@@ -127,6 +127,7 @@ function unitFrame(u) { // pose row & bob
 }
 // objective markers: treasure chests, escape exits, the village to defend
 function drawMarkers(S) {
+  if (!(hdOn() && ART.prop_chest)) for (const q of S.secrets || []) { if (!q.seen || q.got) continue; const x = OX() + q.x * TS + 8, y = OY() + q.y * TS + 8, ph = (G.t / 10 + q.x) % 6.28, r = 2 + Math.sin(ph) * 1.2; ctx.fillStyle = 'rgba(255,240,150,0.28)'; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.fillStyle = '#fff6c0'; ctx.fillRect(x - 1, y - r - 1, 2, 2 * r + 2); ctx.fillRect(x - r - 1, y - 1, 2 * r + 2, 2); }
   if (hdOn() && ART.prop_chest) return; // chibi display: the painted props are drawn on the hi-DPI layer (drawPropsHD)
   const ox = OX(), oy = OY(), pu = 0.5 + 0.5 * Math.sin(G.t / 14);
   for (const e of (S.ch.exits || [])) {
@@ -434,6 +435,7 @@ function drawTitle() {
     text(it.label, W / 2, y + 1, { size: 10, bold: true, align: 'center', color: it.off ? '#778' : '#fff' });
     Touch.add(W / 2 - w / 2, y - 2, w, 16, () => { G.title.idx = i; Input.q.push('ok'); });
   });
+  { const tb = Math.max(towerBestLS(), G.meta ? towerMeta(G.meta).best : 0); if (tb > 0) text('試練の塔 最高 ' + tb + '階', W / 2, 78, { size: 9, bold: true, align: 'center', color: '#ffe27a', sh: '#302000' }); }
   text('矢印+Z / タップで決定', W / 2, 228, { size: 7, align: 'center', color: '#aab' });
 }
 function drawCard() {
@@ -455,6 +457,19 @@ function drawGameOver() {
     text(it.label, W / 2, y + 2, { size: 10, bold: true, align: 'center' });
     Touch.add(W / 2 - w / 2, y - 2, w, 17, () => { G.title.idx = i; Input.q.push('ok'); });
   });
+}
+function drawTowerChoice() {
+  const T = G.tower; rect(0, -(G.yOff || 0), W, Engine.vh, '#0a0e22'); skyGrad('#1a2250', '#070a18', 0, H); drawDrift(26, '#ffe8a0', 4);
+  text('試練の塔', W / 2, 22, { size: 11, color: '#c8d4ff', align: 'center' });
+  text(T.f + '階 突破!', W / 2, 40, { size: 24, bold: true, color: '#ffe860', align: 'center', sh: '#402800' });
+  panel(24, 82, 272, 14 + T.lines.length * 13, 0.85); T.lines.forEach((l, i) => text(l, W / 2, 88 + i * 13, { size: 8, align: 'center', color: i === 1 && l.indexOf('手に入れた') > 0 ? '#9fe8ff' : '#e8ecff' }));
+  G.title.items.forEach((it, i) => {
+    const y = 140 + i * 22, sel = i === G.title.idx, w = 150;
+    rect(W / 2 - w / 2, y - 2, w, 18, sel ? 'rgba(70,92,210,0.9)' : 'rgba(0,0,20,0.55)'); if (sel) text('▶', W / 2 - w / 2 + 4, y + 2, { size: 9, color: '#ffe860' });
+    text(it.label, W / 2, y + 2, { size: 11, bold: true, align: 'center' });
+    Touch.add(W / 2 - w / 2, y - 2, w, 18, () => { G.title.idx = i; Input.q.push('ok'); });
+  });
+  text('次の階はHP3割回復で続行。帰還すると金貨を持ち帰れる(敗北すると金貨は失う)', W / 2, 190, { size: 7, align: 'center', color: '#9aa8e0' });
 }
 const ENDING_FIN = 840;
 function drawEnding() {
@@ -513,6 +528,12 @@ function propItems(S) {
   for (const e of (S.ch.exits || [])) { const cx = ox + e[0] * TS + 8, by = oy + e[1] * TS + 14, ph = (e[0] * 3 + e[1]) * 0.7;
     L.push({ y: e[1] - 0.2, fn: () => { const sw = Math.sin(t / 30 + ph); propDraw('prop_exit', cx, by, 26, { skew: sw * 0.018, alpha: 0.86 + pu * 0.14, sc: [1 + pu * 0.025, 1 + pu * 0.025] }); } }); }
   const v = S.ch.village; if (v) L.push({ y: v.y - 0.2, fn: () => propDraw('prop_village', ox + v.x * TS + 8, oy + v.y * TS + 14, 26, { skew: Math.sin(t / 26) * 0.02 }) });
+  for (const q of S.secrets || []) { if (!q.seen || q.got) continue; const cx = ox + q.x * TS + 8, cy = oy + q.y * TS + 9, ph = (q.x * 5 + q.y * 3) * 0.9;
+    L.push({ y: q.y + 0.3, fn: () => { // painted-style sparkle: soft warm glow, a slowly turning four-point star and a few drifting motes
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; const a = 0.55 + 0.45 * Math.sin(t / 14 + ph);
+      glowDot(cx, cy, 11 + a * 2, '#ffd86a', 0.34 + a * 0.2); ctx.translate(cx, cy - 1); ctx.rotate(Math.sin(t / 40 + ph) * 0.35); star4(0, 0, 6.2 + a * 2.6, '#fff4b8', 0.75 + a * 0.25); star4(0, 0, 3.2, '#ffffff', 0.95); ctx.rotate(0.785); star4(0, 0, 3.4 + a, '#ffe9a0', 0.55);
+      ctx.rotate(-0.785 - Math.sin(t / 40 + ph) * 0.35); for (let i = 0; i < 4; i++) { const k = ((t / 50 + i * 0.25 + ph) % 1), ax = Math.sin(i * 2.4 + ph) * 8 * k, ay = -k * 11; glowDot(ax, ay, 2.2, '#fff0a8', (1 - k) * 0.85); }
+      ctx.restore(); } }); }
   for (const c of S.chests) {
     if (c.got && !c.openT) { /* picked up, animation not started: still closed */ }
     const cx = ox + c.x * TS + 8, by = oy + c.y * TS + 14;

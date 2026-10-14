@@ -1,13 +1,13 @@
 'use strict';
 // ===== battle rules (pure logic; no DOM) =====
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-function newBattle(ch, roster, meta, deploy) {
-  const rows = ch.map, S = { rows, w: rows[0].length, h: rows.length, units: [], turn: 1, phase: 0, over: null, why: '', ch, bonds: meta ? meta.bonds : null, gain: { gold: 0, proofs: 0 }, chests: (ch.chests || []).map(c => Object.assign({ got: false }, c)), talked: {}, escaped: 0 };
+function newBattle(ch, roster, meta, deploy, keepHp) {
+  const rows = ch.map, S = { rows, w: rows[0].length, h: rows.length, units: [], turn: 1, phase: 0, over: null, why: '', ch, bonds: meta ? meta.bonds : null, gain: { gold: 0, proofs: 0, drops: {}, weapons: [] }, meta: meta || null, found: [], secrets: (ch.secrets || []).map(q => Object.assign({ seen: false, got: false }, q)), chests: (ch.chests || []).map(c => Object.assign({ got: false }, c)), talked: {}, escaped: 0 };
   const ids = (deploy && deploy.length ? deploy : Object.keys(roster).filter(id => !(roster[id].injured > 0) && !(ch.neutral || []).some(n => n.id === id))).slice(0, ch.slots.length);
-  ids.forEach((id, i) => { const u = roster[id], [x, y] = ch.slots[i]; u.team = 0; u.x = x; u.y = y; u.hp = u.maxhp; u.acted = false; u.dead = false; u.off = false; u.dir = 'right'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; u.deployed = true; S.units.push(u); });
+  ids.forEach((id, i) => { const u = roster[id], [x, y] = ch.slots[i]; u.team = 0; u.x = x; u.y = y; if (!keepHp) u.hp = u.maxhp; u.acted = false; u.dead = false; u.off = false; u.dir = 'right'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; u.deployed = true; S.units.push(u); });
   for (const id in roster) if (!ids.includes(id)) roster[id].deployed = false;
   for (const n of (ch.neutral || [])) { const u = roster[n.id]; if (!u || u.joined) continue; u.team = 2; u.recruit = true; u.x = n.x; u.y = n.y; u.hp = u.maxhp; u.acted = false; u.dead = false; u.off = false; u.dir = 'left'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; u.deployed = true; S.units.push(u); }
-  for (const [t, x, y, lv, ai] of ch.enemies) { const u = makeEnemy(t, lv, x, y, ai); u.acted = false; u.dead = false; u.off = false; S.units.push(u); }
+  for (const [t, x, y, lv, ai, ex] of ch.enemies) { const u = makeEnemy(t, lv, x, y, ai, ex); u.acted = false; u.dead = false; u.off = false; S.units.push(u); }
   return S;
 }
 const inb = (S, x, y) => x >= 0 && y >= 0 && x < S.w && y < S.h;
@@ -157,9 +157,11 @@ function applyAction(S, u, dest, target, sp, opt) {
   if (dest && (dest.x !== u.x || dest.y !== u.y)) {
     const r = reach(S, u); rec.path = pathTo(r, dest.x, dest.y); u.x = dest.x; u.y = dest.y;
   }
-  if (u.team === 0) { const c = chestAt(S, u.x, u.y); if (c) { c.got = true; rec.chest = c; if (c.gold) S.gain.gold += c.gold; if (c.item === 'proof') S.gain.proofs++; } }
+  if (u.team === 0) { const c = chestAt(S, u.x, u.y); if (c) { c.got = true; rec.chest = c; if (c.gold) S.gain.gold += c.gold; if (c.item === 'proof') S.gain.proofs++; else if (c.item && ITEMS[c.item]) { if (u.items.length < MAX_ITEMS) u.items.push(c.item); else { c.gold = Math.floor(ITEMS[c.item].price / 2); S.gain.gold += c.gold; c.item = null; } } } }
+  senseSecrets(S, u);
   const kind = sp && SP[u.key] ? SP[u.key].kind : null;
-  if (opt.escape) { rec.kind = 'escape'; u.off = true; S.escaped++; }
+  if (opt.search) { const q = secretAt(S, u.x, u.y); rec.kind = 'search'; if (q) { rec.secret = q; rec.gotText = grantSecret(S, u, q.get); markFound(S, q.id); q.got = true; } }
+  else if (opt.escape) { rec.kind = 'escape'; u.off = true; S.escaped++; }
   else if (opt.talk && target) { rec.kind = 'talk'; recruit(S, u, target); }
   else if (opt.item != null) {
     const it = ITEMS[u.items[opt.item]]; rec.kind = 'item'; rec.itemName = it ? it.name : '';
@@ -232,6 +234,7 @@ function nextTalk(S) {
   for (const t of (S.ch.talks || [])) {
     if (S.talked[t.id]) continue; const w = t.when;
     if (w.turn != null) { if (S.turn >= w.turn && S.phase === 0) return t; continue; }
+    if (w.at) { const a = S.units.find(u => u.key === w.at[0] && !u.dead && !u.off && u.team === 0); if (a && a.x === w.at[1] && a.y === w.at[2]) return t; continue; }
     if (w.adj) {
       const a = S.units.find(u => u.key === w.adj[0] && !u.dead && !u.off && u.team !== 2), b = S.units.find(u => u.key === w.adj[1] && !u.dead && !u.off && u.team !== 2);
       if (a && b && dist(a.x, a.y, b.x, b.y) === 1) return t;
@@ -239,6 +242,31 @@ function nextTalk(S) {
   }
   return null;
 }
+// ---- secrets: hidden treasures (sparkle when a hero ends a move within 2 tiles; the thief senses from 4) and secret talks ----
+const secretAt = (S, x, y) => S.secrets.find(q => !q.got && q.seen && q.x === x && q.y === y) || null;
+function senseSecrets(S, u) {
+  if (!u || u.team !== 0 || u.dead) return [];
+  const r = u.key === 'jin' ? 4 : 2, out = [];
+  for (const q of S.secrets) if (!q.got && !q.seen && dist(u.x, u.y, q.x, q.y) <= r) { q.seen = true; out.push(q); }
+  return out;
+}
+function markFound(S, id) { if (!S.found.includes(id)) S.found.push(id); }
+function rewardText(g) {
+  if (g.drop) return DROPS[g.drop] + 'を手に入れた'; if (g.weapon) return WITEMS[g.weapon].name + 'を手に入れた'; if (g.proof) return '勇者の証を手に入れた';
+  if (g.gold) return g.gold + 'Gを手に入れた'; if (g.bond) return HEROES[g.bond[0]].name + '×' + HEROES[g.bond[1]].name + 'の絆が深まった'; if (g.item) return ITEMS[g.item].name + 'を手に入れた'; return '';
+}
+// applies a secret reward; meta-level loot is only recorded in S.gain (paid out when the chapter is won, so undo / defeat cannot duplicate it)
+function grantSecret(S, u, g) {
+  if (g.drop) S.gain.drops[g.drop] = (S.gain.drops[g.drop] || 0) + 1;
+  else if (g.weapon) S.gain.weapons.push(g.weapon);
+  else if (g.proof) S.gain.proofs++;
+  else if (g.gold) S.gain.gold += g.gold;
+  else if (g.bond) { if (S.bonds) { const k = bondKey(g.bond[0], g.bond[1]); S.bonds[k] = (S.bonds[k] || 0) + g.bond[2]; } }
+  else if (g.item) { const h = g.to && S.units.find(q => q.key === g.to && q.team === 0) || u; if (h && h.items.length < MAX_ITEMS) h.items.push(g.item); else S.gain.gold += Math.floor(ITEMS[g.item].price / 2); }
+  return rewardText(g);
+}
+const secretTotal = idx => (CHAPTERS[idx].secrets || []).length + (CHAPTERS[idx].talks || []).filter(t => t.secret).length;
+const secretFound = (meta, idx) => Object.keys(meta.secrets || {}).filter(k => k.startsWith((idx + 1) + '-')).length;
 // roster carried across chapters
 function newRoster() { return { leon: makeHero('leon', 1), mira: makeHero('mira', 1), luka: makeHero('luka', 1) }; }
 function newMeta() { return { gold: 120, convoy: [], bonds: {}, seen: {}, proofs: 0, cleared: 0, deploy: null }; }
@@ -258,7 +286,10 @@ function chapterBonus(roster, S) {
 // after a won chapter: gold, proofs, injuries, late joiners. returns a summary for the UI
 function finishChapter(roster, meta, S, idx) {
   const ch = CHAPTERS[idx], sum = { gold: S.gain.gold, reward: ch.reward, proofs: S.gain.proofs, injured: [], healed: [], late: [] };
-  meta.gold += S.gain.gold + ch.reward; meta.proofs += S.gain.proofs; meta.cleared = Math.max(meta.cleared, idx + 1);
+  meta.gold += S.gain.gold + ch.reward; meta.proofs += S.gain.proofs;
+  meta.drops = meta.drops || {}; for (const k in S.gain.drops) meta.drops[k] = (meta.drops[k] || 0) + S.gain.drops[k];
+  for (const w of S.gain.weapons) meta.convoy.push(w);
+  meta.secrets = meta.secrets || {}; for (const id of S.found) meta.secrets[id] = true; sum.found = S.found.length; sum.total = secretTotal(idx); meta.cleared = Math.max(meta.cleared, idx + 1);
   for (const id in roster) { const u = roster[id]; if (u.team === 2 && u.recruit) { u.team = 0; u.recruit = false; u.joined = true; sum.late.push(id); } }
   for (const id in roster) {
     const u = roster[id];

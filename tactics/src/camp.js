@@ -19,6 +19,8 @@ function promote(u, meta) {
   if (P.light) { u.canHeal = true; u.fam = 'tome'; const old = u.wid; if (old && !meta.convoy.includes(old) && old !== 'live') meta.convoy.push(old); u.wid = 'light'; }
   return true;
 }
+const DROP_TO = { str: ['leon'], def: ['leon'], spd: ['jin', 'mira'], mag: ['luka'] };
+function useDrop(meta, u, k) { if (!meta.drops || !(meta.drops[k] > 0)) return false; meta.drops[k]--; u[k]++; return true; }
 // ---- shop ----
 const shopStage = meta => meta.cleared >= 3 ? 3 : meta.cleared >= 2 ? 2 : meta.cleared >= 1 ? 1 : 0; // highest weapon tier on sale (special = 3)
 function shopWeapons(meta, u) {
@@ -60,6 +62,9 @@ function validDeploy(roster, idx, list) { return list && list.includes('leon') &
 // ---- automatic camp (bot, test, auto mode): skills, class change, potions, gear, forge, deployment ----
 function autoCamp(roster, meta, idx) {
   const ids = HERO_ORDER.filter(id => roster[id] && roster[id].joined !== false);
+  // secret loot: unique weapons from the convoy, then stat drops
+  for (const id of ids) { const u = roster[id]; for (;;) { let bi = -1, bm = weaponOf(u).might; meta.convoy.forEach((wid, i) => { const w = WITEMS[wid]; if (w && canWield(u, wid) && w.might + 0 > bm && !w.light) { bi = i; bm = w.might; } }); if (bi < 0) break; equipFromConvoy(meta, u, bi); } }
+  for (const k in DROP_TO) for (const id of DROP_TO[k]) { const u = roster[id]; while (u && u.joined !== false && (meta.drops || {})[k] > 0) useDrop(meta, u, k); }
   for (const id of ids) { const u = roster[id]; for (let g = 0; g < 2; g++) { const p = pendingSkill(u); if (p) chooseSkill(u, p[0]); } }
   for (const id of ['leon', 'luka', 'mira', 'sophia', 'jin']) { const u = roster[id]; if (u && canPromote(u, meta)) promote(u, meta); }
   const potionTo = n => { for (const id of ids) { const u = roster[id]; while (u.items.length < n && meta.gold >= ITEMS.potion.price + 10 && u.items.filter(x => x === 'potion').length < n) buyItem(meta, u, 'potion'); } };

@@ -14,7 +14,7 @@ function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall
 // ---------- undo (一手戻す): deep snapshot before each player action; restores units / items / chests / gold / bonds / talks / specials and the RNG
 const UNDO_MAX = 10, UNDO_USES = 3;
 function snapState(S) {
-  const rest = {}; for (const k in S) if (k !== 'units' && k !== 'ch' && k !== 'rows' && k !== 'bonds') rest[k] = S[k];
+  const rest = {}; for (const k in S) if (k !== 'units' && k !== 'ch' && k !== 'rows' && k !== 'bonds' && k !== 'meta') rest[k] = S[k];
   return { list: S.units.slice(), units: S.units.map(u => [u, structuredClone(u)]), rest: structuredClone(rest), bonds: S.bonds ? structuredClone(S.bonds) : null, seed: _seed };
 }
 function restoreState(S, sn) {
@@ -112,7 +112,8 @@ function* strike(ev) {
 function* playRecord(rec, fast) {
   const u = rec.unit; u.acting = true;
   if (rec.path && rec.path.length > 1) yield* glide(u, rec.path, fast ? 3 : 4);
-  if (rec.chest) { Aud.sfx('levelup'); const c = rec.chest; c.openT = G.t; for (let i = 0; i < 10; i++) { const p = tilePx(c.x, c.y), a = Math.random() * 6.28, s = 0.5 + Math.random() * 1.2; G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 4, vx: Math.cos(a) * s, vy: -0.6 - Math.random() * 1.1, g: 0.05, life: 22 + (Math.random() * 12 | 0), color: '#fff0a0', s: 1.5 }); } numFx(u, c.item === 'proof' ? '勇者の証!' : '+' + c.gold + 'G', '#ffe27a', 11); burst(u, '#ffe27a', 12); yield 24; }
+  if (rec.chest) { Aud.sfx('levelup'); const c = rec.chest; c.openT = G.t; for (let i = 0; i < 10; i++) { const p = tilePx(c.x, c.y), a = Math.random() * 6.28, s = 0.5 + Math.random() * 1.2; G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 4, vx: Math.cos(a) * s, vy: -0.6 - Math.random() * 1.1, g: 0.05, life: 22 + (Math.random() * 12 | 0), color: '#fff0a0', s: 1.5 }); } numFx(u, c.item === 'proof' ? '勇者の証!' : c.item && ITEMS[c.item] ? ITEMS[c.item].name + '!' : '+' + c.gold + 'G', '#ffe27a', 11); burst(u, '#ffe27a', 12); yield 24; }
+  if (rec.kind === 'search') { Aud.sfx('levelup'); const q = rec.secret, p = q ? tilePx(q.x, q.y) : null; if (p) { fxSecretPop(q); for (let i = 0; i < 14; i++) { const a = Math.random() * 6.28, sp = 0.4 + Math.random() * 1.2; G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 6, vx: Math.cos(a) * sp, vy: -0.5 - Math.random(), g: 0.04, life: 26 + (Math.random() * 12 | 0), color: '#fff6b0', s: 1.5 }); } } numFx(u, rec.gotText || '何もなかった', '#ffe27a', 9); yield 36; }
   if (rec.kind === 'escape') { Aud.sfx('heal'); numFx(u, '離脱!', '#8fffb0', 10); sparkle(u); yield 16; u.gone = true; u.acting = false; return; }
   if (rec.kind === 'talk' && rec.target) { Aud.sfx('levelup'); numFx(rec.target, '仲間に!', '#ffe27a', 10); sparkle(rec.target); yield 22; }
   if (rec.kind === 'item') { numFx(u, rec.itemName, '#9fe8ff', 8); yield 8; }
@@ -148,7 +149,7 @@ function confirmMove() {
   const u = G.sel, c = G.cursor, S = G.S;
   if (!G.moveSet.has(kk(c.x, c.y))) { Aud.sfx('cancel'); return; }
   const path = pathTo(G.reach, c.x, c.y); Aud.sfx('ok'); G.mode = 'moving';
-  runBusy((function* () { u.x = c.x; u.y = c.y; if (path.length > 1) yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y; openActionMenu(); if (G.pendingAtk) { const e = G.pendingAtk; G.pendingAtk = null; quickAttack(e); } })());
+  runBusy((function* () { u.x = c.x; u.y = c.y; if (path.length > 1) yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y; announceSecrets(senseSecrets(G.S, u)); openActionMenu(); if (G.pendingAtk) { const e = G.pendingAtk; G.pendingAtk = null; quickAttack(e); } })());
 }
 function adjacentRecruit(S, u) { return u.key === 'leon' ? S.units.find(o => o.recruit && !o.dead && o.team === 2 && dist(o.x, o.y, u.x, u.y) === 1) || null : null; }
 function openActionMenu() {
@@ -160,6 +161,7 @@ function openActionMenu() {
   if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
   if (u.items.length) items.push({ label: '道具', act: 'item', off: u.hp >= u.maxhp, desc: '傷薬などで自分を回復(' + u.items.map(k => ITEMS[k].name).join('・') + ')' });
   if (adjacentRecruit(S, u)) items.push({ label: '話す', act: 'talk', desc: '隣の人物に話しかける' });
+  if (secretAt(S, u.x, u.y)) items.push({ label: '調べる', act: 'search', desc: 'きらめく場所を調べる' });
   if (S.ch.win === 'escape' && isExit(S, u.x, u.y)) items.push({ label: '離脱', act: 'escape', desc: '出口から脱出する' });
   items.push({ label: '待機', act: 'wait', desc: '何もせず行動を終える' });
   placeMenu(items, u); G.mode = 'menu'; u.spActive = null; G.spMode = false; G.healMode = false;
@@ -182,11 +184,11 @@ function afterAction() {
 function doAction(kind, extra) {
   const u = G.sel, S = G.S;
   if (kind === 'wait') { Aud.sfx('ok'); const rec = applyAction(S, u, null, null); u.dir = u.dir; afterAction(); return; }
-  if (kind === 'escape' || kind === 'item' || kind === 'talk') {
+  if (kind === 'escape' || kind === 'item' || kind === 'talk' || kind === 'search') {
     Aud.sfx('ok'); G.mode = 'busy'; G.menu = null; const tg = kind === 'talk' ? adjacentRecruit(S, u) : null;
     runBusy((function* () {
       if (kind === 'talk' && tg) yield* dialogue(S.ch.recruit.lines, null, true);
-      const rec = applyAction(S, u, null, tg, false, kind === 'escape' ? { escape: true } : kind === 'talk' ? { talk: true } : { item: extra });
+      const rec = applyAction(S, u, null, tg, false, kind === 'escape' ? { escape: true } : kind === 'talk' ? { talk: true } : kind === 'search' ? { search: true } : { item: extra });
       yield* playRecord(rec); afterAction(); if (G.endTurn) yield 12;
     })()); return;
   }
@@ -198,7 +200,7 @@ function menuPick() {
   if (it.off) { Aud.sfx('cancel'); return; }
   if (G.mode === 'sysmenu') { it.fn(); return; }
   if (it.act === 'wait') { G.menu = null; doAction('wait'); return; }
-  if (it.act === 'escape' || it.act === 'talk') { doAction(it.act); return; }
+  if (it.act === 'escape' || it.act === 'talk' || it.act === 'search') { doAction(it.act); return; }
   if (it.act === 'useitem') { doAction('item', it.idx); return; }
   if (it.act === 'item') { const u = G.sel; G.sub = true; placeMenu(u.items.map((id, i) => ({ label: ITEMS[id].name, act: 'useitem', idx: i, desc: ITEMS[id].desc })), u); Aud.sfx('ok'); return; }
   if (it.act === 'sp') {
@@ -313,8 +315,8 @@ function* dialogue(lines, bg, overlay) {
   }
   G.dlg = null;
 }
-function* chapterCard(idx) {
-  G.scene = 'card'; flushInput(); const ch = CHAPTERS[idx];
+function* chapterCard(idx, over) {
+  G.scene = 'card'; flushInput(); const ch = over || CHAPTERS[idx];
   G.card = { idx, title: ch.title, name: ch.name, goal: ch.goal, bg: ch.bg, t: 0, dur: 150 };
   Aud.bgm('title');
   while (G.card.t < G.card.dur) { G.card.t++; yield 1; if (Input.q.shift() === 'ok' && G.card.t > 30) break; }
@@ -387,7 +389,15 @@ function* enemyPhase() {
   }
 }
 function* healRecords(list) { for (const h of list) { Aud.sfx('heal'); sparkle(h.unit); numFx(h.unit, '+' + h.amt, '#6dff8d', 10); Co.run(tweenHp(h.unit, h.unit.hp, 20)); } if (list.length) yield 40; }
-function* battleTalk(t) { S_talk(t); G.busy++; try { yield* dialogue(t.lines, null, true); } finally { G.busy--; flushInput(); } }
+function* battleTalk(t) {
+  S_talk(t); G.busy++;
+  try {
+    yield* dialogue(t.lines, null, true);
+    if (t.secret) { const S = G.S, u = S.units.find(q => q.team === 0 && !q.dead && q.key === (t.when.at || t.when.adj)[0]) || S.units.find(q => q.team === 0 && !q.dead); markFound(S, t.id); const txt = grantSecret(S, u, t.reward); Aud.sfx('levelup'); if (u) { numFx(u, '秘密を見つけた!', '#ffe27a', 10); sparkle(u); } yield 24; yield* dialogue([[null, '【秘密】' + txt]], null, true); }
+  } finally { G.busy--; flushInput(); }
+}
+function announceSecrets(list) { if (list && list.length) { Aud.sfx('ok'); for (const q of list) fxSecretPop(q); } }
+function fxSecretPop(q) { const p = tilePx(q.x, q.y); if (fxHdOn()) fxSpark(p.x + 8, p.y + 6, 12, '#fff2b0', { life: 22 }); else for (let i = 0; i < 6; i++) G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 6, vx: (Math.random() - 0.5) * 1.2, vy: -0.4 - Math.random() * 0.6, g: 0.02, life: 20, color: '#fff6b0', s: 1.2 }); }
 function S_talk(t) { G.S.talked[t.id] = true; }
 function* battleScene(S, idx) {
   G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.undo = []; G.undoLeft = UNDO_USES; G.pendingSnap = null; G.infoBig = false; G.lvl = null; G.dlg = null; G.why = '';
@@ -413,6 +423,7 @@ function* battleScene(S, idx) {
 }
 function* resultScene(sum, idx) {
   const lines = [[null, '戦利品: ' + (sum.gold + sum.reward) + 'G (撃破・宝箱 ' + sum.gold + 'G + 章クリア ' + sum.reward + 'G)' + (sum.proofs ? ' と勇者の証' : '')]];
+  if (sum.total) lines.push([null, '秘密 ' + sum.found + '/' + sum.total + (sum.found >= sum.total ? '  全て見つけた!' : '  (まだ何かが隠れているかもしれない)')]);
   for (const id of sum.injured) lines.push([null, G.roster[id].name + 'は負傷した。次の章は休むことになる。']);
   for (const id of sum.healed) lines.push([null, G.roster[id].name + 'の傷が癒えた。']);
   yield* dialogue(lines, CHAPTERS[idx].bg);
@@ -428,7 +439,7 @@ function* flow() {
     G.roster = newRoster(); G.meta = newMeta(); G.why = '';
     if (r === 'continue') { const s = loadGame(); if (s) { G.roster = s.roster; G.meta = s.meta; idx = s.ch; needBase = !!s.base; } }
     if (r === 'jump' && G.jump.ending) { G.jump = null; G.roster = newRoster(); G.meta = newMeta(); yield* endingScene(); continue; }
-    if (r === 'jump') { idx = G.jump.ch; skip = true; needBase = !!G.jump.base; if (idx > 0) jumpSetup(idx, !needBase); G.jump = null; }
+    if (r === 'jump') { idx = G.jump.ch; skip = true; needBase = !!G.jump.base; if (idx > 0) jumpSetup(idx, !needBase); if (G.jump.deploy) G.meta.deploy = G.jump.deploy; G.jump = null; }
     let toTitle = false;
     for (; idx < CHAPTERS.length && !toTitle;) {
       const ch = CHAPTERS[idx]; G.chIdx = idx;
@@ -480,6 +491,7 @@ function render() {
     case 'dialogue': drawDialogue(); break;
     case 'battle': drawBattle(); break;
     case 'gameover': drawGameOver(); break;
+    case 'tower': drawTowerChoice(); break;
     case 'ending': drawEnding(); break;
     case 'base': drawBase(); break;
     default: rect(0, 0, W, H, '#000'); text('読み込み中…', W / 2, 110, { align: 'center' });
@@ -500,9 +512,11 @@ window.__tac = {
   talk: (who, txt, bg) => { G.scene = 'dialogue'; G.dlg = { line: [who, txt], bg: bg || 0, n: txt.length, tip: false }; },
   showIntro: t => { G.scene = 'intro'; G.intro = { t: t || 70 }; },
   setAuto: v => setAuto(v), setCutin: v => { G.cutin = !!v; savePrefs(); }, setHD: v => { G.hdUnits = v === 'auto' ? true : !!v; savePrefs(); },
-  start: (ch, base) => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0, base: !!base }; },
+  start: (ch, base, deploy) => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0, base: !!base, deploy: deploy || null }; },
+  towerUnder: () => { if (G.scene !== 'base' || !G.meta || !towerUnlocked(G.meta)) return false; const ids = towerDefaultDeploy(G.roster), avg = ids.reduce((a, id) => a + G.roster[id].lv, 0) / ids.length; if (avg >= 2 * Base.chIdx + 1) return false; G.meta.tdeploy = ids; Base.job = function* () { yield* towerRun(towerMeta(G.meta).best + 1); }; return true; },
   campAuto: () => { if (G.scene === 'base') { autoCamp(G.roster, G.meta, Base.chIdx); baseToast('おまかせで整えました'); } }, campGo: () => { if (G.scene === 'base') Base.go = true; },
   roster: () => JSON.parse(JSON.stringify({ roster: G.roster, meta: G.meta })), give: (gold, proofs) => { if (G.meta) { G.meta.gold += gold || 0; G.meta.proofs += proofs || 0; } },
+  bondOf: (a, b) => (G.S && G.S.bonds ? G.S.bonds[bondKey(a, b)] : 0) || 0,
   bond: (a, b, n) => { if (G.meta) G.meta.bonds[bondKey(a, b)] = n; }, ready2: () => !!G.dlg,
   setLv: (id, lv) => { const u = G.roster && G.roster[id]; if (u) { u.lv = lv; } },
   hurt: (id, hp) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.hp = hp; u.vhp = hp; u.ghost = hp; } },
@@ -516,9 +530,10 @@ window.__tac = {
     return {
       scene: G.scene, dlg: !!G.dlg, gold: G.meta ? G.meta.gold : 0, base: G.scene === 'base' ? { depth: Base.stack.length, title: curView().v.title, rows: allRows(curView().v, curView().e).map(r => r.t), idx: curView().e.idx, geom: Base.geom } : null, auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, undoLeft: G.undoLeft, undoN: G.undo ? G.undo.length : 0, danger: !!G.danger, dangerN: (G.S && G.danger) ? dangerSet(G.S).size : 0, seed: _seed, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
-      title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
+      title: G.scene === 'title' || G.scene === 'gameover' || G.scene === 'tower' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
       over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, yoff: G.yOff || 0, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
       targets: (G.targets || []).map(t => t.id), ti: G.ti,
+      secrets: S ? S.secrets.map(q => ({ id: q.id, x: q.x, y: q.y, seen: q.seen, got: q.got })) : [], found: S ? S.found.slice() : [], gain: S ? JSON.parse(JSON.stringify(S.gain)) : null,
       units: S ? S.units.filter(u => !u.dead && !u.off).map(u => ({ id: u.id, key: u.key, name: u.name, team: u.team, x: u.x, y: u.y, hp: u.hp, maxhp: u.maxhp, lv: u.lv, exp: u.exp, acted: !!u.acted, boss: u.boss })) : []
     };
   },

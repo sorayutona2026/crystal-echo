@@ -42,6 +42,12 @@ wfam('tome', null, 'mag', [['fire', 'ファイア', 5, 85, 0, 0], ['elfire', '�
 wfam('staff', null, 'heal', [['live', 'ライブ', 4, 100, 0, 0], ['relive', 'リライブ', 6, 100, PRICE.steel, 1], ['miracle', 'ミラクル', 8, 100, PRICE.silver, 2], ['holy', '聖なる杖', 10, 100, PRICE.special, 3]]);
 wfam('dagger', 'sword', 'phys', [['dagger', '短剣', 4, 95, 0, 0], ['steel_dagger', '鋼の短剣', 6, 92, PRICE.steel, 1], ['silver_dagger', '銀の短剣', 8, 90, PRICE.silver, 2], ['viper', '毒蛇の牙', 6, 100, PRICE.special, 3, { crit: 20 }]]);
 wfam('tome', null, 'mag', [['light', '光の書', 6, 88, 0, 0], ['light2', '聖光の書', 9, 85, PRICE.silver, 2]]);
+// secret / tower-only weapons (never in the shop; found in hidden spots or earned on the Trial Tower)
+wfam('bow', null, 'phys', [['wind_bow', '疾風の弓', 8, 88, 0, 2, { min: 2, max: 2, crit: 5, noshop: true }], ['sky_bow', '天穹の弓', 10, 82, 0, 3, { min: 2, max: 3, noshop: true }]]);
+wfam('tome', null, 'mag', [['ember_tome', '残り火の書', 8, 84, 0, 2, { crit: 4, noshop: true }], ['star_tome', '星詠みの書', 10, 80, 0, 3, { crit: 6, noshop: true }]]);
+wfam('spear', 'spear', 'phys', [['oath_spear', '誓いの槍', 9, 85, 0, 2, { crit: 4, noshop: true }], ['guard_spear', '守護の槍', 11, 82, 0, 3, { noshop: true }]]);
+wfam('dagger', 'sword', 'phys', [['moon_dagger', '月影の短剣', 7, 98, 0, 2, { crit: 12, noshop: true }], ['shadow_blade', '影刃', 9, 95, 0, 3, { crit: 10, noshop: true }]]);
+wfam('staff', null, 'heal', [['tree_staff', '聖樹の杖', 9, 100, 0, 3, { noshop: true }]]);
 for (const id of ['light', 'light2']) { WITEMS[id].fam = 'tome'; WITEMS[id].light = true; WITEMS[id].noshop = id === 'light'; }
 const START_WID = { leon: 'iron_spear', mira: 'iron_bow', luka: 'fire', sophia: 'live', jin: 'dagger' };
 const ITEMS = {
@@ -49,6 +55,8 @@ const ITEMS = {
   hipotion: { name: '特傷薬', heal: 30, price: 100, desc: 'HPを30回復', stage: 2 }
 };
 const MAX_ITEMS = 3;
+// permanent stat drops (+1), found in hidden spots; used from the camp (部隊)
+const DROPS = { str: '力のしずく', def: '守りのしずく', spd: '速さのしずく', mag: '魔力のしずく' };
 const STATS = ['hp', 'str', 'mag', 'skl', 'spd', 'def', 'res'];
 const STAT_JP = { hp: 'HP', str: '力', mag: '魔力', skl: '技', spd: '速さ', def: '守備', res: '魔防', mov: '移動' };
 // base: stats at Lv1; gr: growth rates (%)

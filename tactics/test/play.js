@@ -5,19 +5,24 @@ const SEED = +(process.env.SEED || 1);
 (async () => {
   const t0 = Date.now(), b = await launch(); const { page, errors } = await open(b, { query: '?seed=' + SEED });
   await page.evaluate(s => { __tac.seed(s); __tac.speed(10); }, SEED);
-  let lastBattle = null, retries = 0, lastScene = '', battles = 0, actions = 0;
+  let lastBattle = null, towerRuns = 0, retries = 0, lastScene = '', battles = 0, actions = 0;
   for (let guard = 0; guard < 20000; guard++) {
     const s = await st(page);
     if (s.scene !== lastScene) { console.log(`[${((Date.now() - t0) / 1000).toFixed(0)}s] scene=${s.scene} ch=${s.chIdx + 1} turn=${s.turn}`); lastScene = s.scene; }
     if (s.scene === 'ending') {
       await sleep(200);
       if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
-      const f = await st(page); console.log('retries:', retries, 'seed:', SEED);
+      const f = await st(page); console.log('tower floors:', towerRuns, 'retries:', retries, 'seed:', SEED);
       console.log('COMPLETE'); await b.close(); return;
     }
     if (s.scene === 'battle') { lastBattle = s; let cont; try { cont = await botStep(page); } catch (e) { const q = await st(page); throw new Error(e.message.split('\n')[0] + ' | state ' + JSON.stringify({ ch: q.chIdx + 1, turn: q.turn, mode: q.mode, ready: q.ready, busy: q.busy, dlg: q.dlg, lvl: q.lvl, banner: q.banner, phase: q.phase, endTurn: q.endTurn, units: q.units.map(u => u.key + (u.team ? '*' : '') + '@' + u.x + ',' + u.y + ':' + u.hp + (u.acted ? 'a' : '')).join(' ') })); } actions++; if (!cont) await sleep(50); if (s.turn > 60) throw new Error('turn limit: ch' + (s.chIdx + 1) + ' ' + s.units.map(u => u.key + (u.team === 1 ? '*' : '') + '@' + u.x + ',' + u.y + ':' + u.hp + '/' + u.maxhp).join(' ')); continue; }
     if (s.scene === 'gameover') { retries++; if (retries > 10) throw new Error('too many defeats'); console.log('  defeated -> retry; last battle state: ch' + (lastBattle.chIdx + 1) + ' turn ' + lastBattle.turn + ' units ' + lastBattle.units.map(u => u.name + '(' + u.team + ') ' + u.hp + '/' + u.maxhp + '@' + u.x + ',' + u.y).join(' ')); await press(page, 'z'); await sleep(100); continue; }
-    if (s.scene === 'base') { await page.evaluate(() => { __tac.campAuto(); __tac.campGo(); }); await sleep(100); continue; }
+    if (s.scene === 'base') { // camp bot: tidy up; when the party is underleveled, climb one or two tower floors first
+      await page.evaluate(() => __tac.campAuto());
+      if (towerRuns < 2 && await page.evaluate(() => __tac.towerUnder())) { towerRuns++; console.log('  underleveled -> tower floor'); await sleep(150); continue; }
+      await page.evaluate(() => __tac.campGo()); await sleep(100); continue;
+    }
+    if (s.scene === 'tower') { await press(page, 'ArrowDown'); await press(page, 'z'); await sleep(100); continue; } // 帰還
     if (s.scene === 'title') { await press(page, 'z'); await sleep(100); continue; }
     await press(page, 'z'); await sleep(25);
   }

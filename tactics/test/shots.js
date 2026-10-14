@@ -63,6 +63,17 @@ const base = async (page, ch) => { await page.evaluate(c => { __tac.speed(4); __
   { const s = await st(page), leon = s.units.find(u => u.key === 'leon'), g = s.units.find(u => u.id.startsWith('goblin'));
     await page.evaluate(([id, x, y]) => __tac.place(id, x, y), [g.id, leon.x + 1, leon.y]); await sleep(200);
     await cursorTo(page, leon.x, leon.y); await press(page, 'z'); await waitMode(page, 'move'); await press(page, 'z'); await waitMode(page, 'menu'); await press(page, 'z'); await waitMode(page, 'target'); await press(page, 'z'); await waitMode(page, 'forecast'); await sleep(300); await shot(page, '30_forecast_crit'); }
+  // ---- trial tower: camp row, a boss floor, secrets
+  await fresh(page); await base(page, 2); await page.evaluate(() => { G.meta.tower = { best: 7, claimed: {} }; }); await sleep(250); await press(page, 'ArrowDown', 5); await sleep(250); await shot(page, '60_tower_camp_row');
+  await press(page, 'z'); await sleep(300); await shot(page, '61_tower_camp_view');
+  await page.evaluate(() => { __tac.speed(6); }); await press(page, 'ArrowDown'); await press(page, 'z'); await waitState(page, () => __tac.state().scene === 'card', null, 8000); await sleep(1200); await shot(page, '62_tower_card');
+  await press(page, 'z'); await waitState(page, () => __tac.state().scene === 'battle' && __tac.state().ready, null, 30000); await page.evaluate(() => __tac.speed(1)); await sleep(1200); await shot(page, '63_tower_battle_floor8');
+  await fresh(page); await base(page, 2); await page.evaluate(() => { G.meta.tower = { best: 4, claimed: {} }; Base.job = function* () { yield* towerRun(5); }; __tac.speed(6); });
+  await waitState(page, () => __tac.state().scene === 'card', null, 8000); await press(page, 'z'); await waitState(page, () => __tac.state().scene === 'battle' && __tac.state().ready, null, 30000); await page.evaluate(() => __tac.speed(1));
+  { const s = await st(page), e = s.units.find(u => u.boss); await cursorTo(page, e.x, e.y); await sleep(1200); await shot(page, '64_tower_boss_floor5'); }
+  await fresh(page); await battle(page, 0); await page.evaluate(() => { G.S.secrets[0].seen = true; }); await cursorTo(page, 13, 2); await sleep(1100); await shot(page, '65_secret_sparkle');
+  await fresh(page); await battle(page, 1); await page.evaluate(() => __tac.place('sophia', 2, 4)); await waitState(page, () => __tac.state().dlg, null, 8000); await sleep(2200); await shot(page, '66_secret_talk');
+  for (let i = 0; i < 12; i++) { await press(page, 'z'); await sleep(250); } await sleep(300); await shot(page, '67_secret_talk_reward');
   // game over, ending
   await fresh(page); await battle(page, 5); await page.evaluate(() => { __tac.speed(10); __tac.kill('leon'); });
   await waitState(page, () => __tac.state().scene === 'gameover', null, 60000); await page.evaluate(() => __tac.speed(1)); await sleep(300); await shot(page, '31_gameover');

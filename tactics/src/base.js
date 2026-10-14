@@ -21,6 +21,7 @@ function viewMain() {
     { t: 'ショップ', sub: '武器・傷薬を売り買い', fn: () => basePush(viewShop) },
     { t: '鍛冶場', sub: '武器の威力を+1ずつ強化', fn: () => basePush(viewForge) },
     { t: '支援会話', sub: '隣で戦うと絆が深まる', r: unread ? '未読' + unread : '', fn: () => basePush(viewSupports) },
+    { t: '試練の塔', sub: towerUnlocked(M) ? '何度でも挑める修行の場  最高 ' + towerMeta(M).best + '階' : '第一章をクリアすると解放', r: towerMeta(M).best ? '最高' + towerMeta(M).best + '階' : '', off: !towerUnlocked(M), fn: () => basePush(viewTower) },
     { t: 'おまかせで整える', sub: 'スキル・装備・傷薬・編成を自動で', fn: () => { autoCamp(R, M, idx); baseToast('整えました'); Aud.sfx('levelup'); } },
     { t: 'セーブ', sub: '野営地で記録する', fn: () => { saveGame(idx); baseToast('セーブしました'); Aud.sfx('levelup'); } }
   ] };
@@ -37,6 +38,17 @@ function viewDeploy() {
   rows.push({ t: '出撃する!', sub: ok ? ch.title + ' 「' + ch.name + '」' : 'レオンを含めて1〜' + ch.cap + '人を選ぼう', r: dep.length + '/' + ch.cap, hl: 1, off: !ok, fn: () => { M.deploy = dep.slice().sort((a, b) => (a === 'leon' ? -1 : b === 'leon' ? 1 : 0)); Base.go = true; } });
   return { title: '出撃準備', sub: '最大' + ch.cap + '人 / ' + ch.goal, rows };
 }
+function viewTower() {
+  const R = bRoster(), M = bMeta(), T = towerMeta(M); if (!M.tdeploy || !towerValidDeploy(R, M.tdeploy)) M.tdeploy = towerDefaultDeploy(R);
+  const dep = M.tdeploy, ok = towerValidDeploy(R, dep), go = f => { M.tdeploy = dep.slice().sort((a, b) => (a === 'leon' ? -1 : b === 'leon' ? 1 : 0)); Base.job = function* () { yield* towerRun(f); }; };
+  const rows = [{ t: '1階から挑戦', sub: ok ? '5階ごとにボスと特別な武器' : 'レオンを含めて1〜' + TOWER_CAP + '人を選ぼう', r: dep.length + '/' + TOWER_CAP, hl: 1, off: !ok, fn: () => go(1) }];
+  if (T.best >= 1) rows.push({ t: (T.best + 1) + '階から挑戦', sub: '最高到達の続きから', r: dep.length + '/' + TOWER_CAP, hl: 1, off: !ok, fn: () => go(T.best + 1) });
+  for (const id of heroIds()) { const u = R[id], on = dep.includes(id), inj = u.injured > 0;
+    rows.push({ t: u.name + '  Lv' + u.lv + ' ' + u.cls, sub: inj ? '負傷中(塔にも入れません)' : statLine(u), r: inj ? '負傷' : on ? '出撃' : '待機', hl: on ? 2 : 0, off: inj, fn: () => {
+      if (id === 'leon') { baseToast('レオンは必ず出撃'); Aud.sfx('cancel'); return; }
+      if (on) dep.splice(dep.indexOf(id), 1); else if (dep.length < TOWER_CAP) dep.push(id); else { baseToast('出撃は' + TOWER_CAP + '人まで'); Aud.sfx('cancel'); return; } Aud.sfx('ok'); } }); }
+  return { title: '試練の塔', sub: '最高 ' + T.best + '階 / 負傷なし・敗北で金貨を失う・帰還で持ち帰る', rows };
+}
 function viewParty() {
   const R = bRoster(), M = bMeta();
   return { title: '部隊', sub: '仲間を選ぶと詳しく見られる', rows: heroIds().map(id => { const u = R[id], tag = pendingSkill(u) ? 'スキル!' : canPromote(u, M) ? '転職可!' : u.injured > 0 ? '負傷' : '';
@@ -48,6 +60,7 @@ function viewHero() {
   if (p) rows.push({ t: 'スキルを選ぶ', sub: SKILLS[p[0]].name + ' / ' + SKILLS[p[1]].name + ' から1つ', r: '!', hl: 1, fn: () => basePush(viewSkill) });
   if (canPromote(u, M)) rows.push({ t: 'クラスチェンジ', sub: PROMO[u.key].cls + ' (勇者の証を使う)', r: '!', hl: 1, fn: () => basePush(viewClass) });
   else if (u.lv >= 10 && !u.promoted && PROMO[u.key]) rows.push({ t: 'クラスチェンジ', sub: '勇者の証が必要(第三・四章で見つかる)', off: true, fn: () => { } });
+  for (const k in DROPS) { const n = (M.drops || {})[k] || 0; if (n > 0) rows.push({ t: DROPS[k] + 'を使う', sub: STAT_JP[k] + ' +1 (所持 ' + n + ')', r: '+1', hl: 1, fn: () => { useDrop(M, u, k); Aud.sfx('levelup'); baseToast(u.name + 'の' + STAT_JP[k] + 'が上がった'); } }); }
   rows.push({ t: '装備変更', sub: weaponOf(u).name + '  ' + wDesc(weaponOf(u)) + (u.forge ? ' (+' + u.forge + ')' : ''), fn: () => basePush(viewEquip) });
   const bonds = heroIds().filter(o => o !== u.key).map(o => { const lv = bondLevel(bondPts(M, u.key, o)); return lv ? R[o].name + BOND_RANK[lv] : ''; }).filter(Boolean);
   rows.push({ t: '絆', sub: bonds.length ? bonds.join('  ') : 'まだありません(隣で一緒に行動しよう)', off: true, fn: () => { } });
@@ -155,7 +168,7 @@ function* baseScene(idx) {
   Base.stack = [{ fn: viewMain, idx: 0, scroll: 0 }]; if (!G.meta.deploy) G.meta.deploy = defaultDeploy(G.roster, idx);
   for (;;) {
     if (Base.go) break; if (Base.title) return 'title';
-    if (Base.job) { const j = Base.job; Base.job = null; yield* j(); G.scene = 'base'; flushInput(); continue; }
+    if (Base.job) { const j = Base.job; Base.job = null; yield* j(); G.scene = 'base'; flushInput(); Aud.bgm('camp'); continue; }
     if (G.auto && !Base.autoDone) { Base.autoDone = true; autoCamp(G.roster, G.meta, idx); baseToast('おまかせで整えました'); Aud.sfx('levelup'); for (let i = 0; i < 90; i++) yield 1; if (G.auto) Base.go = true; continue; }
     const a = Input.q.shift(); if (a && !G.busy) baseInput(a);
     yield 1;

@@ -780,6 +780,12 @@ wfam('tome', null, 'mag', [['fire', 'ファイア', 5, 85, 0, 0], ['elfire', '�
 wfam('staff', null, 'heal', [['live', 'ライブ', 4, 100, 0, 0], ['relive', 'リライブ', 6, 100, PRICE.steel, 1], ['miracle', 'ミラクル', 8, 100, PRICE.silver, 2], ['holy', '聖なる杖', 10, 100, PRICE.special, 3]]);
 wfam('dagger', 'sword', 'phys', [['dagger', '短剣', 4, 95, 0, 0], ['steel_dagger', '鋼の短剣', 6, 92, PRICE.steel, 1], ['silver_dagger', '銀の短剣', 8, 90, PRICE.silver, 2], ['viper', '毒蛇の牙', 6, 100, PRICE.special, 3, { crit: 20 }]]);
 wfam('tome', null, 'mag', [['light', '光の書', 6, 88, 0, 0], ['light2', '聖光の書', 9, 85, PRICE.silver, 2]]);
+// secret / tower-only weapons (never in the shop; found in hidden spots or earned on the Trial Tower)
+wfam('bow', null, 'phys', [['wind_bow', '疾風の弓', 8, 88, 0, 2, { min: 2, max: 2, crit: 5, noshop: true }], ['sky_bow', '天穹の弓', 10, 82, 0, 3, { min: 2, max: 3, noshop: true }]]);
+wfam('tome', null, 'mag', [['ember_tome', '残り火の書', 8, 84, 0, 2, { crit: 4, noshop: true }], ['star_tome', '星詠みの書', 10, 80, 0, 3, { crit: 6, noshop: true }]]);
+wfam('spear', 'spear', 'phys', [['oath_spear', '誓いの槍', 9, 85, 0, 2, { crit: 4, noshop: true }], ['guard_spear', '守護の槍', 11, 82, 0, 3, { noshop: true }]]);
+wfam('dagger', 'sword', 'phys', [['moon_dagger', '月影の短剣', 7, 98, 0, 2, { crit: 12, noshop: true }], ['shadow_blade', '影刃', 9, 95, 0, 3, { crit: 10, noshop: true }]]);
+wfam('staff', null, 'heal', [['tree_staff', '聖樹の杖', 9, 100, 0, 3, { noshop: true }]]);
 for (const id of ['light', 'light2']) { WITEMS[id].fam = 'tome'; WITEMS[id].light = true; WITEMS[id].noshop = id === 'light'; }
 const START_WID = { leon: 'iron_spear', mira: 'iron_bow', luka: 'fire', sophia: 'live', jin: 'dagger' };
 const ITEMS = {
@@ -787,6 +793,8 @@ const ITEMS = {
   hipotion: { name: '特傷薬', heal: 30, price: 100, desc: 'HPを30回復', stage: 2 }
 };
 const MAX_ITEMS = 3;
+// permanent stat drops (+1), found in hidden spots; used from the camp (部隊)
+const DROPS = { str: '力のしずく', def: '守りのしずく', spd: '速さのしずく', mag: '魔力のしずく' };
 const STATS = ['hp', 'str', 'mag', 'skl', 'spd', 'def', 'res'];
 const STAT_JP = { hp: 'HP', str: '力', mag: '魔力', skl: '技', spd: '速さ', def: '守備', res: '魔防', mov: '移動' };
 // base: stats at Lv1; gr: growth rates (%)
@@ -915,6 +923,7 @@ const CHAPTERS = [
     slots: [[7, 13], [6, 12], [6, 14]],
     enemies: [['goblin', 18, 12, 1, 'aggro'], ['goblin', 19, 13, 1, 'aggro'], ['slime', 17, 9, 1, 'aggro'], ['goblin', 9, 3, 1, 'wait'], ['slime', 11, 2, 1, 'wait'], ['goblin', 13, 5, 1, 'wait']],
     chests: [{ x: 9, y: 11, gold: 100 }, { x: 15, y: 8, gold: 80 }],
+    secrets: [{ id: '1-t1', x: 13, y: 1, get: { drop: 'str' } }, { id: '1-t2', x: 4, y: 15, get: { drop: 'def' } }],
     join: [],
     pre: [
       [null, 'フェルナ王国の北のはて。国境の小さな村に、朝の煙がたちのぼっていた。'],
@@ -963,6 +972,7 @@ const CHAPTERS = [
     neutral: [{ id: 'jin', x: 8, y: 11, lv: 2 }],
     enemies: [['skeleton', 19, 2, 4, 'raid'], ['skeleton', 19, 9, 4, 'raid'], ['skeleton', 19, 4, 4, 'raid'], ['skeleton', 19, 13, 4, 'raid'], ['skeleton', 21, 8, 4, 'raid'], ['darkmage', 20, 5, 4, 'aggro'], ['darkmage', 20, 12, 4, 'aggro']],
     chests: [{ x: 7, y: 12, gold: 120 }],
+    secrets: [{ id: '2-t1', x: 2, y: 10, get: { weapon: 'wind_bow' } }, { id: '2-t2', x: 19, y: 15, get: { drop: 'spd' } }],
     join: ['sophia'],
     pre: [
       [null, '南の渡し場。夜になると、川の向こうから骨の鳴る音が聞こえるという。'],
@@ -984,12 +994,14 @@ const CHAPTERS = [
       ['jin', 'タダ働きは趣味じゃない。でもな、骨どもの親玉の旗に、見覚えがあってね。'],
       ['jin', '俺はジン。元ガルド軍。脱走兵だ。…雇うかい?'],
       ['leon', 'ガルド軍だと?'],
+      ['jin', 'ああ、それと。隠し物の匂いには鼻が利く。近くへ寄れば、光って見えるぜ。'],
       ['jin', '話はあとだ。まず生き残る。前金は後払いでいいぜ、隊長。']
     ], late: [[null, '戦いが終わるころ、いつのまにかジンが隊の後ろを歩いていた。'], ['jin', '勝手についてくだけだ。気にするな、隊長。']] },
     talks: [
       { id: 'c2a', when: { turn: 3 }, lines: [['sophia', '…また、聞こえます。かけらが、泣いてる。'], ['luka', '……。'], ['sophia', 'ルカさん? 顔色が…'], ['luka', 'なんでもない。年寄りの腰痛じゃ。']] },
       { id: 'c2b', when: { adj: ['mira', 'sophia'] }, lines: [['mira', 'あんた、震えてる。'], ['sophia', 'こ、怖くなんて——'], ['mira', '怖くていいよ。あたしも怖い。その代わり、後ろは任せた。'], ['sophia', '…はい!']] },
-      { id: 'c2c', when: { turn: 6 }, lines: [['leon', 'あと少しだ。夜明けは近い!'], ['sophia', '橋の向こうの灯りが、少しずつ減っています。みなさん、逃げきれそうです。']] }
+      { id: 'c2c', when: { turn: 6 }, lines: [['leon', 'あと少しだ。夜明けは近い!'], ['sophia', '橋の向こうの灯りが、少しずつ減っています。みなさん、逃げきれそうです。']] },
+      { id: '2-k1', secret: true, when: { at: ['sophia', 2, 4] }, reward: { bond: ['mira', 'sophia', 2] }, lines: [[null, '村はずれの、小さな墓地。名もない石の前に、枯れた花が置かれていた。'], ['sophia', '…ここは、静かですね。かけらの声が、聞こえない。'], ['sophia', '泣いている声ばかり聞いてきたから。静かなのは、安らかだからなんですね。'], ['sophia', '(わたしも、誰かが泣きやめる場所に、なれたらいいな)'], [null, 'ソフィアは墓前に膝をつき、白い花をそっと添えた。']] }
     ],
     post: [
       ['sophia', '…夜が、明けます。'],
@@ -1013,6 +1025,7 @@ const CHAPTERS = [
     enemies: [['goblin', 8, 10, 5, 'aggro'], ['goblin', 3, 7, 5, 'aggro'], ['skeleton', 11, 11, 5, 'aggro'], ['skeleton', 15, 9, 5, 'wait'], ['skeleton', 17, 5, 5, 'wait'],
       ['darkmage', 14, 7, 5, 'wait'], ['darkmage', 20, 2, 5, 'wait'], ['goblin', 16, 13, 5, 'aggro'], ['slime', 9, 8, 5, 'aggro'], ['skeleton', 19, 3, 5, 'wait']],
     chests: [{ x: 3, y: 8, item: 'proof' }, { x: 15, y: 13, gold: 150 }],
+    secrets: [{ id: '3-t1', x: 11, y: 2, get: { weapon: 'moon_dagger' } }, { id: '3-t2', x: 4, y: 6, get: { drop: 'mag' } }],
     join: [],
     pre: [
       [null, '霧の森。一歩先も見えない白い闇の中を、彼らは進んでいた。'],
@@ -1053,6 +1066,7 @@ const CHAPTERS = [
     enemies: [['volk', 21, 7, 9, 'hold'], ['skeleton', 19, 8, 8, 'wait'], ['skeleton', 23, 8, 8, 'wait'], ['darkmage', 20, 8, 8, 'wait'], ['darkmage', 22, 8, 8, 'wait'],
       ['skeleton', 6, 8, 8, 'aggro'], ['skeleton', 17, 11, 8, 'aggro'], ['goblin', 10, 9, 8, 'aggro'], ['goblin', 16, 9, 8, 'aggro'], ['darkmage', 13, 5, 8, 'wait'], ['skeleton', 3, 11, 8, 'wait'], ['skeleton', 20, 12, 8, 'wait']],
     chests: [{ x: 1, y: 14, item: 'proof' }, { x: 18, y: 13, gold: 180 }],
+    secrets: [{ id: '4-t1', x: 23, y: 9, get: { proof: 1 } }, { id: '4-t2', x: 1, y: 3, get: { drop: 'def' } }],
     join: [],
     pre: [
       [null, '灰の町。十年前に滅びたまま、時が止まったように、焼けた石だけが残っている。'],
@@ -1069,7 +1083,8 @@ const CHAPTERS = [
     talks: [
       { id: 'c4a', when: { adj: ['leon', 'mira'] }, lines: [['mira', 'ねえレオン。あたし、仇を討つって言ったよね。'], ['leon', 'ああ。'], ['mira', 'ゴブリンも骸骨も、操ってたのはヴェルザ。この町を見殺しにしたのは、王様。'], ['mira', '…仇って、誰なんだろう。'], ['leon', '俺にもまだ答えは出ない。でも、答えを探すための剣なら、振れる。']] },
       { id: 'c4b', when: { turn: 3 }, lines: [['volk', '憎め、嘆け。その叫びが、星を呼ぶ。'], ['sophia', 'やめて…! この町の人たちは、もう眠っているのに!']] },
-      { id: 'c4c', when: { adj: ['luka', 'jin'] }, lines: [['jin', 'じいさん、顔が怖いぜ。'], ['luka', 'あの司祭の術は、わしのかけらの使い方によう似ておる。…あまりに、な。'], ['jin', '似てても、あんたは違う。あんたは後悔してる。'], ['luka', '…慰めか?'], ['jin', '事実だ。']] }
+      { id: 'c4c', when: { adj: ['luka', 'jin'] }, lines: [['jin', 'じいさん、顔が怖いぜ。'], ['luka', 'あの司祭の術は、わしのかけらの使い方によう似ておる。…あまりに、な。'], ['jin', '似てても、あんたは違う。あんたは後悔してる。'], ['luka', '…慰めか?'], ['jin', '事実だ。']] },
+      { id: '4-k1', secret: true, when: { at: ['mira', 15, 2] }, reward: { item: 'hipotion', to: 'mira' }, lines: [[null, '崩れた礼拝堂。ひび割れた鐘が、風に小さく鳴った。'], ['mira', '…あたしの村の教会に、そっくり。'], ['mira', '小さいころ、母さんとここで祈ったの。「明日も朝が来ますように」って。'], ['mira', 'ここの人たちも、きっと同じ祈りをした。…朝は、来なかったんだね。'], ['mira', '(だから、あたしは誰かの朝を奪う側には、ならない)'], [null, 'ミラは鐘の下に、矢羽根をひとつ供えた。']] }
     ],
     post: [
       ['volk', 'ガルド様は…砦で…お待ち…。主の星は、もう…近い…'],
@@ -1098,6 +1113,7 @@ const CHAPTERS = [
       ['skeleton', 17, 9, 11, 'aggro'], ['skeleton', 15, 8, 11, 'aggro'], ['skeleton', 19, 5, 11, 'wait'],
       ['darkmage', 14, 6, 11, 'aggro'], ['darkmage', 18, 6, 11, 'aggro'], ['goblin', 18, 8, 11, 'aggro'], ['skeleton', 14, 4, 11, 'aggro'], ['darkmage', 19, 4, 11, 'wait'], ['boss', 17, 3, 13, 'hold']],
     chests: [{ x: 6, y: 10, gold: 200 }],
+    secrets: [{ id: '5-t1', x: 8, y: 0, get: { weapon: 'oath_spear' } }, { id: '5-t2', x: 9, y: 13, get: { drop: 'str' } }],
     join: [],
     pre: [
       [null, '丘の上の古い砦。黄金の旗が、重い風にはためいている。'],
@@ -1115,7 +1131,8 @@ const CHAPTERS = [
     talks: [
       { id: 'c5a', when: { adj: ['leon', 'boss'] }, lines: [['boss', '構えが甘いぞ、レオン。わしが教えた通りに振れ。'], ['leon', '師匠…。あなたの教えは、全部覚えています。'], ['boss', '……では、なぜ迷う。'], ['leon', '迷います。あなたを斬りたくない。でも、止めたい。'], ['boss', '……その迷いを、捨てるな。それが、お前の強さだ。']] },
       { id: 'c5b', when: { turn: 3 }, lines: [['mira', 'あの人、手加減してる…?'], ['jin', 'ああ。本気なら、今ごろ俺たちは全員吹っ飛んでる。'], ['luka', '止めてほしいのじゃよ、あやつは。自分では止まれぬからの。']] },
-      { id: 'c5c', when: { turn: 5 }, lines: [['boss', '…まだ立つか。星の力が、身体を灼く。この痛みも、悪くない…'], ['sophia', 'もう、苦しまなくていいんです!']] }
+      { id: 'c5c', when: { turn: 5 }, lines: [['boss', '…まだ立つか。星の力が、身体を灼く。この痛みも、悪くない…'], ['sophia', 'もう、苦しまなくていいんです!']] },
+      { id: '5-k1', secret: true, when: { adj: ['jin', 'boss'] }, reward: { bond: ['jin', 'leon', 2] }, lines: [['boss', '…その目つき。見覚えがあるぞ。'], ['boss', '雨の夜、わしの糧食を盗もうとした、痩せた小僧。ジン、だったか。'], ['jin', '覚えてたのかよ。あのとき、あんたはパンを半分くれた。叱りもせずに。'], ['boss', '腹を空かせた子供を、叱る理由などない。'], ['jin', '…あんたに拾われなきゃ、俺はただのこそ泥だった。だから止める。今度は俺の番だ、将軍。'], ['boss', '……ふ。大きくなったな。']] }
     ],
     post: [
       ['boss', '……見事だ、レオン。それでこそ、わしの弟子だ。'],
@@ -1146,6 +1163,7 @@ const CHAPTERS = [
     enemies: [['verza', 20, 5, 17, 'hold'], ['darkmage', 18, 4, 15, 'wait'], ['darkmage', 22, 4, 15, 'wait'], ['skeleton', 18, 6, 15, 'wait'], ['skeleton', 22, 6, 15, 'wait'],
       ['skeleton', 17, 9, 15, 'aggro'], ['skeleton', 14, 6, 15, 'aggro'], ['goblin', 15, 10, 15, 'aggro'], ['goblin', 12, 7, 15, 'aggro'], ['darkmage', 20, 8, 15, 'wait']],
     chests: [{ x: 2, y: 17, gold: 250 }],
+    secrets: [{ id: '6-t1', x: 0, y: 19, get: { weapon: 'ember_tome' } }, { id: '6-t2', x: 29, y: 2, get: { drop: 'str' } }],
     join: [],
     pre: [
       [null, '星落ちの祭壇。夜空の中心で、紫の星が、ゆっくりと大きくなっていた。'],
@@ -1161,7 +1179,8 @@ const CHAPTERS = [
     talks: [
       { id: 'c6a', when: { turn: 3 }, lines: [['sophia', '…聞こえます。かけらが、ずっと言っていた言葉が。'], ['leon', '何て?'], ['sophia', '「ありがとう。もう、泣かなくていい」って。祈ります。みなさん、時間をください。']] },
       { id: 'c6b', when: { adj: ['leon', 'mira'] }, lines: [['mira', 'レオン。…仇は、あいつでいいよね。'], ['leon', 'ああ。でも、憎しみで撃つな。守りたいもので、撃て。'], ['mira', '…うん!']] },
-      { id: 'c6c', when: { turn: 5 }, lines: [['luka', 'ソフィア、続けなさい。かけらの重さは、わしが引き受ける。'], ['sophia', 'ルカさん、それじゃあなたが…'], ['luka', 'ふぉっふぉ。年寄りの、最後の仕事じゃ。']] }
+      { id: 'c6c', when: { turn: 5 }, lines: [['luka', 'ソフィア、続けなさい。かけらの重さは、わしが引き受ける。'], ['sophia', 'ルカさん、それじゃあなたが…'], ['luka', 'ふぉっふぉ。年寄りの、最後の仕事じゃ。']] },
+      { id: '6-k1', secret: true, when: { adj: ['luka', 'dmage'] }, reward: { gold: 200 }, lines: [['dmage', 'ルカ先生。まだ生きておいででしたか。'], ['luka', '先生と呼ぶな、ヴェルザ。…じゃが、お前を闇に落としたのは、このわしじゃ。'], ['luka', 'かけらの研究を「危うい」と取り上げた日、お前は笑っておったな。'], ['luka', 'あの笑顔の奥の孤独に、気づけなんだ。…すまなんだ。許せとは言わん。'], ['dmage', '……今さら。'], ['luka', '今さらじゃよ。だから、わしの手で終わらせる。']] }
     ],
     post: [
       ['dmage', 'ばかな…。星が止まる…。人の憎しみが、祈りに負けるはずが…'],
@@ -1219,13 +1238,13 @@ const SUPPORT_TITLES = { 'leon-mira': 'レオン×ミラ', 'jin-leon': 'ジン×
 'use strict';
 // ===== battle rules (pure logic; no DOM) =====
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-function newBattle(ch, roster, meta, deploy) {
-  const rows = ch.map, S = { rows, w: rows[0].length, h: rows.length, units: [], turn: 1, phase: 0, over: null, why: '', ch, bonds: meta ? meta.bonds : null, gain: { gold: 0, proofs: 0 }, chests: (ch.chests || []).map(c => Object.assign({ got: false }, c)), talked: {}, escaped: 0 };
+function newBattle(ch, roster, meta, deploy, keepHp) {
+  const rows = ch.map, S = { rows, w: rows[0].length, h: rows.length, units: [], turn: 1, phase: 0, over: null, why: '', ch, bonds: meta ? meta.bonds : null, gain: { gold: 0, proofs: 0, drops: {}, weapons: [] }, meta: meta || null, found: [], secrets: (ch.secrets || []).map(q => Object.assign({ seen: false, got: false }, q)), chests: (ch.chests || []).map(c => Object.assign({ got: false }, c)), talked: {}, escaped: 0 };
   const ids = (deploy && deploy.length ? deploy : Object.keys(roster).filter(id => !(roster[id].injured > 0) && !(ch.neutral || []).some(n => n.id === id))).slice(0, ch.slots.length);
-  ids.forEach((id, i) => { const u = roster[id], [x, y] = ch.slots[i]; u.team = 0; u.x = x; u.y = y; u.hp = u.maxhp; u.acted = false; u.dead = false; u.off = false; u.dir = 'right'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; u.deployed = true; S.units.push(u); });
+  ids.forEach((id, i) => { const u = roster[id], [x, y] = ch.slots[i]; u.team = 0; u.x = x; u.y = y; if (!keepHp) u.hp = u.maxhp; u.acted = false; u.dead = false; u.off = false; u.dir = 'right'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; u.deployed = true; S.units.push(u); });
   for (const id in roster) if (!ids.includes(id)) roster[id].deployed = false;
   for (const n of (ch.neutral || [])) { const u = roster[n.id]; if (!u || u.joined) continue; u.team = 2; u.recruit = true; u.x = n.x; u.y = n.y; u.hp = u.maxhp; u.acted = false; u.dead = false; u.off = false; u.dir = 'left'; u.spUsed = false; u.spActive = null; u.atkBuff = 0; u.deployed = true; S.units.push(u); }
-  for (const [t, x, y, lv, ai] of ch.enemies) { const u = makeEnemy(t, lv, x, y, ai); u.acted = false; u.dead = false; u.off = false; S.units.push(u); }
+  for (const [t, x, y, lv, ai, ex] of ch.enemies) { const u = makeEnemy(t, lv, x, y, ai, ex); u.acted = false; u.dead = false; u.off = false; S.units.push(u); }
   return S;
 }
 const inb = (S, x, y) => x >= 0 && y >= 0 && x < S.w && y < S.h;
@@ -1375,9 +1394,11 @@ function applyAction(S, u, dest, target, sp, opt) {
   if (dest && (dest.x !== u.x || dest.y !== u.y)) {
     const r = reach(S, u); rec.path = pathTo(r, dest.x, dest.y); u.x = dest.x; u.y = dest.y;
   }
-  if (u.team === 0) { const c = chestAt(S, u.x, u.y); if (c) { c.got = true; rec.chest = c; if (c.gold) S.gain.gold += c.gold; if (c.item === 'proof') S.gain.proofs++; } }
+  if (u.team === 0) { const c = chestAt(S, u.x, u.y); if (c) { c.got = true; rec.chest = c; if (c.gold) S.gain.gold += c.gold; if (c.item === 'proof') S.gain.proofs++; else if (c.item && ITEMS[c.item]) { if (u.items.length < MAX_ITEMS) u.items.push(c.item); else { c.gold = Math.floor(ITEMS[c.item].price / 2); S.gain.gold += c.gold; c.item = null; } } } }
+  senseSecrets(S, u);
   const kind = sp && SP[u.key] ? SP[u.key].kind : null;
-  if (opt.escape) { rec.kind = 'escape'; u.off = true; S.escaped++; }
+  if (opt.search) { const q = secretAt(S, u.x, u.y); rec.kind = 'search'; if (q) { rec.secret = q; rec.gotText = grantSecret(S, u, q.get); markFound(S, q.id); q.got = true; } }
+  else if (opt.escape) { rec.kind = 'escape'; u.off = true; S.escaped++; }
   else if (opt.talk && target) { rec.kind = 'talk'; recruit(S, u, target); }
   else if (opt.item != null) {
     const it = ITEMS[u.items[opt.item]]; rec.kind = 'item'; rec.itemName = it ? it.name : '';
@@ -1450,6 +1471,7 @@ function nextTalk(S) {
   for (const t of (S.ch.talks || [])) {
     if (S.talked[t.id]) continue; const w = t.when;
     if (w.turn != null) { if (S.turn >= w.turn && S.phase === 0) return t; continue; }
+    if (w.at) { const a = S.units.find(u => u.key === w.at[0] && !u.dead && !u.off && u.team === 0); if (a && a.x === w.at[1] && a.y === w.at[2]) return t; continue; }
     if (w.adj) {
       const a = S.units.find(u => u.key === w.adj[0] && !u.dead && !u.off && u.team !== 2), b = S.units.find(u => u.key === w.adj[1] && !u.dead && !u.off && u.team !== 2);
       if (a && b && dist(a.x, a.y, b.x, b.y) === 1) return t;
@@ -1457,6 +1479,31 @@ function nextTalk(S) {
   }
   return null;
 }
+// ---- secrets: hidden treasures (sparkle when a hero ends a move within 2 tiles; the thief senses from 4) and secret talks ----
+const secretAt = (S, x, y) => S.secrets.find(q => !q.got && q.seen && q.x === x && q.y === y) || null;
+function senseSecrets(S, u) {
+  if (!u || u.team !== 0 || u.dead) return [];
+  const r = u.key === 'jin' ? 4 : 2, out = [];
+  for (const q of S.secrets) if (!q.got && !q.seen && dist(u.x, u.y, q.x, q.y) <= r) { q.seen = true; out.push(q); }
+  return out;
+}
+function markFound(S, id) { if (!S.found.includes(id)) S.found.push(id); }
+function rewardText(g) {
+  if (g.drop) return DROPS[g.drop] + 'を手に入れた'; if (g.weapon) return WITEMS[g.weapon].name + 'を手に入れた'; if (g.proof) return '勇者の証を手に入れた';
+  if (g.gold) return g.gold + 'Gを手に入れた'; if (g.bond) return HEROES[g.bond[0]].name + '×' + HEROES[g.bond[1]].name + 'の絆が深まった'; if (g.item) return ITEMS[g.item].name + 'を手に入れた'; return '';
+}
+// applies a secret reward; meta-level loot is only recorded in S.gain (paid out when the chapter is won, so undo / defeat cannot duplicate it)
+function grantSecret(S, u, g) {
+  if (g.drop) S.gain.drops[g.drop] = (S.gain.drops[g.drop] || 0) + 1;
+  else if (g.weapon) S.gain.weapons.push(g.weapon);
+  else if (g.proof) S.gain.proofs++;
+  else if (g.gold) S.gain.gold += g.gold;
+  else if (g.bond) { if (S.bonds) { const k = bondKey(g.bond[0], g.bond[1]); S.bonds[k] = (S.bonds[k] || 0) + g.bond[2]; } }
+  else if (g.item) { const h = g.to && S.units.find(q => q.key === g.to && q.team === 0) || u; if (h && h.items.length < MAX_ITEMS) h.items.push(g.item); else S.gain.gold += Math.floor(ITEMS[g.item].price / 2); }
+  return rewardText(g);
+}
+const secretTotal = idx => (CHAPTERS[idx].secrets || []).length + (CHAPTERS[idx].talks || []).filter(t => t.secret).length;
+const secretFound = (meta, idx) => Object.keys(meta.secrets || {}).filter(k => k.startsWith((idx + 1) + '-')).length;
 // roster carried across chapters
 function newRoster() { return { leon: makeHero('leon', 1), mira: makeHero('mira', 1), luka: makeHero('luka', 1) }; }
 function newMeta() { return { gold: 120, convoy: [], bonds: {}, seen: {}, proofs: 0, cleared: 0, deploy: null }; }
@@ -1476,7 +1523,10 @@ function chapterBonus(roster, S) {
 // after a won chapter: gold, proofs, injuries, late joiners. returns a summary for the UI
 function finishChapter(roster, meta, S, idx) {
   const ch = CHAPTERS[idx], sum = { gold: S.gain.gold, reward: ch.reward, proofs: S.gain.proofs, injured: [], healed: [], late: [] };
-  meta.gold += S.gain.gold + ch.reward; meta.proofs += S.gain.proofs; meta.cleared = Math.max(meta.cleared, idx + 1);
+  meta.gold += S.gain.gold + ch.reward; meta.proofs += S.gain.proofs;
+  meta.drops = meta.drops || {}; for (const k in S.gain.drops) meta.drops[k] = (meta.drops[k] || 0) + S.gain.drops[k];
+  for (const w of S.gain.weapons) meta.convoy.push(w);
+  meta.secrets = meta.secrets || {}; for (const id of S.found) meta.secrets[id] = true; sum.found = S.found.length; sum.total = secretTotal(idx); meta.cleared = Math.max(meta.cleared, idx + 1);
   for (const id in roster) { const u = roster[id]; if (u.team === 2 && u.recruit) { u.team = 0; u.recruit = false; u.joined = true; sum.late.push(id); } }
   for (const id in roster) {
     const u = roster[id];
@@ -1511,6 +1561,8 @@ function promote(u, meta) {
   if (P.light) { u.canHeal = true; u.fam = 'tome'; const old = u.wid; if (old && !meta.convoy.includes(old) && old !== 'live') meta.convoy.push(old); u.wid = 'light'; }
   return true;
 }
+const DROP_TO = { str: ['leon'], def: ['leon'], spd: ['jin', 'mira'], mag: ['luka'] };
+function useDrop(meta, u, k) { if (!meta.drops || !(meta.drops[k] > 0)) return false; meta.drops[k]--; u[k]++; return true; }
 // ---- shop ----
 const shopStage = meta => meta.cleared >= 3 ? 3 : meta.cleared >= 2 ? 2 : meta.cleared >= 1 ? 1 : 0; // highest weapon tier on sale (special = 3)
 function shopWeapons(meta, u) {
@@ -1552,6 +1604,9 @@ function validDeploy(roster, idx, list) { return list && list.includes('leon') &
 // ---- automatic camp (bot, test, auto mode): skills, class change, potions, gear, forge, deployment ----
 function autoCamp(roster, meta, idx) {
   const ids = HERO_ORDER.filter(id => roster[id] && roster[id].joined !== false);
+  // secret loot: unique weapons from the convoy, then stat drops
+  for (const id of ids) { const u = roster[id]; for (;;) { let bi = -1, bm = weaponOf(u).might; meta.convoy.forEach((wid, i) => { const w = WITEMS[wid]; if (w && canWield(u, wid) && w.might + 0 > bm && !w.light) { bi = i; bm = w.might; } }); if (bi < 0) break; equipFromConvoy(meta, u, bi); } }
+  for (const k in DROP_TO) for (const id of DROP_TO[k]) { const u = roster[id]; while (u && u.joined !== false && (meta.drops || {})[k] > 0) useDrop(meta, u, k); }
   for (const id of ids) { const u = roster[id]; for (let g = 0; g < 2; g++) { const p = pendingSkill(u); if (p) chooseSkill(u, p[0]); } }
   for (const id of ['leon', 'luka', 'mira', 'sophia', 'jin']) { const u = roster[id]; if (u && canPromote(u, meta)) promote(u, meta); }
   const potionTo = n => { for (const id of ids) { const u = roster[id]; while (u.items.length < n && meta.gold >= ITEMS.potion.price + 10 && u.items.filter(x => x === 'potion').length < n) buyItem(meta, u, 'potion'); } };
@@ -1725,6 +1780,101 @@ function suggestAction(S) {
 }
 
 'use strict';
+// ===== Trial Tower (試練の塔): endless repeatable floors on the six painted maps =====
+// logic (floor generation) is pure so test/sim.js can load it; towerRun() is the scene generator used from the camp.
+const TOWER_CAP = 5, TOWER_BOSS_EVERY = 5, TOWER_HEAL = 0.3;
+const TOWER_PRIZE = { 5: 'guard_spear', 10: 'sky_bow', 15: 'star_tome', 20: 'shadow_blade', 25: 'tree_staff' };
+const TOWER_ELITES = [
+  { key: 'boss', name: '塔の番人ゴルド', cls: '鉄壁の番人', aura: '255,200,80' }, { key: 'verza', name: '星影の司祭ミルザ', cls: '星影の司祭', aura: '110,200,255' },
+  { key: 'boss', name: '黄金の覇者ガルディス', cls: '黄金の覇者', aura: '255,120,60' }, { key: 'verza', name: '虚空の司祭ヴォイド', cls: '虚空の司祭', aura: '190,70,255' }];
+const TOWER_KEY = 'starfall_tactics_tower_best';
+function trng(seed) { let s = (seed ^ 0x9e3779b9) >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
+function towerMeta(meta) { if (!meta.tower) meta.tower = { best: 0, claimed: {} }; return meta.tower; }
+function towerBestLS() { try { return +localStorage.getItem(TOWER_KEY) || 0; } catch (e) { return 0; } }
+function towerSetBest(meta, f) { const T = towerMeta(meta); if (f > T.best) T.best = f; try { if (T.best > towerBestLS()) localStorage.setItem(TOWER_KEY, String(T.best)); } catch (e) { } }
+const towerUnlocked = meta => meta.cleared >= 1;
+const towerBoss = f => f % TOWER_BOSS_EVERY === 0;
+function towerMapIdx(f) { // shuffled order of the six maps, re-shuffled every six floors; floor 1 is always the first (small) map
+  const block = Math.floor((f - 1) / 6), r = trng(block * 31 + 5), perm = [0, 1, 2, 3, 4, 5];
+  for (let i = 5; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+  if (block === 0) { const k = perm.indexOf(0); [perm[0], perm[k]] = [perm[k], perm[0]]; }
+  return perm[(f - 1) % 6];
+}
+const towerDeployable = u => u.team !== 2 && !(u.injured > 0) && u.joined !== false;
+function towerDefaultDeploy(roster) {
+  const ids = Object.keys(roster).filter(id => towerDeployable(roster[id]));
+  ids.sort((a, b) => (a === 'leon' ? -1 : b === 'leon' ? 1 : roster[b].lv - roster[a].lv)); return ids.slice(0, TOWER_CAP);
+}
+const towerValidDeploy = (roster, list) => !!list && list.includes('leon') && list.length <= TOWER_CAP && list.every(id => roster[id] && towerDeployable(roster[id]));
+// one floor as a chapter-shaped object (the battle code needs nothing else)
+function towerChapter(f, avg0, startF, P) {
+  const R = trng(f * 7919 + 13), mi = towerMapIdx(f), base = CHAPTERS[mi], map = base.map, w = map[0].length, h = map.length, pseudo = { rows: map, w, h };
+  const walk = (x, y) => !TERRAIN[map[y][x]].block, boss = towerBoss(f);
+  const slots = base.slots.map(s => s.slice()), has = (x, y) => slots.some(s => s[0] === x && s[1] === y);
+  const near = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (walk(x, y) && !has(x, y)) near.push([x, y, Math.abs(x - slots[0][0]) + Math.abs(y - slots[0][1])]);
+  near.sort((a, b) => a[2] - b[2] || a[1] - b[1] || a[0] - b[0]); for (const q of near) { if (slots.length >= TOWER_CAP) break; slots.push([q[0], q[1]]); }
+  const dm = distMap(pseudo, slots), cand = []; let maxd = 1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (walk(x, y) && dm.has(kk(x, y)) && !has(x, y)) { const d = dm.get(kk(x, y)); cand.push({ x, y, d }); if (d > maxd) maxd = d; }
+  const used = [], pick = (lo, hi) => {
+    let pool = cand.filter(c => c.d >= lo * maxd && c.d <= hi * maxd && !used.some(q => Math.abs(q.x - c.x) + Math.abs(q.y - c.y) < 2));
+    if (!pool.length) pool = cand.filter(c => !used.some(q => q.x === c.x && q.y === c.y)); const c = pool[Math.floor(R() * pool.length)]; used.push(c); return c;
+  };
+  const lvl = Math.max(1, Math.min(30, Math.max(avg0 - 1 + Math.floor((f - startF) / 2), Math.floor(f * 0.75) + 2))); // party level - 1, +1 per two floors; never below the floor's own baseline
+  let n = Math.max(2, Math.min(14, Math.round((2 + f * 0.5) * (0.5 + 0.1 * P)))); if (boss) n = Math.max(2, Math.round(n * 0.7));
+  const pool = f <= 2 ? ['goblin', 'slime', 'goblin'] : f <= 5 ? ['goblin', 'slime', 'skeleton', 'goblin', 'skeleton'] : f <= 9 ? ['goblin', 'skeleton', 'skeleton', 'darkmage', 'slime'] : ['goblin', 'skeleton', 'skeleton', 'darkmage', 'darkmage'];
+  const enemies = [], list = [];
+  for (let i = 0; i < n; i++) { const c = pick(0.4, 1); list.push({ c, t: pool[Math.floor(R() * pool.length)] }); }
+  list.sort((a, b) => a.c.d - b.c.d); list.forEach((q, i) => enemies.push([q.t, q.c.x, q.c.y, lvl, i < Math.ceil(n / 2) ? 'aggro' : 'wait']));
+  let elite = null;
+  if (boss) {
+    const eb = f < 10 ? 1 : 2, E = TOWER_ELITES[(f / TOWER_BOSS_EVERY - 1) % TOWER_ELITES.length], c = pick(0.8, 1), L = lvl + (f < 10 ? 1 : 2), d = ENEMY_T[E.key], s = scaledStats(d.base, d.gr, L);
+    const ex = { name: E.name, cls: E.cls, aura: E.aura, gold: 60 + f * 8, maxhp: Math.round(s.hp * Math.min(1.5, 1.1 + f * 0.02)) + 6, skl: s.skl + 1, str: s.str + (s.str > 0 ? eb : 0), mag: s.mag + (s.mag > 0 ? eb : 0), def: s.def + eb, res: s.res + eb };
+    ex.hp = ex.maxhp; enemies.push([E.key, c.x, c.y, L, 'hold', ex]); elite = E;
+  }
+  const chests = [pick(0.2, 0.6), pick(0.2, 0.7)]; const cs = [{ x: chests[0].x, y: chests[0].y, gold: 40 + 12 * f }, { x: chests[1].x, y: chests[1].y, item: f < 8 ? 'potion' : 'hipotion' }];
+  return Object.assign({}, base, { title: '試練の塔', name: f + '階', goal: boss ? elite.name + 'を倒せ' : '敵を全滅させよ', win: boss ? 'boss' : 'rout', turns: 0, village: null, exits: null, recruit: null,
+    slots, enemies, chests: cs, secrets: [], neutral: [], join: [], talks: [], cap: TOWER_CAP, reward: (40 + 20 * f) * (boss ? 2 : 1), tower: f, lvl, intro: null, bgm: boss ? 'boss' : 'field' });
+}
+// ---- scene: climb from startF; returns when the player goes home or is defeated ----
+function towerHealAll(R) { for (const id in R) { const u = R[id]; if (u.joined === false) continue; u.dead = false; u.off = false; u.team = 0; u.hp = u.maxhp; u.deployed = false; } }
+function towerHealParty(R, ids) { for (const id of ids) { const u = R[id], heal = Math.ceil(u.maxhp * TOWER_HEAL); u.hp = u.dead ? heal : Math.min(u.maxhp, u.hp + heal); u.dead = false; u.off = false; u.team = 0; } }
+function* towerChoice(f, run, lines) {
+  G.scene = 'tower'; flushInput(); Aud.bgm('win'); const items = [{ label: '次の階へ', id: 'next' }, { label: '帰還する', id: 'home' }]; G.title = { idx: 0, items }; G.tower = { f, run, lines };
+  for (;;) {
+    const a = Input.q.shift(), n = items.length;
+    if (a === 'up') { G.title.idx = (G.title.idx + n - 1) % n; Aud.sfx('move'); } else if (a === 'down') { G.title.idx = (G.title.idx + 1) % n; Aud.sfx('move'); }
+    else if (a === 'ok') { Aud.sfx('ok'); G.tower = null; return items[G.title.idx].id; }
+    yield 1;
+  }
+}
+function* towerRun(startF) {
+  const R = G.roster, M = G.meta, T = towerMeta(M);
+  const ids = (M.tdeploy && towerValidDeploy(R, M.tdeploy) ? M.tdeploy : towerDefaultDeploy(R)).slice();
+  const avg0 = Math.round(ids.reduce((a, id) => a + R[id].lv, 0) / ids.length), run = { gold: 0 };
+  let f = startF;
+  for (;;) {
+    const ch = towerChapter(f, avg0, startF, ids.length);
+    yield* chapterCard(-1, ch);
+    const S = newBattle(ch, R, M, ids, f > startF); G.chIdx = G.chIdx || 0;
+    const res = yield* battleScene(S, -1);
+    if (res !== 'win') {
+      for (const id in R) if (R[id].joined !== false) { R[id].deployed = false; }
+      towerHealAll(R); G.S = null;
+      yield* dialogue([[null, '試練の塔から引き返した。傷は癒えた。 (最高 ' + T.best + '階)'], [null, 'この挑戦で得た金貨 ' + run.gold + 'G は、塔に置いてきた。経験は身についたままだ。']], 'camp');
+      return 'lose';
+    }
+    const gold = S.gain.gold + ch.reward; run.gold += gold; towerSetBest(M, f);
+    const lines = ['戦利品 ' + gold + 'G  (この挑戦の合計 ' + run.gold + 'G)'];
+    const pr = TOWER_PRIZE[f]; if (pr && !T.claimed[f]) { T.claimed[f] = true; M.convoy.push(pr); lines.push('「' + WITEMS[pr].name + '」を手に入れた!'); }
+    towerHealParty(R, ids);
+    lines.push('HPが3割回復した。  最高到達 ' + T.best + '階');
+    const pick = yield* towerChoice(f, run, lines);
+    if (pick === 'home') { M.gold += run.gold; towerHealAll(R); G.S = null; saveGame(Base.chIdx, true); return 'home'; }
+    f++;
+  }
+}
+
+'use strict';
 // ===== ui: drawing for map, units, panels, menus, dialogue =====
 const G = {
   scene: 'boot', t: 0, roster: null, snap: null, chIdx: 0, S: null, cursor: { x: 0, y: 0 }, mode: 'idle', sel: null, reach: null, moveSet: null, threat: null, orig: null,
@@ -1853,6 +2003,7 @@ function unitFrame(u) { // pose row & bob
 }
 // objective markers: treasure chests, escape exits, the village to defend
 function drawMarkers(S) {
+  if (!(hdOn() && ART.prop_chest)) for (const q of S.secrets || []) { if (!q.seen || q.got) continue; const x = OX() + q.x * TS + 8, y = OY() + q.y * TS + 8, ph = (G.t / 10 + q.x) % 6.28, r = 2 + Math.sin(ph) * 1.2; ctx.fillStyle = 'rgba(255,240,150,0.28)'; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.fillStyle = '#fff6c0'; ctx.fillRect(x - 1, y - r - 1, 2, 2 * r + 2); ctx.fillRect(x - r - 1, y - 1, 2 * r + 2, 2); }
   if (hdOn() && ART.prop_chest) return; // chibi display: the painted props are drawn on the hi-DPI layer (drawPropsHD)
   const ox = OX(), oy = OY(), pu = 0.5 + 0.5 * Math.sin(G.t / 14);
   for (const e of (S.ch.exits || [])) {
@@ -2160,6 +2311,7 @@ function drawTitle() {
     text(it.label, W / 2, y + 1, { size: 10, bold: true, align: 'center', color: it.off ? '#778' : '#fff' });
     Touch.add(W / 2 - w / 2, y - 2, w, 16, () => { G.title.idx = i; Input.q.push('ok'); });
   });
+  { const tb = Math.max(towerBestLS(), G.meta ? towerMeta(G.meta).best : 0); if (tb > 0) text('試練の塔 最高 ' + tb + '階', W / 2, 78, { size: 9, bold: true, align: 'center', color: '#ffe27a', sh: '#302000' }); }
   text('矢印+Z / タップで決定', W / 2, 228, { size: 7, align: 'center', color: '#aab' });
 }
 function drawCard() {
@@ -2181,6 +2333,19 @@ function drawGameOver() {
     text(it.label, W / 2, y + 2, { size: 10, bold: true, align: 'center' });
     Touch.add(W / 2 - w / 2, y - 2, w, 17, () => { G.title.idx = i; Input.q.push('ok'); });
   });
+}
+function drawTowerChoice() {
+  const T = G.tower; rect(0, -(G.yOff || 0), W, Engine.vh, '#0a0e22'); skyGrad('#1a2250', '#070a18', 0, H); drawDrift(26, '#ffe8a0', 4);
+  text('試練の塔', W / 2, 22, { size: 11, color: '#c8d4ff', align: 'center' });
+  text(T.f + '階 突破!', W / 2, 40, { size: 24, bold: true, color: '#ffe860', align: 'center', sh: '#402800' });
+  panel(24, 82, 272, 14 + T.lines.length * 13, 0.85); T.lines.forEach((l, i) => text(l, W / 2, 88 + i * 13, { size: 8, align: 'center', color: i === 1 && l.indexOf('手に入れた') > 0 ? '#9fe8ff' : '#e8ecff' }));
+  G.title.items.forEach((it, i) => {
+    const y = 140 + i * 22, sel = i === G.title.idx, w = 150;
+    rect(W / 2 - w / 2, y - 2, w, 18, sel ? 'rgba(70,92,210,0.9)' : 'rgba(0,0,20,0.55)'); if (sel) text('▶', W / 2 - w / 2 + 4, y + 2, { size: 9, color: '#ffe860' });
+    text(it.label, W / 2, y + 2, { size: 11, bold: true, align: 'center' });
+    Touch.add(W / 2 - w / 2, y - 2, w, 18, () => { G.title.idx = i; Input.q.push('ok'); });
+  });
+  text('次の階はHP3割回復で続行。帰還すると金貨を持ち帰れる(敗北すると金貨は失う)', W / 2, 190, { size: 7, align: 'center', color: '#9aa8e0' });
 }
 const ENDING_FIN = 840;
 function drawEnding() {
@@ -2239,6 +2404,12 @@ function propItems(S) {
   for (const e of (S.ch.exits || [])) { const cx = ox + e[0] * TS + 8, by = oy + e[1] * TS + 14, ph = (e[0] * 3 + e[1]) * 0.7;
     L.push({ y: e[1] - 0.2, fn: () => { const sw = Math.sin(t / 30 + ph); propDraw('prop_exit', cx, by, 26, { skew: sw * 0.018, alpha: 0.86 + pu * 0.14, sc: [1 + pu * 0.025, 1 + pu * 0.025] }); } }); }
   const v = S.ch.village; if (v) L.push({ y: v.y - 0.2, fn: () => propDraw('prop_village', ox + v.x * TS + 8, oy + v.y * TS + 14, 26, { skew: Math.sin(t / 26) * 0.02 }) });
+  for (const q of S.secrets || []) { if (!q.seen || q.got) continue; const cx = ox + q.x * TS + 8, cy = oy + q.y * TS + 9, ph = (q.x * 5 + q.y * 3) * 0.9;
+    L.push({ y: q.y + 0.3, fn: () => { // painted-style sparkle: soft warm glow, a slowly turning four-point star and a few drifting motes
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; const a = 0.55 + 0.45 * Math.sin(t / 14 + ph);
+      glowDot(cx, cy, 11 + a * 2, '#ffd86a', 0.34 + a * 0.2); ctx.translate(cx, cy - 1); ctx.rotate(Math.sin(t / 40 + ph) * 0.35); star4(0, 0, 6.2 + a * 2.6, '#fff4b8', 0.75 + a * 0.25); star4(0, 0, 3.2, '#ffffff', 0.95); ctx.rotate(0.785); star4(0, 0, 3.4 + a, '#ffe9a0', 0.55);
+      ctx.rotate(-0.785 - Math.sin(t / 40 + ph) * 0.35); for (let i = 0; i < 4; i++) { const k = ((t / 50 + i * 0.25 + ph) % 1), ax = Math.sin(i * 2.4 + ph) * 8 * k, ay = -k * 11; glowDot(ax, ay, 2.2, '#fff0a8', (1 - k) * 0.85); }
+      ctx.restore(); } }); }
   for (const c of S.chests) {
     if (c.got && !c.openT) { /* picked up, animation not started: still closed */ }
     const cx = ox + c.x * TS + 8, by = oy + c.y * TS + 14;
@@ -2783,6 +2954,7 @@ function viewMain() {
     { t: 'ショップ', sub: '武器・傷薬を売り買い', fn: () => basePush(viewShop) },
     { t: '鍛冶場', sub: '武器の威力を+1ずつ強化', fn: () => basePush(viewForge) },
     { t: '支援会話', sub: '隣で戦うと絆が深まる', r: unread ? '未読' + unread : '', fn: () => basePush(viewSupports) },
+    { t: '試練の塔', sub: towerUnlocked(M) ? '何度でも挑める修行の場  最高 ' + towerMeta(M).best + '階' : '第一章をクリアすると解放', r: towerMeta(M).best ? '最高' + towerMeta(M).best + '階' : '', off: !towerUnlocked(M), fn: () => basePush(viewTower) },
     { t: 'おまかせで整える', sub: 'スキル・装備・傷薬・編成を自動で', fn: () => { autoCamp(R, M, idx); baseToast('整えました'); Aud.sfx('levelup'); } },
     { t: 'セーブ', sub: '野営地で記録する', fn: () => { saveGame(idx); baseToast('セーブしました'); Aud.sfx('levelup'); } }
   ] };
@@ -2799,6 +2971,17 @@ function viewDeploy() {
   rows.push({ t: '出撃する!', sub: ok ? ch.title + ' 「' + ch.name + '」' : 'レオンを含めて1〜' + ch.cap + '人を選ぼう', r: dep.length + '/' + ch.cap, hl: 1, off: !ok, fn: () => { M.deploy = dep.slice().sort((a, b) => (a === 'leon' ? -1 : b === 'leon' ? 1 : 0)); Base.go = true; } });
   return { title: '出撃準備', sub: '最大' + ch.cap + '人 / ' + ch.goal, rows };
 }
+function viewTower() {
+  const R = bRoster(), M = bMeta(), T = towerMeta(M); if (!M.tdeploy || !towerValidDeploy(R, M.tdeploy)) M.tdeploy = towerDefaultDeploy(R);
+  const dep = M.tdeploy, ok = towerValidDeploy(R, dep), go = f => { M.tdeploy = dep.slice().sort((a, b) => (a === 'leon' ? -1 : b === 'leon' ? 1 : 0)); Base.job = function* () { yield* towerRun(f); }; };
+  const rows = [{ t: '1階から挑戦', sub: ok ? '5階ごとにボスと特別な武器' : 'レオンを含めて1〜' + TOWER_CAP + '人を選ぼう', r: dep.length + '/' + TOWER_CAP, hl: 1, off: !ok, fn: () => go(1) }];
+  if (T.best >= 1) rows.push({ t: (T.best + 1) + '階から挑戦', sub: '最高到達の続きから', r: dep.length + '/' + TOWER_CAP, hl: 1, off: !ok, fn: () => go(T.best + 1) });
+  for (const id of heroIds()) { const u = R[id], on = dep.includes(id), inj = u.injured > 0;
+    rows.push({ t: u.name + '  Lv' + u.lv + ' ' + u.cls, sub: inj ? '負傷中(塔にも入れません)' : statLine(u), r: inj ? '負傷' : on ? '出撃' : '待機', hl: on ? 2 : 0, off: inj, fn: () => {
+      if (id === 'leon') { baseToast('レオンは必ず出撃'); Aud.sfx('cancel'); return; }
+      if (on) dep.splice(dep.indexOf(id), 1); else if (dep.length < TOWER_CAP) dep.push(id); else { baseToast('出撃は' + TOWER_CAP + '人まで'); Aud.sfx('cancel'); return; } Aud.sfx('ok'); } }); }
+  return { title: '試練の塔', sub: '最高 ' + T.best + '階 / 負傷なし・敗北で金貨を失う・帰還で持ち帰る', rows };
+}
 function viewParty() {
   const R = bRoster(), M = bMeta();
   return { title: '部隊', sub: '仲間を選ぶと詳しく見られる', rows: heroIds().map(id => { const u = R[id], tag = pendingSkill(u) ? 'スキル!' : canPromote(u, M) ? '転職可!' : u.injured > 0 ? '負傷' : '';
@@ -2810,6 +2993,7 @@ function viewHero() {
   if (p) rows.push({ t: 'スキルを選ぶ', sub: SKILLS[p[0]].name + ' / ' + SKILLS[p[1]].name + ' から1つ', r: '!', hl: 1, fn: () => basePush(viewSkill) });
   if (canPromote(u, M)) rows.push({ t: 'クラスチェンジ', sub: PROMO[u.key].cls + ' (勇者の証を使う)', r: '!', hl: 1, fn: () => basePush(viewClass) });
   else if (u.lv >= 10 && !u.promoted && PROMO[u.key]) rows.push({ t: 'クラスチェンジ', sub: '勇者の証が必要(第三・四章で見つかる)', off: true, fn: () => { } });
+  for (const k in DROPS) { const n = (M.drops || {})[k] || 0; if (n > 0) rows.push({ t: DROPS[k] + 'を使う', sub: STAT_JP[k] + ' +1 (所持 ' + n + ')', r: '+1', hl: 1, fn: () => { useDrop(M, u, k); Aud.sfx('levelup'); baseToast(u.name + 'の' + STAT_JP[k] + 'が上がった'); } }); }
   rows.push({ t: '装備変更', sub: weaponOf(u).name + '  ' + wDesc(weaponOf(u)) + (u.forge ? ' (+' + u.forge + ')' : ''), fn: () => basePush(viewEquip) });
   const bonds = heroIds().filter(o => o !== u.key).map(o => { const lv = bondLevel(bondPts(M, u.key, o)); return lv ? R[o].name + BOND_RANK[lv] : ''; }).filter(Boolean);
   rows.push({ t: '絆', sub: bonds.length ? bonds.join('  ') : 'まだありません(隣で一緒に行動しよう)', off: true, fn: () => { } });
@@ -2917,7 +3101,7 @@ function* baseScene(idx) {
   Base.stack = [{ fn: viewMain, idx: 0, scroll: 0 }]; if (!G.meta.deploy) G.meta.deploy = defaultDeploy(G.roster, idx);
   for (;;) {
     if (Base.go) break; if (Base.title) return 'title';
-    if (Base.job) { const j = Base.job; Base.job = null; yield* j(); G.scene = 'base'; flushInput(); continue; }
+    if (Base.job) { const j = Base.job; Base.job = null; yield* j(); G.scene = 'base'; flushInput(); Aud.bgm('camp'); continue; }
     if (G.auto && !Base.autoDone) { Base.autoDone = true; autoCamp(G.roster, G.meta, idx); baseToast('おまかせで整えました'); Aud.sfx('levelup'); for (let i = 0; i < 90; i++) yield 1; if (G.auto) Base.go = true; continue; }
     const a = Input.q.shift(); if (a && !G.busy) baseInput(a);
     yield 1;
@@ -2941,7 +3125,7 @@ function loadPrefs() { try { const p = JSON.parse(localStorage.getItem('starfall
 // ---------- undo (一手戻す): deep snapshot before each player action; restores units / items / chests / gold / bonds / talks / specials and the RNG
 const UNDO_MAX = 10, UNDO_USES = 3;
 function snapState(S) {
-  const rest = {}; for (const k in S) if (k !== 'units' && k !== 'ch' && k !== 'rows' && k !== 'bonds') rest[k] = S[k];
+  const rest = {}; for (const k in S) if (k !== 'units' && k !== 'ch' && k !== 'rows' && k !== 'bonds' && k !== 'meta') rest[k] = S[k];
   return { list: S.units.slice(), units: S.units.map(u => [u, structuredClone(u)]), rest: structuredClone(rest), bonds: S.bonds ? structuredClone(S.bonds) : null, seed: _seed };
 }
 function restoreState(S, sn) {
@@ -3039,7 +3223,8 @@ function* strike(ev) {
 function* playRecord(rec, fast) {
   const u = rec.unit; u.acting = true;
   if (rec.path && rec.path.length > 1) yield* glide(u, rec.path, fast ? 3 : 4);
-  if (rec.chest) { Aud.sfx('levelup'); const c = rec.chest; c.openT = G.t; for (let i = 0; i < 10; i++) { const p = tilePx(c.x, c.y), a = Math.random() * 6.28, s = 0.5 + Math.random() * 1.2; G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 4, vx: Math.cos(a) * s, vy: -0.6 - Math.random() * 1.1, g: 0.05, life: 22 + (Math.random() * 12 | 0), color: '#fff0a0', s: 1.5 }); } numFx(u, c.item === 'proof' ? '勇者の証!' : '+' + c.gold + 'G', '#ffe27a', 11); burst(u, '#ffe27a', 12); yield 24; }
+  if (rec.chest) { Aud.sfx('levelup'); const c = rec.chest; c.openT = G.t; for (let i = 0; i < 10; i++) { const p = tilePx(c.x, c.y), a = Math.random() * 6.28, s = 0.5 + Math.random() * 1.2; G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 4, vx: Math.cos(a) * s, vy: -0.6 - Math.random() * 1.1, g: 0.05, life: 22 + (Math.random() * 12 | 0), color: '#fff0a0', s: 1.5 }); } numFx(u, c.item === 'proof' ? '勇者の証!' : c.item && ITEMS[c.item] ? ITEMS[c.item].name + '!' : '+' + c.gold + 'G', '#ffe27a', 11); burst(u, '#ffe27a', 12); yield 24; }
+  if (rec.kind === 'search') { Aud.sfx('levelup'); const q = rec.secret, p = q ? tilePx(q.x, q.y) : null; if (p) { fxSecretPop(q); for (let i = 0; i < 14; i++) { const a = Math.random() * 6.28, sp = 0.4 + Math.random() * 1.2; G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 6, vx: Math.cos(a) * sp, vy: -0.5 - Math.random(), g: 0.04, life: 26 + (Math.random() * 12 | 0), color: '#fff6b0', s: 1.5 }); } } numFx(u, rec.gotText || '何もなかった', '#ffe27a', 9); yield 36; }
   if (rec.kind === 'escape') { Aud.sfx('heal'); numFx(u, '離脱!', '#8fffb0', 10); sparkle(u); yield 16; u.gone = true; u.acting = false; return; }
   if (rec.kind === 'talk' && rec.target) { Aud.sfx('levelup'); numFx(rec.target, '仲間に!', '#ffe27a', 10); sparkle(rec.target); yield 22; }
   if (rec.kind === 'item') { numFx(u, rec.itemName, '#9fe8ff', 8); yield 8; }
@@ -3075,7 +3260,7 @@ function confirmMove() {
   const u = G.sel, c = G.cursor, S = G.S;
   if (!G.moveSet.has(kk(c.x, c.y))) { Aud.sfx('cancel'); return; }
   const path = pathTo(G.reach, c.x, c.y); Aud.sfx('ok'); G.mode = 'moving';
-  runBusy((function* () { u.x = c.x; u.y = c.y; if (path.length > 1) yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y; openActionMenu(); if (G.pendingAtk) { const e = G.pendingAtk; G.pendingAtk = null; quickAttack(e); } })());
+  runBusy((function* () { u.x = c.x; u.y = c.y; if (path.length > 1) yield* glide(u, path, 4); u.vx = u.x; u.vy = u.y; announceSecrets(senseSecrets(G.S, u)); openActionMenu(); if (G.pendingAtk) { const e = G.pendingAtk; G.pendingAtk = null; quickAttack(e); } })());
 }
 function adjacentRecruit(S, u) { return u.key === 'leon' ? S.units.find(o => o.recruit && !o.dead && o.team === 2 && dist(o.x, o.y, u.x, u.y) === 1) || null : null; }
 function openActionMenu() {
@@ -3087,6 +3272,7 @@ function openActionMenu() {
   if (sp && st) items.push({ label: sp.name, act: 'sp', off: !st.length, desc: sp.desc });
   if (u.items.length) items.push({ label: '道具', act: 'item', off: u.hp >= u.maxhp, desc: '傷薬などで自分を回復(' + u.items.map(k => ITEMS[k].name).join('・') + ')' });
   if (adjacentRecruit(S, u)) items.push({ label: '話す', act: 'talk', desc: '隣の人物に話しかける' });
+  if (secretAt(S, u.x, u.y)) items.push({ label: '調べる', act: 'search', desc: 'きらめく場所を調べる' });
   if (S.ch.win === 'escape' && isExit(S, u.x, u.y)) items.push({ label: '離脱', act: 'escape', desc: '出口から脱出する' });
   items.push({ label: '待機', act: 'wait', desc: '何もせず行動を終える' });
   placeMenu(items, u); G.mode = 'menu'; u.spActive = null; G.spMode = false; G.healMode = false;
@@ -3109,11 +3295,11 @@ function afterAction() {
 function doAction(kind, extra) {
   const u = G.sel, S = G.S;
   if (kind === 'wait') { Aud.sfx('ok'); const rec = applyAction(S, u, null, null); u.dir = u.dir; afterAction(); return; }
-  if (kind === 'escape' || kind === 'item' || kind === 'talk') {
+  if (kind === 'escape' || kind === 'item' || kind === 'talk' || kind === 'search') {
     Aud.sfx('ok'); G.mode = 'busy'; G.menu = null; const tg = kind === 'talk' ? adjacentRecruit(S, u) : null;
     runBusy((function* () {
       if (kind === 'talk' && tg) yield* dialogue(S.ch.recruit.lines, null, true);
-      const rec = applyAction(S, u, null, tg, false, kind === 'escape' ? { escape: true } : kind === 'talk' ? { talk: true } : { item: extra });
+      const rec = applyAction(S, u, null, tg, false, kind === 'escape' ? { escape: true } : kind === 'talk' ? { talk: true } : kind === 'search' ? { search: true } : { item: extra });
       yield* playRecord(rec); afterAction(); if (G.endTurn) yield 12;
     })()); return;
   }
@@ -3125,7 +3311,7 @@ function menuPick() {
   if (it.off) { Aud.sfx('cancel'); return; }
   if (G.mode === 'sysmenu') { it.fn(); return; }
   if (it.act === 'wait') { G.menu = null; doAction('wait'); return; }
-  if (it.act === 'escape' || it.act === 'talk') { doAction(it.act); return; }
+  if (it.act === 'escape' || it.act === 'talk' || it.act === 'search') { doAction(it.act); return; }
   if (it.act === 'useitem') { doAction('item', it.idx); return; }
   if (it.act === 'item') { const u = G.sel; G.sub = true; placeMenu(u.items.map((id, i) => ({ label: ITEMS[id].name, act: 'useitem', idx: i, desc: ITEMS[id].desc })), u); Aud.sfx('ok'); return; }
   if (it.act === 'sp') {
@@ -3240,8 +3426,8 @@ function* dialogue(lines, bg, overlay) {
   }
   G.dlg = null;
 }
-function* chapterCard(idx) {
-  G.scene = 'card'; flushInput(); const ch = CHAPTERS[idx];
+function* chapterCard(idx, over) {
+  G.scene = 'card'; flushInput(); const ch = over || CHAPTERS[idx];
   G.card = { idx, title: ch.title, name: ch.name, goal: ch.goal, bg: ch.bg, t: 0, dur: 150 };
   Aud.bgm('title');
   while (G.card.t < G.card.dur) { G.card.t++; yield 1; if (Input.q.shift() === 'ok' && G.card.t > 30) break; }
@@ -3314,7 +3500,15 @@ function* enemyPhase() {
   }
 }
 function* healRecords(list) { for (const h of list) { Aud.sfx('heal'); sparkle(h.unit); numFx(h.unit, '+' + h.amt, '#6dff8d', 10); Co.run(tweenHp(h.unit, h.unit.hp, 20)); } if (list.length) yield 40; }
-function* battleTalk(t) { S_talk(t); G.busy++; try { yield* dialogue(t.lines, null, true); } finally { G.busy--; flushInput(); } }
+function* battleTalk(t) {
+  S_talk(t); G.busy++;
+  try {
+    yield* dialogue(t.lines, null, true);
+    if (t.secret) { const S = G.S, u = S.units.find(q => q.team === 0 && !q.dead && q.key === (t.when.at || t.when.adj)[0]) || S.units.find(q => q.team === 0 && !q.dead); markFound(S, t.id); const txt = grantSecret(S, u, t.reward); Aud.sfx('levelup'); if (u) { numFx(u, '秘密を見つけた!', '#ffe27a', 10); sparkle(u); } yield 24; yield* dialogue([[null, '【秘密】' + txt]], null, true); }
+  } finally { G.busy--; flushInput(); }
+}
+function announceSecrets(list) { if (list && list.length) { Aud.sfx('ok'); for (const q of list) fxSecretPop(q); } }
+function fxSecretPop(q) { const p = tilePx(q.x, q.y); if (fxHdOn()) fxSpark(p.x + 8, p.y + 6, 12, '#fff2b0', { life: 22 }); else for (let i = 0; i < 6; i++) G.fx.push({ kind: 'p', x: p.x + 8, y: p.y + 6, vx: (Math.random() - 0.5) * 1.2, vy: -0.4 - Math.random() * 0.6, g: 0.02, life: 20, color: '#fff6b0', s: 1.2 }); }
 function S_talk(t) { G.S.talked[t.id] = true; }
 function* battleScene(S, idx) {
   G.S = S; G.scene = 'battle'; G.phase = 0; G.mode = 'idle'; G.fx = []; G.endTurn = false; G.over = null; G.showRange = null; G.undo = []; G.undoLeft = UNDO_USES; G.pendingSnap = null; G.infoBig = false; G.lvl = null; G.dlg = null; G.why = '';
@@ -3340,6 +3534,7 @@ function* battleScene(S, idx) {
 }
 function* resultScene(sum, idx) {
   const lines = [[null, '戦利品: ' + (sum.gold + sum.reward) + 'G (撃破・宝箱 ' + sum.gold + 'G + 章クリア ' + sum.reward + 'G)' + (sum.proofs ? ' と勇者の証' : '')]];
+  if (sum.total) lines.push([null, '秘密 ' + sum.found + '/' + sum.total + (sum.found >= sum.total ? '  全て見つけた!' : '  (まだ何かが隠れているかもしれない)')]);
   for (const id of sum.injured) lines.push([null, G.roster[id].name + 'は負傷した。次の章は休むことになる。']);
   for (const id of sum.healed) lines.push([null, G.roster[id].name + 'の傷が癒えた。']);
   yield* dialogue(lines, CHAPTERS[idx].bg);
@@ -3355,7 +3550,7 @@ function* flow() {
     G.roster = newRoster(); G.meta = newMeta(); G.why = '';
     if (r === 'continue') { const s = loadGame(); if (s) { G.roster = s.roster; G.meta = s.meta; idx = s.ch; needBase = !!s.base; } }
     if (r === 'jump' && G.jump.ending) { G.jump = null; G.roster = newRoster(); G.meta = newMeta(); yield* endingScene(); continue; }
-    if (r === 'jump') { idx = G.jump.ch; skip = true; needBase = !!G.jump.base; if (idx > 0) jumpSetup(idx, !needBase); G.jump = null; }
+    if (r === 'jump') { idx = G.jump.ch; skip = true; needBase = !!G.jump.base; if (idx > 0) jumpSetup(idx, !needBase); if (G.jump.deploy) G.meta.deploy = G.jump.deploy; G.jump = null; }
     let toTitle = false;
     for (; idx < CHAPTERS.length && !toTitle;) {
       const ch = CHAPTERS[idx]; G.chIdx = idx;
@@ -3407,6 +3602,7 @@ function render() {
     case 'dialogue': drawDialogue(); break;
     case 'battle': drawBattle(); break;
     case 'gameover': drawGameOver(); break;
+    case 'tower': drawTowerChoice(); break;
     case 'ending': drawEnding(); break;
     case 'base': drawBase(); break;
     default: rect(0, 0, W, H, '#000'); text('読み込み中…', W / 2, 110, { align: 'center' });
@@ -3427,9 +3623,11 @@ window.__tac = {
   talk: (who, txt, bg) => { G.scene = 'dialogue'; G.dlg = { line: [who, txt], bg: bg || 0, n: txt.length, tip: false }; },
   showIntro: t => { G.scene = 'intro'; G.intro = { t: t || 70 }; },
   setAuto: v => setAuto(v), setCutin: v => { G.cutin = !!v; savePrefs(); }, setHD: v => { G.hdUnits = v === 'auto' ? true : !!v; savePrefs(); },
-  start: (ch, base) => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0, base: !!base }; },
+  start: (ch, base, deploy) => { G.jump = ch === 'ending' ? { ending: true } : { ch: ch || 0, base: !!base, deploy: deploy || null }; },
+  towerUnder: () => { if (G.scene !== 'base' || !G.meta || !towerUnlocked(G.meta)) return false; const ids = towerDefaultDeploy(G.roster), avg = ids.reduce((a, id) => a + G.roster[id].lv, 0) / ids.length; if (avg >= 2 * Base.chIdx + 1) return false; G.meta.tdeploy = ids; Base.job = function* () { yield* towerRun(towerMeta(G.meta).best + 1); }; return true; },
   campAuto: () => { if (G.scene === 'base') { autoCamp(G.roster, G.meta, Base.chIdx); baseToast('おまかせで整えました'); } }, campGo: () => { if (G.scene === 'base') Base.go = true; },
   roster: () => JSON.parse(JSON.stringify({ roster: G.roster, meta: G.meta })), give: (gold, proofs) => { if (G.meta) { G.meta.gold += gold || 0; G.meta.proofs += proofs || 0; } },
+  bondOf: (a, b) => (G.S && G.S.bonds ? G.S.bonds[bondKey(a, b)] : 0) || 0,
   bond: (a, b, n) => { if (G.meta) G.meta.bonds[bondKey(a, b)] = n; }, ready2: () => !!G.dlg,
   setLv: (id, lv) => { const u = G.roster && G.roster[id]; if (u) { u.lv = lv; } },
   hurt: (id, hp) => { const u = G.S && G.S.units.find(q => q.id === id || q.key === id); if (u) { u.hp = hp; u.vhp = hp; u.ghost = hp; } },
@@ -3443,9 +3641,10 @@ window.__tac = {
     return {
       scene: G.scene, dlg: !!G.dlg, gold: G.meta ? G.meta.gold : 0, base: G.scene === 'base' ? { depth: Base.stack.length, title: curView().v.title, rows: allRows(curView().v, curView().e).map(r => r.t), idx: curView().e.idx, geom: Base.geom } : null, auto: G.auto, speedX: G.speedX, cutin: G.cutin, hd: G.hdUnits, cutActive: !!G.cut, mode: G.mode, busy: G.busy, banner: !!G.banner, lvl: !!G.lvl, endTurn: G.endTurn, phase: G.phase, undoLeft: G.undoLeft, undoN: G.undo ? G.undo.length : 0, danger: !!G.danger, dangerN: (G.S && G.danger) ? dangerSet(G.S).size : 0, seed: _seed, chapter: G.chIdx, ready: this.ready(),
       cursor: { x: G.cursor.x, y: G.cursor.y }, menu: G.menu ? { x: G.menu.x, y: G.menu.y, w: G.menu.w, items: G.menu.items.map(i => ({ label: i.label, off: !!i.off })), idx: G.menu.idx } : null,
-      title: G.scene === 'title' || G.scene === 'gameover' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
+      title: G.scene === 'title' || G.scene === 'gameover' || G.scene === 'tower' ? { idx: G.title.idx, items: G.title.items.map(i => i.label) } : null,
       over: S ? S.over : null, turn: S ? S.turn : 0, ox: S ? (OX() - Cam.x) * Engine.zoom : 0, oy: S ? (OY() - Cam.y) * Engine.zoom : 0, tile: TS * Engine.zoom, zoom: Engine.zoom, vh: Engine.vh, yoff: G.yOff || 0, w: S ? S.w : 0, h: S ? S.h : 0, chIdx: G.chIdx,
       targets: (G.targets || []).map(t => t.id), ti: G.ti,
+      secrets: S ? S.secrets.map(q => ({ id: q.id, x: q.x, y: q.y, seen: q.seen, got: q.got })) : [], found: S ? S.found.slice() : [], gain: S ? JSON.parse(JSON.stringify(S.gain)) : null,
       units: S ? S.units.filter(u => !u.dead && !u.off).map(u => ({ id: u.id, key: u.key, name: u.name, team: u.team, x: u.x, y: u.y, hp: u.hp, maxhp: u.maxhp, lv: u.lv, exp: u.exp, acted: !!u.acted, boss: u.boss })) : []
     };
   },

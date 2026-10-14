@@ -37,6 +37,7 @@ const CHAPTERS = [
     slots: [[7, 13], [6, 12], [6, 14]],
     enemies: [['goblin', 18, 12, 1, 'aggro'], ['goblin', 19, 13, 1, 'aggro'], ['slime', 17, 9, 1, 'aggro'], ['goblin', 9, 3, 1, 'wait'], ['slime', 11, 2, 1, 'wait'], ['goblin', 13, 5, 1, 'wait']],
     chests: [{ x: 9, y: 11, gold: 100 }, { x: 15, y: 8, gold: 80 }],
+    secrets: [{ id: '1-t1', x: 13, y: 1, get: { drop: 'str' } }, { id: '1-t2', x: 4, y: 15, get: { drop: 'def' } }],
     join: [],
     pre: [
       [null, 'フェルナ王国の北のはて。国境の小さな村に、朝の煙がたちのぼっていた。'],
@@ -85,6 +86,7 @@ const CHAPTERS = [
     neutral: [{ id: 'jin', x: 8, y: 11, lv: 2 }],
     enemies: [['skeleton', 19, 2, 4, 'raid'], ['skeleton', 19, 9, 4, 'raid'], ['skeleton', 19, 4, 4, 'raid'], ['skeleton', 19, 13, 4, 'raid'], ['skeleton', 21, 8, 4, 'raid'], ['darkmage', 20, 5, 4, 'aggro'], ['darkmage', 20, 12, 4, 'aggro']],
     chests: [{ x: 7, y: 12, gold: 120 }],
+    secrets: [{ id: '2-t1', x: 2, y: 10, get: { weapon: 'wind_bow' } }, { id: '2-t2', x: 19, y: 15, get: { drop: 'spd' } }],
     join: ['sophia'],
     pre: [
       [null, '南の渡し場。夜になると、川の向こうから骨の鳴る音が聞こえるという。'],
@@ -106,12 +108,14 @@ const CHAPTERS = [
       ['jin', 'タダ働きは趣味じゃない。でもな、骨どもの親玉の旗に、見覚えがあってね。'],
       ['jin', '俺はジン。元ガルド軍。脱走兵だ。…雇うかい?'],
       ['leon', 'ガルド軍だと?'],
+      ['jin', 'ああ、それと。隠し物の匂いには鼻が利く。近くへ寄れば、光って見えるぜ。'],
       ['jin', '話はあとだ。まず生き残る。前金は後払いでいいぜ、隊長。']
     ], late: [[null, '戦いが終わるころ、いつのまにかジンが隊の後ろを歩いていた。'], ['jin', '勝手についてくだけだ。気にするな、隊長。']] },
     talks: [
       { id: 'c2a', when: { turn: 3 }, lines: [['sophia', '…また、聞こえます。かけらが、泣いてる。'], ['luka', '……。'], ['sophia', 'ルカさん? 顔色が…'], ['luka', 'なんでもない。年寄りの腰痛じゃ。']] },
       { id: 'c2b', when: { adj: ['mira', 'sophia'] }, lines: [['mira', 'あんた、震えてる。'], ['sophia', 'こ、怖くなんて——'], ['mira', '怖くていいよ。あたしも怖い。その代わり、後ろは任せた。'], ['sophia', '…はい!']] },
-      { id: 'c2c', when: { turn: 6 }, lines: [['leon', 'あと少しだ。夜明けは近い!'], ['sophia', '橋の向こうの灯りが、少しずつ減っています。みなさん、逃げきれそうです。']] }
+      { id: 'c2c', when: { turn: 6 }, lines: [['leon', 'あと少しだ。夜明けは近い!'], ['sophia', '橋の向こうの灯りが、少しずつ減っています。みなさん、逃げきれそうです。']] },
+      { id: '2-k1', secret: true, when: { at: ['sophia', 2, 4] }, reward: { bond: ['mira', 'sophia', 2] }, lines: [[null, '村はずれの、小さな墓地。名もない石の前に、枯れた花が置かれていた。'], ['sophia', '…ここは、静かですね。かけらの声が、聞こえない。'], ['sophia', '泣いている声ばかり聞いてきたから。静かなのは、安らかだからなんですね。'], ['sophia', '(わたしも、誰かが泣きやめる場所に、なれたらいいな)'], [null, 'ソフィアは墓前に膝をつき、白い花をそっと添えた。']] }
     ],
     post: [
       ['sophia', '…夜が、明けます。'],
@@ -135,6 +139,7 @@ const CHAPTERS = [
     enemies: [['goblin', 8, 10, 5, 'aggro'], ['goblin', 3, 7, 5, 'aggro'], ['skeleton', 11, 11, 5, 'aggro'], ['skeleton', 15, 9, 5, 'wait'], ['skeleton', 17, 5, 5, 'wait'],
       ['darkmage', 14, 7, 5, 'wait'], ['darkmage', 20, 2, 5, 'wait'], ['goblin', 16, 13, 5, 'aggro'], ['slime', 9, 8, 5, 'aggro'], ['skeleton', 19, 3, 5, 'wait']],
     chests: [{ x: 3, y: 8, item: 'proof' }, { x: 15, y: 13, gold: 150 }],
+    secrets: [{ id: '3-t1', x: 11, y: 2, get: { weapon: 'moon_dagger' } }, { id: '3-t2', x: 4, y: 6, get: { drop: 'mag' } }],
     join: [],
     pre: [
       [null, '霧の森。一歩先も見えない白い闇の中を、彼らは進んでいた。'],
@@ -175,6 +180,7 @@ const CHAPTERS = [
     enemies: [['volk', 21, 7, 9, 'hold'], ['skeleton', 19, 8, 8, 'wait'], ['skeleton', 23, 8, 8, 'wait'], ['darkmage', 20, 8, 8, 'wait'], ['darkmage', 22, 8, 8, 'wait'],
       ['skeleton', 6, 8, 8, 'aggro'], ['skeleton', 17, 11, 8, 'aggro'], ['goblin', 10, 9, 8, 'aggro'], ['goblin', 16, 9, 8, 'aggro'], ['darkmage', 13, 5, 8, 'wait'], ['skeleton', 3, 11, 8, 'wait'], ['skeleton', 20, 12, 8, 'wait']],
     chests: [{ x: 1, y: 14, item: 'proof' }, { x: 18, y: 13, gold: 180 }],
+    secrets: [{ id: '4-t1', x: 23, y: 9, get: { proof: 1 } }, { id: '4-t2', x: 1, y: 3, get: { drop: 'def' } }],
     join: [],
     pre: [
       [null, '灰の町。十年前に滅びたまま、時が止まったように、焼けた石だけが残っている。'],
@@ -191,7 +197,8 @@ const CHAPTERS = [
     talks: [
       { id: 'c4a', when: { adj: ['leon', 'mira'] }, lines: [['mira', 'ねえレオン。あたし、仇を討つって言ったよね。'], ['leon', 'ああ。'], ['mira', 'ゴブリンも骸骨も、操ってたのはヴェルザ。この町を見殺しにしたのは、王様。'], ['mira', '…仇って、誰なんだろう。'], ['leon', '俺にもまだ答えは出ない。でも、答えを探すための剣なら、振れる。']] },
       { id: 'c4b', when: { turn: 3 }, lines: [['volk', '憎め、嘆け。その叫びが、星を呼ぶ。'], ['sophia', 'やめて…! この町の人たちは、もう眠っているのに!']] },
-      { id: 'c4c', when: { adj: ['luka', 'jin'] }, lines: [['jin', 'じいさん、顔が怖いぜ。'], ['luka', 'あの司祭の術は、わしのかけらの使い方によう似ておる。…あまりに、な。'], ['jin', '似てても、あんたは違う。あんたは後悔してる。'], ['luka', '…慰めか?'], ['jin', '事実だ。']] }
+      { id: 'c4c', when: { adj: ['luka', 'jin'] }, lines: [['jin', 'じいさん、顔が怖いぜ。'], ['luka', 'あの司祭の術は、わしのかけらの使い方によう似ておる。…あまりに、な。'], ['jin', '似てても、あんたは違う。あんたは後悔してる。'], ['luka', '…慰めか?'], ['jin', '事実だ。']] },
+      { id: '4-k1', secret: true, when: { at: ['mira', 15, 2] }, reward: { item: 'hipotion', to: 'mira' }, lines: [[null, '崩れた礼拝堂。ひび割れた鐘が、風に小さく鳴った。'], ['mira', '…あたしの村の教会に、そっくり。'], ['mira', '小さいころ、母さんとここで祈ったの。「明日も朝が来ますように」って。'], ['mira', 'ここの人たちも、きっと同じ祈りをした。…朝は、来なかったんだね。'], ['mira', '(だから、あたしは誰かの朝を奪う側には、ならない)'], [null, 'ミラは鐘の下に、矢羽根をひとつ供えた。']] }
     ],
     post: [
       ['volk', 'ガルド様は…砦で…お待ち…。主の星は、もう…近い…'],
@@ -220,6 +227,7 @@ const CHAPTERS = [
       ['skeleton', 17, 9, 11, 'aggro'], ['skeleton', 15, 8, 11, 'aggro'], ['skeleton', 19, 5, 11, 'wait'],
       ['darkmage', 14, 6, 11, 'aggro'], ['darkmage', 18, 6, 11, 'aggro'], ['goblin', 18, 8, 11, 'aggro'], ['skeleton', 14, 4, 11, 'aggro'], ['darkmage', 19, 4, 11, 'wait'], ['boss', 17, 3, 13, 'hold']],
     chests: [{ x: 6, y: 10, gold: 200 }],
+    secrets: [{ id: '5-t1', x: 8, y: 0, get: { weapon: 'oath_spear' } }, { id: '5-t2', x: 9, y: 13, get: { drop: 'str' } }],
     join: [],
     pre: [
       [null, '丘の上の古い砦。黄金の旗が、重い風にはためいている。'],
@@ -237,7 +245,8 @@ const CHAPTERS = [
     talks: [
       { id: 'c5a', when: { adj: ['leon', 'boss'] }, lines: [['boss', '構えが甘いぞ、レオン。わしが教えた通りに振れ。'], ['leon', '師匠…。あなたの教えは、全部覚えています。'], ['boss', '……では、なぜ迷う。'], ['leon', '迷います。あなたを斬りたくない。でも、止めたい。'], ['boss', '……その迷いを、捨てるな。それが、お前の強さだ。']] },
       { id: 'c5b', when: { turn: 3 }, lines: [['mira', 'あの人、手加減してる…?'], ['jin', 'ああ。本気なら、今ごろ俺たちは全員吹っ飛んでる。'], ['luka', '止めてほしいのじゃよ、あやつは。自分では止まれぬからの。']] },
-      { id: 'c5c', when: { turn: 5 }, lines: [['boss', '…まだ立つか。星の力が、身体を灼く。この痛みも、悪くない…'], ['sophia', 'もう、苦しまなくていいんです!']] }
+      { id: 'c5c', when: { turn: 5 }, lines: [['boss', '…まだ立つか。星の力が、身体を灼く。この痛みも、悪くない…'], ['sophia', 'もう、苦しまなくていいんです!']] },
+      { id: '5-k1', secret: true, when: { adj: ['jin', 'boss'] }, reward: { bond: ['jin', 'leon', 2] }, lines: [['boss', '…その目つき。見覚えがあるぞ。'], ['boss', '雨の夜、わしの糧食を盗もうとした、痩せた小僧。ジン、だったか。'], ['jin', '覚えてたのかよ。あのとき、あんたはパンを半分くれた。叱りもせずに。'], ['boss', '腹を空かせた子供を、叱る理由などない。'], ['jin', '…あんたに拾われなきゃ、俺はただのこそ泥だった。だから止める。今度は俺の番だ、将軍。'], ['boss', '……ふ。大きくなったな。']] }
     ],
     post: [
       ['boss', '……見事だ、レオン。それでこそ、わしの弟子だ。'],
@@ -268,6 +277,7 @@ const CHAPTERS = [
     enemies: [['verza', 20, 5, 17, 'hold'], ['darkmage', 18, 4, 15, 'wait'], ['darkmage', 22, 4, 15, 'wait'], ['skeleton', 18, 6, 15, 'wait'], ['skeleton', 22, 6, 15, 'wait'],
       ['skeleton', 17, 9, 15, 'aggro'], ['skeleton', 14, 6, 15, 'aggro'], ['goblin', 15, 10, 15, 'aggro'], ['goblin', 12, 7, 15, 'aggro'], ['darkmage', 20, 8, 15, 'wait']],
     chests: [{ x: 2, y: 17, gold: 250 }],
+    secrets: [{ id: '6-t1', x: 0, y: 19, get: { weapon: 'ember_tome' } }, { id: '6-t2', x: 29, y: 2, get: { drop: 'str' } }],
     join: [],
     pre: [
       [null, '星落ちの祭壇。夜空の中心で、紫の星が、ゆっくりと大きくなっていた。'],
@@ -283,7 +293,8 @@ const CHAPTERS = [
     talks: [
       { id: 'c6a', when: { turn: 3 }, lines: [['sophia', '…聞こえます。かけらが、ずっと言っていた言葉が。'], ['leon', '何て?'], ['sophia', '「ありがとう。もう、泣かなくていい」って。祈ります。みなさん、時間をください。']] },
       { id: 'c6b', when: { adj: ['leon', 'mira'] }, lines: [['mira', 'レオン。…仇は、あいつでいいよね。'], ['leon', 'ああ。でも、憎しみで撃つな。守りたいもので、撃て。'], ['mira', '…うん!']] },
-      { id: 'c6c', when: { turn: 5 }, lines: [['luka', 'ソフィア、続けなさい。かけらの重さは、わしが引き受ける。'], ['sophia', 'ルカさん、それじゃあなたが…'], ['luka', 'ふぉっふぉ。年寄りの、最後の仕事じゃ。']] }
+      { id: 'c6c', when: { turn: 5 }, lines: [['luka', 'ソフィア、続けなさい。かけらの重さは、わしが引き受ける。'], ['sophia', 'ルカさん、それじゃあなたが…'], ['luka', 'ふぉっふぉ。年寄りの、最後の仕事じゃ。']] },
+      { id: '6-k1', secret: true, when: { adj: ['luka', 'dmage'] }, reward: { gold: 200 }, lines: [['dmage', 'ルカ先生。まだ生きておいででしたか。'], ['luka', '先生と呼ぶな、ヴェルザ。…じゃが、お前を闇に落としたのは、このわしじゃ。'], ['luka', 'かけらの研究を「危うい」と取り上げた日、お前は笑っておったな。'], ['luka', 'あの笑顔の奥の孤独に、気づけなんだ。…すまなんだ。許せとは言わん。'], ['dmage', '……今さら。'], ['luka', '今さらじゃよ。だから、わしの手で終わらせる。']] }
     ],
     post: [
       ['dmage', 'ばかな…。星が止まる…。人の憎しみが、祈りに負けるはずが…'],
