@@ -65,3 +65,6 @@ FF4〜6風のATBバトルRPG。外部素材なしで、絵(ドット絵)・音�
 - 補助魔法(`kind: 'buff'`)は戦闘中だけ `B.pb[i]` にフラグを立てる(`prot` は物理ダメージ0.6倍、`haste` はATB1.5倍)。
 - `rnd()` はゲーム進行用の乱数(テストで固定できる)。見た目だけの演出には `Math.random()` を使う。
 - claude.ai の Artifact として公開する場合は `dist/crystal-echo.html` を使う(外部ファイル読み込み不可のため、すべて1ファイルに埋め込み)。
+
+## 別作品: ねむりの迷宮(mystery/)
+トルネコ風ローグライク。`mystery/README.md` と `mystery/DESIGN.md` を参照。ビルドは `cd mystery && python3 build.py`、確認は `npm run test:mystery`(ボットの10F通しプレイを含む)。

@@ -1,0 +1,95 @@
+<title>ねむりの迷宮</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+<style>
+/* Layout: one-screen console. Screen on top, controller deck below (touch) or key legend (desktop). */
+:root{
+  --void:#0b0916; --deck:#1b1830; --deck-edge:#5a4a7a; --ink:#f3ede0; --muted:#9a9282;
+  --gem:#f6c8e8; --btn-a:#d8a8e0; --btn-b:#3a3a62;
+  --font:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif; --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0}
+body{background:var(--void);color:var(--ink);font-family:var(--font);overflow:hidden;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#app{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;
+  gap:8px;padding-inline:6px;padding-block:6px}
+#bar{width:100%;max-width:768px;display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;color:var(--muted);letter-spacing:.08em}
+#bar b{color:var(--gem);font-family:var(--serif);font-weight:800;letter-spacing:.14em}
+#mute{font:inherit;color:var(--ink);background:var(--deck);border:1px solid var(--deck-edge);
+  border-radius:6px;padding:4px 10px;cursor:pointer}
+#mute:focus-visible,.pbtn:focus-visible{outline:2px solid var(--gem);outline-offset:2px}
+#screen{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;
+  border:2px solid var(--deck-edge);border-radius:6px;box-shadow:0 0 0 1px #000,0 0 30px rgba(200,170,255,.14),0 12px 40px #000a;max-width:100%}
+#pad{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex:0 0 auto}
+#dpad{position:relative;width:150px;height:150px;flex:0 0 auto;touch-action:none}
+#dpad::before,#dpad::after{content:"";position:absolute;background:var(--deck);border:2px solid var(--deck-edge);border-radius:10px}
+#dpad::before{left:50px;top:0;width:46px;height:146px}
+#dpad::after{top:50px;left:0;height:46px;width:146px}
+#dpad i{position:absolute;z-index:1;width:0;height:0;border:9px solid transparent;pointer-events:none}
+#dpad .u{left:66px;top:12px;border-bottom-color:var(--muted)}
+#dpad .d{left:66px;bottom:12px;border-top-color:var(--muted)}
+#dpad .l{top:66px;left:12px;border-right-color:var(--muted)}
+#dpad .r{top:66px;right:12px;border-left-color:var(--muted)}
+#dpad i.on{border-bottom-color:var(--gem)}#dpad i.d.on{border-top-color:var(--gem)}
+#dpad i.l.on{border-right-color:var(--gem)}#dpad i.r.on{border-left-color:var(--gem)}
+#mid{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pbtn{font:inherit;color:var(--ink);border:none;cursor:pointer;touch-action:none}
+#menuBtn{background:var(--deck);border:1px solid var(--deck-edge);border-radius:14px;padding:6px 14px;font-size:12px;letter-spacing:.1em}
+#ab{position:relative;width:150px;height:130px;flex:0 0 auto}
+#ab .pbtn{position:absolute;width:66px;height:66px;border-radius:50%;font-size:15px;
+  box-shadow:inset 0 -4px 0 #0005,0 3px 0 #000}
+#btnA{right:0;top:6px;background:radial-gradient(circle at 35% 30%,#fbe6ff,var(--btn-a) 60%,#8a5aa0);color:#2a1030;font-weight:700}
+#btnB{left:0;bottom:6px;background:radial-gradient(circle at 35% 30%,#6a7290,var(--btn-b) 60%,#22263a)}
+.pbtn.on{transform:translateY(2px);filter:brightness(1.25)}
+#keys{display:none;font-size:13px;color:var(--muted);text-align:center;line-height:1.8}
+#keys kbd{font:inherit;color:var(--ink);border:1px solid var(--deck-edge);border-radius:4px;padding:0 6px;background:var(--deck)}
+#bar{flex-wrap:nowrap;gap:8px}
+#bar .ttl{white-space:nowrap}
+#bar .btns{display:flex;gap:8px;flex:0 0 auto}
+@media (max-width:520px){#bar .sub{display:none}}
+/* narrow phones: shrink the d-pad and buttons so all of them fit side by side */
+@media (max-width:420px){body:not(.nodpad) #dpad,body:not(.nodpad) #ab{zoom:.82}#mid{flex:0 0 auto}}
+#padToggle{display:none;font:inherit;color:var(--ink);background:var(--deck);border:1px solid var(--deck-edge);border-radius:6px;padding:4px 10px;cursor:pointer}
+@media (pointer:coarse){#padToggle{display:inline-block}}
+/* swipe replaces the d-pad: three big buttons in one row, more room for the screen */
+body.nodpad #dpad{display:none}
+body.nodpad #pad{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;max-width:520px}
+body.nodpad #ab{display:contents}
+body.nodpad #ab .pbtn{position:static;width:78px;height:78px;font-size:16px}
+body.nodpad #btnB{grid-column:1;grid-row:1;justify-self:start}
+body.nodpad #mid{grid-column:2;grid-row:1}
+body.nodpad #btnA{grid-column:3;grid-row:1;justify-self:end}
+body.nodpad #menuBtn{padding:12px 20px;font-size:14px}
+@media (hover:hover) and (pointer:fine){#pad{display:none}#keys{display:block}}
+/* landscape phone: the screen fills the height, controls float in the black side margins */
+body.land #app{flex-direction:row;justify-content:center;align-items:center;padding:0;gap:0}
+body.land #bar{position:fixed;top:4px;right:6px;width:auto;z-index:6;max-width:none}
+body.land #bar .ttl{display:none}
+body.land #bar button{padding:3px 8px;font-size:11px;opacity:.7}
+body.land #screen{border-radius:0;border-width:1px}
+body.land #pad{position:fixed;inset:0;max-width:none;display:block;pointer-events:none;z-index:5}
+body.land #pad>*{pointer-events:none}
+body.land .pbtn,body.land #dpad{pointer-events:auto}
+body.land #ab{display:contents}
+body.land #ab .pbtn{position:fixed;width:74px;height:74px;font-size:15px;opacity:.88}
+body.land #btnA{right:22px;bottom:18px;top:auto;left:auto}
+body.land #btnB{right:22px;bottom:104px;top:auto;left:auto}
+body.land #mid{position:fixed;right:20px;top:34px}
+body.land #menuBtn{pointer-events:auto;padding:8px 14px;opacity:.85}
+body.land #dpad{position:fixed;left:18px;bottom:16px;zoom:.78}
+body.land.nodpad #dpad{display:none}
+body.land #keys{display:none}
+</style>
+<div id="app">
+  <div id="bar"><span class="ttl"><b>NEMURI</b><span class="sub">　ねむりの迷宮</span></span><span class="btns"><button id="padToggle" type="button">十字キー</button><button id="mute" type="button">♪ ON</button></span></div>
+  <canvas id="screen" width="768" height="672"></canvas>
+  <div id="pad">
+    <div id="dpad"><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i></div>
+    <div id="mid"><button class="pbtn" id="menuBtn" type="button">道具</button></div>
+    <div id="ab"><button class="pbtn" id="btnB" type="button">足踏み</button><button class="pbtn" id="btnA" type="button">攻撃</button></div>
+  </div>
+  <div id="keys">移動 <kbd>↑↓←→</kbd>/<kbd>WASD</kbd>(斜めは2つ同時押し/テンキー/<kbd>Home</kbd><kbd>PgUp</kbd><kbd>End</kbd><kbd>PgDn</kbd>)　攻撃/決定 <kbd>Z</kbd>/<kbd>Enter</kbd>　足踏み/戻る <kbd>X</kbd>(押しながら移動で向きだけ変える)　道具 <kbd>C</kbd>/<kbd>Esc</kbd></div>
+</div>

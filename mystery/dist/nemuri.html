@@ -1,0 +1,1585 @@
+<title>ねむりの迷宮</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+<style>
+/* Layout: one-screen console. Screen on top, controller deck below (touch) or key legend (desktop). */
+:root{
+  --void:#0b0916; --deck:#1b1830; --deck-edge:#5a4a7a; --ink:#f3ede0; --muted:#9a9282;
+  --gem:#f6c8e8; --btn-a:#d8a8e0; --btn-b:#3a3a62;
+  --font:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif; --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0}
+body{background:var(--void);color:var(--ink);font-family:var(--font);overflow:hidden;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#app{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;
+  gap:8px;padding-inline:6px;padding-block:6px}
+#bar{width:100%;max-width:768px;display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;color:var(--muted);letter-spacing:.08em}
+#bar b{color:var(--gem);font-family:var(--serif);font-weight:800;letter-spacing:.14em}
+#mute{font:inherit;color:var(--ink);background:var(--deck);border:1px solid var(--deck-edge);
+  border-radius:6px;padding:4px 10px;cursor:pointer}
+#mute:focus-visible,.pbtn:focus-visible{outline:2px solid var(--gem);outline-offset:2px}
+#screen{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;
+  border:2px solid var(--deck-edge);border-radius:6px;box-shadow:0 0 0 1px #000,0 0 30px rgba(200,170,255,.14),0 12px 40px #000a;max-width:100%}
+#pad{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex:0 0 auto}
+#dpad{position:relative;width:150px;height:150px;flex:0 0 auto;touch-action:none}
+#dpad::before,#dpad::after{content:"";position:absolute;background:var(--deck);border:2px solid var(--deck-edge);border-radius:10px}
+#dpad::before{left:50px;top:0;width:46px;height:146px}
+#dpad::after{top:50px;left:0;height:46px;width:146px}
+#dpad i{position:absolute;z-index:1;width:0;height:0;border:9px solid transparent;pointer-events:none}
+#dpad .u{left:66px;top:12px;border-bottom-color:var(--muted)}
+#dpad .d{left:66px;bottom:12px;border-top-color:var(--muted)}
+#dpad .l{top:66px;left:12px;border-right-color:var(--muted)}
+#dpad .r{top:66px;right:12px;border-left-color:var(--muted)}
+#dpad i.on{border-bottom-color:var(--gem)}#dpad i.d.on{border-top-color:var(--gem)}
+#dpad i.l.on{border-right-color:var(--gem)}#dpad i.r.on{border-left-color:var(--gem)}
+#mid{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pbtn{font:inherit;color:var(--ink);border:none;cursor:pointer;touch-action:none}
+#menuBtn{background:var(--deck);border:1px solid var(--deck-edge);border-radius:14px;padding:6px 14px;font-size:12px;letter-spacing:.1em}
+#ab{position:relative;width:150px;height:130px;flex:0 0 auto}
+#ab .pbtn{position:absolute;width:66px;height:66px;border-radius:50%;font-size:15px;
+  box-shadow:inset 0 -4px 0 #0005,0 3px 0 #000}
+#btnA{right:0;top:6px;background:radial-gradient(circle at 35% 30%,#fbe6ff,var(--btn-a) 60%,#8a5aa0);color:#2a1030;font-weight:700}
+#btnB{left:0;bottom:6px;background:radial-gradient(circle at 35% 30%,#6a7290,var(--btn-b) 60%,#22263a)}
+.pbtn.on{transform:translateY(2px);filter:brightness(1.25)}
+#keys{display:none;font-size:13px;color:var(--muted);text-align:center;line-height:1.8}
+#keys kbd{font:inherit;color:var(--ink);border:1px solid var(--deck-edge);border-radius:4px;padding:0 6px;background:var(--deck)}
+#bar{flex-wrap:nowrap;gap:8px}
+#bar .ttl{white-space:nowrap}
+#bar .btns{display:flex;gap:8px;flex:0 0 auto}
+@media (max-width:520px){#bar .sub{display:none}}
+/* narrow phones: shrink the d-pad and buttons so all of them fit side by side */
+@media (max-width:420px){body:not(.nodpad) #dpad,body:not(.nodpad) #ab{zoom:.82}#mid{flex:0 0 auto}}
+#padToggle{display:none;font:inherit;color:var(--ink);background:var(--deck);border:1px solid var(--deck-edge);border-radius:6px;padding:4px 10px;cursor:pointer}
+@media (pointer:coarse){#padToggle{display:inline-block}}
+/* swipe replaces the d-pad: three big buttons in one row, more room for the screen */
+body.nodpad #dpad{display:none}
+body.nodpad #pad{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;max-width:520px}
+body.nodpad #ab{display:contents}
+body.nodpad #ab .pbtn{position:static;width:78px;height:78px;font-size:16px}
+body.nodpad #btnB{grid-column:1;grid-row:1;justify-self:start}
+body.nodpad #mid{grid-column:2;grid-row:1}
+body.nodpad #btnA{grid-column:3;grid-row:1;justify-self:end}
+body.nodpad #menuBtn{padding:12px 20px;font-size:14px}
+@media (hover:hover) and (pointer:fine){#pad{display:none}#keys{display:block}}
+/* landscape phone: the screen fills the height, controls float in the black side margins */
+body.land #app{flex-direction:row;justify-content:center;align-items:center;padding:0;gap:0}
+body.land #bar{position:fixed;top:4px;right:6px;width:auto;z-index:6;max-width:none}
+body.land #bar .ttl{display:none}
+body.land #bar button{padding:3px 8px;font-size:11px;opacity:.7}
+body.land #screen{border-radius:0;border-width:1px}
+body.land #pad{position:fixed;inset:0;max-width:none;display:block;pointer-events:none;z-index:5}
+body.land #pad>*{pointer-events:none}
+body.land .pbtn,body.land #dpad{pointer-events:auto}
+body.land #ab{display:contents}
+body.land #ab .pbtn{position:fixed;width:74px;height:74px;font-size:15px;opacity:.88}
+body.land #btnA{right:22px;bottom:18px;top:auto;left:auto}
+body.land #btnB{right:22px;bottom:104px;top:auto;left:auto}
+body.land #mid{position:fixed;right:20px;top:34px}
+body.land #menuBtn{pointer-events:auto;padding:8px 14px;opacity:.85}
+body.land #dpad{position:fixed;left:18px;bottom:16px;zoom:.78}
+body.land.nodpad #dpad{display:none}
+body.land #keys{display:none}
+</style>
+<div id="app">
+  <div id="bar"><span class="ttl"><b>NEMURI</b><span class="sub">　ねむりの迷宮</span></span><span class="btns"><button id="padToggle" type="button">十字キー</button><button id="mute" type="button">♪ ON</button></span></div>
+  <canvas id="screen" width="768" height="672"></canvas>
+  <div id="pad">
+    <div id="dpad"><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i></div>
+    <div id="mid"><button class="pbtn" id="menuBtn" type="button">道具</button></div>
+    <div id="ab"><button class="pbtn" id="btnB" type="button">足踏み</button><button class="pbtn" id="btnA" type="button">攻撃</button></div>
+  </div>
+  <div id="keys">移動 <kbd>↑↓←→</kbd>/<kbd>WASD</kbd>(斜めは2つ同時押し/テンキー/<kbd>Home</kbd><kbd>PgUp</kbd><kbd>End</kbd><kbd>PgDn</kbd>)　攻撃/決定 <kbd>Z</kbd>/<kbd>Enter</kbd>　足踏み/戻る <kbd>X</kbd>(押しながら移動で向きだけ変える)　道具 <kbd>C</kbd>/<kbd>Esc</kbd></div>
+</div>
+
+<script>
+const GLYPHS = '—…▲▼♪✦、。「」あいうえおかがきぎくぐけげこさしじすせそただちっつづてでとどなにぬねのはばぱひふへべほぼまみむめもゃやゆょらりるれろわをんアィイエカガキクコジスタダチッツテデトナニネノハピプベマミメャリルレロワンー七上中人元入具出十回声夢大奥妹子字宮少屋布度復悪日最月枕森段毛気深満目示笑菓表足迷追道遠部金階';
+'use strict';
+// ===================== ENGINE =====================
+const SW = 256, SH = 224;
+// crisp integer render scale: 3x normally, 4x on big desktop windows (the canvas is then shown up to 1024px wide)
+const SCALE = (window.matchMedia && matchMedia('(pointer: fine)').matches && Math.min(innerWidth, innerHeight * SW / SH) >= 900) ? 4 : 3;
+const cv = document.getElementById('screen');
+cv.width = SW * SCALE; cv.height = SH * SCALE;
+const MAIN = cv.getContext('2d');
+let ctx = MAIN;
+const FONT = '"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif';
+const FONT_T = '"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
+function resetT() { ctx = MAIN; ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+resetT();
+
+// ---- seeded RNG ----
+function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let rnd = Math.random; // swappable for tests
+function setSeed(s) { rnd = mulberry(s); }
+function ri(a, b) { return a + Math.floor(rnd() * (b - a + 1)); }
+function pick(arr) { return arr[Math.floor(rnd() * arr.length)]; }
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+// ---- UI palette ----
+const UI = { ink: '#f4eefc', gold: '#f6c8e8', goldDeep: '#c890c8', label: '#a8b8f0', muted: '#b0a8c4', dim: '#6a6280', hp: '#8fe3a0', mp: '#8cc8ff', red: '#ff7a8a', warn: '#ffd27a' };
+
+// ---- text ----
+function text(s, x, y, col = UI.ink, size = 8, align = 'left', face) {
+  const f = face === 't' ? `700 ${size}px ${FONT_T}` : `500 ${size}px ${FONT}`;
+  if (ctx.font !== f) ctx.font = f;
+  ctx.textAlign = align; ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(0,0,0,.75)'; ctx.fillText(s, x + 0.5, y + 0.6);
+  ctx.fillStyle = col; ctx.fillText(s, x, y);
+}
+function textW(s, size = 8, face) { ctx.font = face === 't' ? `700 ${size}px ${FONT_T}` : `500 ${size}px ${FONT}`; return ctx.measureText(s).width; }
+
+// ---- modern window: translucent navy glass with a thin gold frame ----
+function win(x, y, w, h, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; roundRect(x + 1.2, y + 2, w - 1.6, h - 1.6, 3); ctx.fill();
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, 'rgba(38,30,66,.9)'); g.addColorStop(1, 'rgba(14,10,30,.93)');
+  ctx.fillStyle = g; roundRect(x + 1, y + 1, w - 2, h - 2, 3); ctx.fill();
+  const sh = ctx.createLinearGradient(0, y, 0, y + Math.min(h, 24)); sh.addColorStop(0, 'rgba(255,255,255,.07)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sh; roundRect(x + 1.5, y + 1.5, w - 3, Math.min(h - 3, 22), 2.5); ctx.fill();
+  ctx.lineWidth = 0.6; ctx.strokeStyle = 'rgba(214,170,230,.85)'; roundRect(x + 1.6, y + 1.6, w - 3.2, h - 3.2, 2.4); ctx.stroke();
+  ctx.lineWidth = 0.34; ctx.strokeStyle = 'rgba(255,240,200,.18)'; roundRect(x + 2.6, y + 2.6, w - 5.2, h - 5.2, 1.8); ctx.stroke();
+  ctx.fillStyle = '#f2c8ec';
+  for (const [cx, cy] of [[x + 1.6, y + 1.6], [x + w - 1.6, y + 1.6], [x + 1.6, y + h - 1.6], [x + w - 1.6, y + h - 1.6]]) { ctx.beginPath(); ctx.moveTo(cx, cy - 1.6); ctx.lineTo(cx + 1.6, cy); ctx.lineTo(cx, cy + 1.6); ctx.lineTo(cx - 1.6, cy); ctx.fill(); }
+  ctx.restore();
+}
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+// glowing gold pointer
+function cursor(x, y) {
+  const b = Math.sin(G.frame / 7) * 0.8; x += b;
+  ctx.save();
+  const gl = ctx.createRadialGradient(x + 3, y + 4, 0, x + 3, y + 4, 7); gl.addColorStop(0, 'rgba(255,190,240,.45)'); gl.addColorStop(1, 'rgba(255,190,240,0)');
+  ctx.fillStyle = gl; ctx.fillRect(x - 5, y - 4, 16, 16);
+  const g = ctx.createLinearGradient(x, y, x, y + 8); g.addColorStop(0, '#fff0fb'); g.addColorStop(1, '#d48ad0');
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.beginPath(); ctx.moveTo(x + 1.5, y + 1.5); ctx.lineTo(x + 8, y + 4.8); ctx.lineTo(x + 1.5, y + 8.1); ctx.fill();
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x + 1, y + 1); ctx.lineTo(x + 7.4, y + 4.3); ctx.lineTo(x + 1, y + 7.6); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function bar(x, y, w, h, ratio, col, bg = 'rgba(255,255,255,.08)') {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.5)'; roundRect(x - 0.4, y - 0.4, w + 0.8, h + 0.8, h / 2 + 0.4); ctx.fill();
+  ctx.fillStyle = bg; roundRect(x, y, w, h, h / 2); ctx.fill();
+  const fw = Math.max(0, Math.min(1, ratio)) * w;
+  if (fw > 0.3) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, col); g.addColorStop(1, col); ctx.globalAlpha = 0.95; ctx.fillStyle = g; roundRect(x, y, Math.max(fw, h), h, h / 2); ctx.fill(); }
+  ctx.restore();
+}
+
+
+// ---- input ----
+const KEYMAP = {
+  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right',
+  z: 'a', Z: 'a', Enter: 'a', ' ': 'a', x: 'b', X: 'b', Backspace: 'b',
+  c: 'menu', C: 'menu', Escape: 'menu', m: 'menu', M: 'menu'
+};
+const Input = {
+  down: {}, prev: {}, held: {}, pressed: {},
+  set(k, v) { this.down[k] = v; },
+  update() {
+    for (const k of ['up', 'down', 'left', 'right', 'a', 'b', 'menu']) {
+      const d = !!this.down[k];
+      this.pressed[k] = d && !this.prev[k];
+      this.held[k] = d ? (this.held[k] || 0) + 1 : 0;
+      this.prev[k] = d;
+    }
+  },
+  // menu-style repeat
+  rep(k) { const h = this.held[k]; return h === 1 || (h > 18 && h % 5 === 0); },
+  dir() { for (const k of ['up', 'down', 'left', 'right']) if (this.down[k]) return k; return null; },
+  // 8-way direction from the held keys: [dx, dy] or null
+  vec() { const dx = (this.down.right ? 1 : 0) - (this.down.left ? 1 : 0), dy = (this.down.down ? 1 : 0) - (this.down.up ? 1 : 0); return dx || dy ? [dx, dy] : null; },
+  clear() { for (const k in this.down) this.down[k] = false; },
+};
+// diagonal keys press two directions at once (numpad 7/9/1/3 or Home/PgUp/End/PgDn; numpad 8/2/4/6 also move)
+const DIAG = { Home: ['up', 'left'], PageUp: ['up', 'right'], End: ['down', 'left'], PageDown: ['down', 'right'] };
+const NUMPAD = { Numpad7: ['up', 'left'], Numpad9: ['up', 'right'], Numpad1: ['down', 'left'], Numpad3: ['down', 'right'], Numpad8: ['up'], Numpad2: ['down'], Numpad4: ['left'], Numpad6: ['right'], Numpad5: ['b'] };
+const keysOf = e => NUMPAD[e.code] || DIAG[e.key] || (KEYMAP[e.key] ? [KEYMAP[e.key]] : null);
+addEventListener('keydown', e => { const k = keysOf(e); if (k) { for (const x of k) Input.set(x, true); e.preventDefault(); Audio8.unlock(); } });
+addEventListener('keyup', e => { const k = keysOf(e); if (k) { for (const x of k) Input.set(x, false); e.preventDefault(); } });
+addEventListener('blur', () => Input.clear());
+
+function bindBtn(id, key) {
+  const el = document.getElementById(id); if (!el) return;
+  // a very quick tap still counts: the button stays down for at least 60ms so the 60fps loop sees it
+  let t0 = 0, timer = null;
+  const on = e => { e.preventDefault(); clearTimeout(timer); t0 = performance.now(); Input.set(key, true); el.classList.add('on'); Audio8.unlock(); };
+  const off = e => { e.preventDefault(); if (!el.classList.contains('on')) return; const rest = 60 - (performance.now() - t0); const up = () => { Input.set(key, false); el.classList.remove('on'); }; if (rest > 0) timer = setTimeout(up, rest); else up(); };
+  el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off); el.addEventListener('pointerleave', off);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+bindBtn('btnA', 'a'); bindBtn('btnB', 'b'); bindBtn('menuBtn', 'menu');
+(function dpad() {
+  const el = document.getElementById('dpad'); if (!el) return;
+  const arrows = { up: el.querySelector('.u'), down: el.querySelector('.d'), left: el.querySelector('.l'), right: el.querySelector('.r') };
+  let pid = null;
+  const setDir = d => { for (const k in arrows) { const on = !!d && d.includes(k); Input.set(k, on); arrows[k].classList.toggle('on', on); } };
+  const calc = e => {
+    const r = el.getBoundingClientRect(); const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    if (Math.hypot(dx, dy) < 10) return setDir(null);
+    setDir(dir8(dx, dy));
+  };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); pid = e.pointerId; el.setPointerCapture(pid); calc(e); Audio8.unlock(); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === pid) calc(e); });
+  const end = e => { if (e.pointerId === pid) { pid = null; setDir(null); } };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+})();
+
+// 8 sectors of 45 degrees -> the keys to hold, e.g. ['up', 'left']
+function dir8(dx, dy) {
+  const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)); // 0 = right, 2 = down, -2 = up, 4/-4 = left
+  return [['right'], ['down', 'right'], ['down'], ['down', 'left'], ['left'], ['up', 'left'], ['up'], ['up', 'right']][(a + 8) % 8];
+}
+Input.tapA = function () { Input.set('a', true); setTimeout(() => Input.set('a', false), 80); };
+// ---- tap targets: windows register the rows a finger can touch directly (logical 256x224 coordinates), cleared every frame ----
+const Touch = {
+  rects: [],
+  add(x, y, w, h, fn) { this.rects.push({ x, y, w, h, fn }); },
+  hit(px, py) { for (let i = this.rects.length - 1; i >= 0; i--) { const r = this.rects[i]; if (px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h) { r.fn(); return true; } } return false; },
+};
+// ---- swipe on the game screen: a floating joystick wherever the finger lands; a quick tap is the A button ----
+const Swipe = { id: null, ox: 0, oy: 0, x: 0, y: 0, t0: 0, moved: false, dir: null };
+(function swipe() {
+  const setDir = d => { const key = d ? d.join() : null; if (Swipe.dir === key) return; for (const k of ['up', 'down', 'left', 'right']) Input.set(k, !!d && d.includes(k)); Swipe.dir = key; };
+  const at = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * SW / r.width, (e.clientY - r.top) * SH / r.height]; };
+  cv.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || Swipe.id !== null) return; e.preventDefault(); Audio8.unlock();
+    Swipe.id = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch (_) { }
+    [Swipe.ox, Swipe.oy] = at(e); Swipe.x = Swipe.ox; Swipe.y = Swipe.oy; Swipe.t0 = performance.now(); Swipe.moved = false;
+  });
+  // in menus a swipe moves the cursor one step per 12px of drag instead of running away while the finger is down
+  const menuMode = () => typeof inMenu === 'function' ? inMenu() : true;
+  const pulse = d => { Input.set(d, true); setTimeout(() => Input.set(d, false), 50); };
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerId !== Swipe.id) return; e.preventDefault();
+    const [x, y] = at(e); Swipe.x = x; Swipe.y = y; const dx = x - Swipe.ox, dy = y - Swipe.oy, d = Math.hypot(dx, dy);
+    if (menuMode()) {
+      if (d > 6) Swipe.moved = true;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) >= 12) { const k = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); Swipe.ox += k === 'right' ? 12 : k === 'left' ? -12 : 0; Swipe.oy += k === 'down' ? 12 : k === 'up' ? -12 : 0; pulse(k); }
+      return;
+    }
+    if (d > 6) Swipe.moved = true;
+    if (d > 24) { Swipe.ox = x - dx / d * 24; Swipe.oy = y - dy / d * 24; } // the anchor follows the finger, so turning is easy
+    setDir(d < 6 ? null : dir8(dx, dy));
+  });
+  const end = e => {
+    if (e.pointerId !== Swipe.id) return; Swipe.id = null; setDir(null);
+    if (!Swipe.moved && performance.now() - Swipe.t0 < 300) { const [x, y] = at(e); if (!Touch.hit(x, y)) Input.tapA(); }
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+})();
+function drawSwipe() {
+  if (Swipe.id === null || !Swipe.moved) return;
+  const dx = Swipe.x - Swipe.ox, dy = Swipe.y - Swipe.oy, d = Math.hypot(dx, dy), k = d > 14 ? 14 / d : 1;
+  ctx.save(); ctx.globalAlpha = 0.45; ctx.strokeStyle = '#f2c8ec'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(Swipe.ox, Swipe.oy, 16, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = 0.6; ctx.fillStyle = '#f2c8ec'; ctx.beginPath(); ctx.arc(Swipe.ox + dx * k, Swipe.oy + dy * k, 6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+
+// ---- layout fit ----
+// landscape phones: the screen takes the full height and the buttons sit in the side margins
+const LANDSCAPE = window.matchMedia ? matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 600px)') : { matches: false };
+function fit() {
+  const pad = document.getElementById('pad'), keys = document.getElementById('keys'), bar = document.getElementById('bar');
+  const app = document.getElementById('app');
+  const land = LANDSCAPE.matches;
+  document.body.classList.toggle('land', land);
+  let availW, availH;
+  if (land) { availW = app.clientWidth - 2 * 112; availH = app.clientHeight - 4; }
+  else {
+    const extra = (pad && pad.offsetHeight) + (keys && keys.offsetHeight) + (bar && bar.offsetHeight) + 30;
+    availW = app.clientWidth - 12; availH = app.clientHeight - extra;
+  }
+  let w = Math.min(availW, availH * SW / SH, SW * SCALE);
+  w = Math.max(200, w);
+  cv.style.width = Math.floor(w) + 'px'; cv.style.height = Math.floor(w * SH / SW) + 'px';
+  // upscaling stays crisp; downscaling (phones) uses the browser's smooth filter instead of dropping pixels
+  cv.style.imageRendering = w >= SW * SCALE ? 'pixelated' : 'auto';
+}
+addEventListener('resize', fit);
+
+
+// ---- offscreen sprite helper ----
+function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+// pixelize: threshold alpha and add dark outline — gives crisp pixel-art look to procedurally drawn shapes
+function pixelize(c, outline = '#140c1c') {
+  const x = c.getContext('2d'); const w = c.width, h = c.height;
+  const d = x.getImageData(0, 0, w, h); const p = d.data;
+  const solid = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) { if (p[i * 4 + 3] >= 110) { p[i * 4 + 3] = 255; solid[i] = 1; } else p[i * 4 + 3] = 0; }
+  if (outline) {
+    const oc = hex(outline);
+    for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
+      const i = y * w + xx; if (solid[i]) continue;
+      if ((xx > 0 && solid[i - 1]) || (xx < w - 1 && solid[i + 1]) || (y > 0 && solid[i - w]) || (y < h - 1 && solid[i + w])) {
+        p[i * 4] = oc[0]; p[i * 4 + 1] = oc[1]; p[i * 4 + 2] = oc[2]; p[i * 4 + 3] = 255;
+      }
+    }
+  }
+  x.putImageData(d, 0, 0); return c;
+}
+function hex(s) { s = s.replace('#', ''); if (s.length === 3) s = s.split('').map(c => c + c).join(''); return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)]; }
+// white silhouette for hit-flash
+function silhouette(c, col = '#fff') {
+  const s = mkCanvas(c.width, c.height), x = s.getContext('2d');
+  x.drawImage(c, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = col; x.fillRect(0, 0, s.width, s.height); return s;
+}
+
+// ---- save storage (guarded) ----
+const Store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+};
+// d-pad on/off (default off: swipe the screen instead); remembered per device
+(function () {
+  const btn = document.getElementById('padToggle'); if (!btn) return;
+  const apply = on => { document.body.classList.toggle('nodpad', !on); btn.textContent = on ? '十字キー ON' : '十字キー OFF'; try { Store.set('nemuri-dpad', on ? '1' : '0'); } catch (e) { } fit(); };
+  let on = false; try { on = Store.get('nemuri-dpad') === '1'; } catch (e) { }
+  btn.addEventListener('click', e => { on = !on; apply(on); e.currentTarget.blur(); });
+  apply(on);
+})();
+
+// ===================== AUDIO (WebAudio chiptune) =====================
+const NOTE_IDX = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
+function noteMidi(n) { const m = /^([A-G][#b]?)(-?\d)$/.exec(n); if (!m) return null; return 12 * (+m[2] + 1) + NOTE_IDX[m[1]]; }
+function midiHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+function chordNotes(name, oct = 3) {
+  const m = /^([A-G][#b]?)(.*)$/.exec(name); const root = 12 * (oct + 1) + NOTE_IDX[m[1]]; const q = m[2];
+  const iv = q === 'm' ? [0, 3, 7] : q === 'dim' ? [0, 3, 6] : q === '7' ? [0, 4, 7, 10] : q === 'm7' ? [0, 3, 7, 10] : q === 'maj7' ? [0, 4, 7, 11] : q === 'sus4' ? [0, 5, 7] : [0, 4, 7];
+  return iv.map(i => root + i);
+}
+
+const TRACKS = {
+  // music box lullaby
+  title: { pad: 1, bpm: 76, chords: 'C Am F G C Am Dm G F G Em Am Dm G C C', bass: 'long', arp: 'up', mel:
+    'E5 - G5 - C6 - B5 - A5 - - - E5 - - - F5 - A5 - C6 - B5 - G5 - - - - - - - E5 - G5 - C6 - D6 - E6 - - - C6 - A5 - F5 - A5 - G5 - F5 - E5 - D5 - - - - - - - A5 - - - C6 - B5 - G5 - - - D5 - E5 - G5 - B5 - - - A5 - - - E5 - - - F5 - A5 - D6 - C6 - B5 - - - G5 - - - C6 - - - - - - - - - - - . .' },
+  // おもちゃの森 (1-3F): a light skipping tune
+  dream1: { pad: 1, harm: 1, bpm: 112, chords: 'F Dm Bb C F Dm Gm C Bb C Am Dm Gm C F F', bass: 'walk', arp: null, drums: 'soft', mel:
+    'C5 - F5 - A5 - G5 F5 E5 - G5 - C5 - - - D5 - F5 - Bb5 - A5 G5 A5 - - - - - . . C5 - F5 - A5 - C6 - Bb5 - A5 - G5 - F5 - G5 - Bb5 - A5 - G5 - E5 - - - . . D5 - F5 - Bb5 - D6 - C6 - - - A5 - F5 - E5 - G5 - C6 - Bb5 - A5 - G5 - A5 - C6 - F6 - - - E6 - D6 - C6 - Bb5 - A5 - G5 - F5 - - - - - . .' },
+  // 月あかりの森 (4-6F)
+  dream2: { pad: 1, bpm: 92, chords: 'Am Em F C Dm Am Bm E Am Em F C Dm E Am Am', bass: 'long', arp: 'down', mel:
+    'E5 - - - A5 - B5 - C6 - B5 - A5 - E5 - F5 - - - E5 - D5 - C5 - - - - - . . D5 - F5 - A5 - - - G5 - E5 - C5 - - - D5 - F#5 - B5 - - - G#5 - - - - - . . E5 - A5 - C6 - - - B5 - G5 - E5 - - - F5 - A5 - C6 - - - E6 - - - D6 - C6 - B5 - A5 - G#5 - B5 - E6 - - - A5 - - - - - - - . .' },
+  // 森のいちばん奥 (7-10F)
+  dream3: { pad: 1, harm: 1, bpm: 100, chords: 'Dm Bb C A Dm Bb Gm A Bb C Dm Dm Gm Bb A A', bass: 'root', arp: 'up', drums: 'soft', mel:
+    'A4 - D5 - F5 - E5 - D5 - - - A5 - - - G5 - F5 - E5 - C5 - C#5 - - - E5 - . . D5 - F5 - A5 - D6 - C6 - Bb5 - A5 - G5 - Bb5 - - - A5 - - - - - . . F5 - G5 - A5 - C6 - Bb5 - - - G5 - - - A5 - F5 - D5 - - - - - . . Bb5 - A5 - G5 - Bb5 - A5 - - - E5 - - - C#5 - E5 - A5 - - - - - . .' },
+  // 夢から追い出された
+  gameover: { pad: 1, bpm: 70, chords: 'Am Dm E Am', bass: 'long', arp: 'down', mel:
+    'E5 - - - D5 - C5 - F5 - - - E5 - D5 - B4 - - - G#4 - B4 - A4 - - - - - - -' },
+  // 森をぬけた
+  clear: { bpm: 132, chords: 'C C F G Em Am Dm G C C', bass: 'root', arp: 'up', loopFrom: 16, mel:
+    'G4 C5 E5 G5 - - E5 G5 C6 - - - - - . . A5 - G5 - F5 - C5 - D5 - G5 - - - B4 - E5 - G5 - B5 - G5 - A5 - - - E5 - . . F5 - E5 - D5 - A4 - B4 - D5 - G5 - F5 - E5 - - - G5 - - - C5 - - - - - . .' },
+  levelup: { bpm: 150, chords: 'C F G C', bass: 'root', arp: 'up', once: true, mel: 'C5 E5 G5 C6 - - G5 C6 E6 - - - - - - -' },
+};
+
+const Audio8 = {
+  ac: null, master: null, mus: null, sfxG: null, muted: false, want: null, cur: null, timer: null, waves: {},
+  unlock() {
+    if (!this.ac) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      try { this.ac = new AC(); } catch (e) { return; }
+      const ac = this.ac;
+      this.master = ac.createGain(); this.master.gain.value = this.muted ? 0 : 0.7; this.master.connect(ac.destination);
+      this.mus = ac.createGain(); this.mus.gain.value = 0.55; this.mus.connect(this.master);
+      // room reverb (generated impulse) + tempo-synced echo on the lead
+      try {
+        const rl = Math.floor(ac.sampleRate * 2.4), ir = ac.createBuffer(2, rl, ac.sampleRate);
+        for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < rl; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / rl, 3.2); }
+        this.rev = ac.createConvolver(); this.rev.buffer = ir; this.revSend = ac.createGain(); this.revSend.gain.value = 0.32;
+        this.mus.connect(this.revSend); this.revSend.connect(this.rev); this.rev.connect(this.master);
+      } catch (e) { }
+      this.lead = ac.createGain(); this.lead.gain.value = 1; this.lead.connect(this.mus);
+      this.dly = ac.createDelay(1.5); this.dly.delayTime.value = 0.3; this.fb = ac.createGain(); this.fb.gain.value = 0.28; this.dlyOut = ac.createGain(); this.dlyOut.gain.value = 0.32;
+      this.lead.connect(this.dly); this.dly.connect(this.fb); this.fb.connect(this.dly); this.dly.connect(this.dlyOut); this.dlyOut.connect(this.mus);
+      this.sfxG = ac.createGain(); this.sfxG.gain.value = 0.8; this.sfxG.connect(this.master);
+      // stereo spread: arpeggio and harmony sit left/right of the centred lead
+      const panner = v => { if (!ac.createStereoPanner) return this.mus; const p = ac.createStereoPanner(); p.pan.value = v; p.connect(this.mus); return p; };
+      this.panL = panner(-0.4); this.panR = panner(0.4);
+      for (const duty of [0.125, 0.25, 0.5]) this.waves[duty] = this.pulse(duty);
+      const len = ac.sampleRate; const b = ac.createBuffer(1, len, ac.sampleRate); const d = b.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; this.noise = b;
+      if (this.want) { const w = this.want; this.cur = null; this.play(w); }
+    }
+    if (this.ac.state === 'suspended') this.ac.resume();
+  },
+  pulse(duty) {
+    const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+    for (let k = 1; k < n; k++) im[k] = (2 / (k * Math.PI)) * Math.sin(Math.PI * k * duty) * 1, re[k] = 0;
+    // use cosine form for duty-cycle pulse
+    for (let k = 1; k < n; k++) { re[k] = (2 / (k * Math.PI)) * Math.sin(2 * Math.PI * k * duty); im[k] = (2 / (k * Math.PI)) * (1 - Math.cos(2 * Math.PI * k * duty)); }
+    return this.ac.createPeriodicWave(re, im);
+  },
+  setMuted(m) { this.muted = m; if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.7, this.ac.currentTime, 0.02); },
+  tone(dest, t, dur, hz, wave, vol, opts = {}) {
+    const ac = this.ac; const o = ac.createOscillator(); const g = ac.createGain();
+    if (typeof wave === 'number') o.setPeriodicWave(this.waves[wave]); else o.type = wave;
+    o.frequency.setValueAtTime(hz, t);
+    if (opts.slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, opts.slide), t + dur);
+    if (opts.vib) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = 5.5; lg.gain.value = hz * 0.012; l.connect(lg); lg.connect(o.frequency); l.start(t + Math.min(0.15, dur / 2)); l.stop(t + dur + 0.05); }
+    const a = opts.a ?? 0.008, r = opts.r ?? Math.min(0.08, dur * 0.4);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + a);
+    g.gain.setValueAtTime(vol * (opts.sus ?? 0.8), t + Math.max(a, dur - r)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.02);
+  },
+  noiseHit(dest, t, dur, vol, freq = 3000, type = 'highpass') {
+    const ac = this.ac; const s = ac.createBufferSource(); s.buffer = this.noise;
+    const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+    const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+  },
+  build(tr) {
+    const evs = []; const chords = tr.chords.split(' '); const cl = 8;
+    const mel = tr.mel.split(/\s+/).filter(Boolean);
+    const len = Math.max(mel.length, chords.length * cl);
+    // melody
+    for (let i = 0; i < mel.length; i++) {
+      const m = noteMidi(mel[i]); if (m == null) continue;
+      let d = 1; while (mel[i + d] === '-') d++;
+      evs.push({ t: i, d: d * 0.92, m, ch: 'mel' });
+    }
+    chords.forEach((c, ci) => {
+      const t0 = ci * cl; const tones = chordNotes(c, 3); const root = tones[0] - 12;
+      if (tr.bass === 'long') evs.push({ t: t0, d: cl * 0.95, m: root, ch: 'bass' });
+      if (tr.bass === 'root') for (let b = 0; b < cl; b += 2) evs.push({ t: t0 + b, d: 1.6, m: b % 4 === 2 ? root + 7 : root, ch: 'bass' });
+      if (tr.bass === 'walk') { const w = [0, 7, 12, 7]; for (let b = 0; b < 4; b++) evs.push({ t: t0 + b * 2, d: 1.7, m: root + w[b], ch: 'bass' }); }
+      if (tr.bass === 'octave') for (let b = 0; b < cl; b++) evs.push({ t: t0 + b, d: 0.7, m: root + (b % 2 ? 12 : 0), ch: 'bass' });
+      if (tr.arp) { const at = tones.map(x => x + 12); const seq = tr.arp === 'down' ? [...at].reverse() : at; for (let b = 0; b < cl; b++) evs.push({ t: t0 + b, d: 0.9, m: seq[b % seq.length] + (b >= seq.length && b % 2 ? 12 : 0), ch: 'arp' }); }
+      if (tr.pad) tones.forEach((tn, k) => evs.push({ t: t0, d: cl, m: tn + 12, ch: 'pad' }));
+      const fill = tr.drums && tr.drums !== 'soft' && ci % 4 === 3;
+      if (tr.drums === 'rock' && ci % 4 === 0) evs.push({ t: t0, ch: 'crash' });
+      if (fill) [6, 6.5, 7, 7.5].forEach((b, k) => evs.push({ t: t0 + b, ch: 'tom', m: 3 - k }));
+      if (tr.drums) for (let b = 0; b < (fill ? 6 : cl); b++) {
+        if (tr.drums === 'march') { if (b % 4 === 0) evs.push({ t: t0 + b, ch: 'kick' }); if (b % 4 === 2) evs.push({ t: t0 + b, ch: 'snare' }); evs.push({ t: t0 + b, ch: 'hat' }); }
+        if (tr.drums === 'rock') { if (b === 0 || b === 3 || b === 5) evs.push({ t: t0 + b, ch: 'kick' }); if (b === 2 || b === 6) evs.push({ t: t0 + b, ch: 'snare' }); evs.push({ t: t0 + b, ch: 'hat' }); }
+        if (tr.drums === 'soft') { if (b % 2 === 1) evs.push({ t: t0 + b, ch: 'hat', soft: 1 }); }
+      }
+    });
+    // harmony: the nearest chord tone a third or more below each melody note
+    if (tr.harm) for (const e of evs.filter(e => e.ch === 'mel')) {
+      const ch = chords[Math.min(chords.length - 1, Math.floor(e.t / cl))]; if (!ch) continue;
+      const tones = chordNotes(ch, 0).map(n => n % 12); let h = e.m - 3;
+      while (h > e.m - 10 && !tones.includes(((h % 12) + 12) % 12)) h--;
+      if (h > e.m - 10) evs.push({ t: e.t, d: e.d, m: h, ch: 'harm' });
+    }
+    evs.sort((a, b) => a.t - b.t);
+    return { evs, len, loopFrom: tr.loopFrom || 0, once: !!tr.once, step: 60 / tr.bpm / 2 };
+  },
+  playEv(e, t, step) {
+    const m = this.mus;
+    switch (e.ch) {
+      case 'mel': { const L = this.lead || m; const dur = e.d * step; this.tone(L, t, dur, midiHz(e.m), 0.25, 0.12, { vib: dur > 0.3 }); this.tone(L, t, dur, midiHz(e.m) * 1.0046, 0.5, 0.05, { vib: dur > 0.3 }); break; }
+      case 'harm': { const dur = e.d * step; this.tone(this.panR || m, t, dur, midiHz(e.m), 0.5, 0.04, { vib: dur > 0.3 }); break; }
+      case 'pad': { const a = Math.min(0.6, e.d * step * 0.4); this.tone(this.panL || m, t, e.d * step, midiHz(e.m) * 0.997, 'triangle', 0.026, { a, r: 0.5, sus: 1 }); this.tone(this.panR || m, t, e.d * step, midiHz(e.m) * 1.003, 'triangle', 0.026, { a, r: 0.5, sus: 1 }); break; }
+      case 'bass': this.tone(m, t, e.d * step, midiHz(e.m), 'triangle', 0.32); this.tone(m, t, Math.min(0.12, e.d * step), midiHz(e.m) * 2, 0.5, 0.03); break;
+      case 'arp': this.tone(e.t % 2 < 1 ? (this.panL || m) : (this.panR || m), t, e.d * step, midiHz(e.m), 0.125, 0.045); break;
+      case 'kick': this.tone(m, t, 0.12, 150, 'sine', 0.5, { slide: 40, r: 0.1 }); this.noiseHit(m, t, 0.012, 0.18, 2500); break;
+      case 'snare': this.noiseHit(m, t, 0.12, 0.22, 1800); this.tone(m, t, 0.06, 190, 'triangle', 0.12, { slide: 140 }); break;
+      case 'tom': this.tone(m, t, 0.16, 110 + e.m * 40, 'sine', 0.35, { slide: 60 + e.m * 20, r: 0.12 }); break;
+      case 'crash': this.noiseHit(this.panR || m, t, 1.1, 0.09, 5000); this.noiseHit(this.panL || m, t, 0.9, 0.07, 6500); break;
+      case 'hat': this.noiseHit(m, t, 0.03, e.soft ? 0.04 : 0.07, 7000); break;
+    }
+  },
+  play(name, after) {
+    this.want = name; this.after = after || null;
+    if (!this.ac || this.muted && false) return;
+    if (this.cur === name) return;
+    this.stop(); this.cur = name; if (!name) return;
+    const S = this.build(TRACKS[name]); const ac = this.ac;
+    if (this.dly) this.dly.delayTime.setValueAtTime(Math.min(1.4, S.step * 3), ac.currentTime);
+    let idx = 0, base = 0; const t0 = ac.currentTime + 0.08;
+    const tick = () => {
+      const until = ac.currentTime - t0 + 0.35;
+      let guard = 0;
+      while (guard++ < 400) {
+        const e = S.evs[idx]; if (!e) break;
+        const at = (base + e.t) * S.step; if (at > until) break;
+        if (at >= ac.currentTime - t0 - 0.02) this.playEv(e, t0 + at, S.step);
+        idx++;
+        if (idx >= S.evs.length) {
+          if (S.once) { clearInterval(this.timer); this.timer = null; if (this.after) { const nx = this.after, wait = ((base + S.len) * S.step - (ac.currentTime - t0)) * 1000 + 200; this.after = null; setTimeout(() => { if (this.cur === name) { this.cur = null; this.play(nx); } }, Math.max(0, wait)); } return; }
+          base += S.len - S.loopFrom; idx = S.evs.findIndex(x => x.t >= S.loopFrom); if (idx < 0) idx = 0;
+        }
+      }
+    };
+    this.timer = setInterval(tick, 50); tick();
+    // fade in
+    this.mus.gain.cancelScheduledValues(ac.currentTime); this.mus.gain.setValueAtTime(0.0001, ac.currentTime); this.mus.gain.linearRampToValueAtTime(0.55, ac.currentTime + 0.15);
+  },
+  stop() { if (this.timer) clearInterval(this.timer); this.timer = null; this.cur = null; if (this.ac) { const g = this.mus.gain; g.cancelScheduledValues(this.ac.currentTime); g.setValueAtTime(g.value, this.ac.currentTime); g.linearRampToValueAtTime(0.0001, this.ac.currentTime + 0.06); } },
+  sfx(name) {
+    if (!this.ac || this.ac.state !== 'running') return;
+    const t = this.ac.currentTime + 0.005, d = this.sfxG;
+    switch (name) {
+      case 'cursor': this.tone(d, t, 0.04, 1320, 0.5, 0.12); break;
+      case 'ok': this.tone(d, t, 0.05, 990, 0.5, 0.14); this.tone(d, t + 0.05, 0.07, 1480, 0.5, 0.14); break;
+      case 'cancel': this.tone(d, t, 0.07, 660, 0.5, 0.12, { slide: 330 }); break;
+      case 'error': this.tone(d, t, 0.12, 180, 0.5, 0.15); break;
+      case 'hit': this.noiseHit(d, t, 0.12, 0.5, 900, 'lowpass'); this.tone(d, t, 0.08, 220, 'square', 0.12, { slide: 60 }); break;
+      case 'crit': this.noiseHit(d, t, 0.22, 0.7, 600, 'lowpass'); this.tone(d, t, 0.18, 330, 'square', 0.18, { slide: 50 }); break;
+      case 'slash': this.noiseHit(d, t, 0.1, 0.35, 4000); break;
+      case 'fire': this.noiseHit(d, t, 0.5, 0.5, 700, 'lowpass'); this.tone(d, t, 0.4, 200, 'sawtooth', 0.08, { slide: 80 }); break;
+      case 'ice': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.05, 0.1, 1800 + i * 300, 0.125, 0.08); break;
+      case 'bolt': this.noiseHit(d, t, 0.35, 0.6, 2500); this.tone(d, t, 0.3, 90, 'square', 0.15, { slide: 40 }); break;
+      case 'heal': for (let i = 0; i < 5; i++) this.tone(d, t + i * 0.07, 0.14, midiHz(72 + [0, 4, 7, 12, 16][i]), 0.25, 0.09); break;
+      case 'holy': for (let i = 0; i < 8; i++) this.tone(d, t + i * 0.05, 0.3, midiHz(84 + [0, 7, 12, 4, 16, 7, 19, 12][i]), 'sine', 0.08); break;
+      case 'dark': this.tone(d, t, 0.6, 110, 'sawtooth', 0.12, { slide: 40 }); this.noiseHit(d, t, 0.6, 0.3, 400, 'lowpass'); break;
+      case 'meteor': for (let i = 0; i < 4; i++) { this.noiseHit(d, t + i * 0.15, 0.3, 0.6, 500, 'lowpass'); this.tone(d, t + i * 0.15, 0.25, 160, 'square', 0.1, { slide: 40 }); } break;
+      case 'encounter': for (let i = 0; i < 8; i++) this.tone(d, t + i * 0.035, 0.05, 400 + i * 160, 0.5, 0.1); this.noiseHit(d, t + 0.28, 0.4, 0.3, 1500); break;
+      case 'chest': this.tone(d, t, 0.08, 784, 0.5, 0.12); this.tone(d, t + 0.09, 0.08, 988, 0.5, 0.12); this.tone(d, t + 0.18, 0.2, 1175, 0.5, 0.12); break;
+      case 'levelup': [0, 4, 7, 12, 7, 12, 16].forEach((n, i) => this.tone(d, t + i * 0.08, 0.12, midiHz(72 + n), 0.25, 0.12)); break;
+      case 'ko': this.tone(d, t, 0.5, 440, 0.5, 0.14, { slide: 70 }); break;
+      case 'escape': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.04, 0.05, 900 - i * 100, 0.5, 0.1); break;
+      case 'steal': this.tone(d, t, 0.05, 1500, 0.125, 0.1); this.tone(d, t + 0.06, 0.08, 2000, 0.125, 0.1); break;
+      case 'save': [0, 7, 12, 19].forEach((n, i) => this.tone(d, t + i * 0.09, 0.2, midiHz(76 + n), 'sine', 0.1)); break;
+      case 'door': this.noiseHit(d, t, 0.15, 0.3, 500, 'lowpass'); break;
+      case 'buy': this.tone(d, t, 0.05, 1568, 0.5, 0.1); this.tone(d, t + 0.06, 0.1, 2093, 0.5, 0.1); break;
+      case 'boss': this.tone(d, t, 0.8, 55, 'sawtooth', 0.2, { slide: 45 }); this.noiseHit(d, t, 0.9, 0.4, 300, 'lowpass'); break;
+      case 'whoosh': this.noiseHit(d, t, 0.16, 0.25, 1200, 'bandpass'); this.noiseHit(d, t + 0.05, 0.12, 0.15, 2600, 'bandpass'); break;
+      case 'charge': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.035, 0.08, 500 + i * 140, 'sine', 0.05); break;
+      case 'wind': this.noiseHit(d, t, 0.7, 0.35, 900, 'bandpass'); this.noiseHit(d, t + 0.2, 0.6, 0.25, 1600, 'bandpass'); this.tone(d, t, 0.6, 300, 'sine', 0.04, { slide: 900 }); break;
+      case 'shatter': for (let i = 0; i < 10; i++) this.tone(d, t + i * 0.025, 0.09, 2400 - i * 120 + (i % 3) * 300, 0.125, 0.06); this.noiseHit(d, t, 0.5, 0.35, 3500); break;
+      case 'buff': [0, 5, 9, 12, 17].forEach((n, i) => this.tone(d, t + i * 0.05, 0.16, midiHz(76 + n), 'triangle', 0.08)); break;
+      case 'sparkle': [0, 7, 12, 19, 24].forEach((n, i) => this.tone(d, t + i * 0.045, 0.12, midiHz(84 + n), 'sine', 0.06)); break;
+      case 'stairs': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.07, 0.12, midiHz(84 - i * 3), 0.25, 0.08); break;
+      case 'eat': for (let i = 0; i < 3; i++) this.noiseHit(d, t + i * 0.09, 0.05, 0.3, 1400, 'bandpass'); this.tone(d, t + 0.3, 0.15, 880, 'sine', 0.08, { slide: 1320 }); break;
+      case 'pickup': this.tone(d, t, 0.06, 1175, 0.5, 0.1); this.tone(d, t + 0.06, 0.1, 1568, 0.5, 0.1); break;
+      case 'miss': this.noiseHit(d, t, 0.12, 0.2, 2200, 'bandpass'); break;
+      case 'sleep': [0, -3, -7].forEach((n, i) => this.tone(d, t + i * 0.18, 0.3, midiHz(76 + n), 'sine', 0.08)); break;
+      case 'warn': this.tone(d, t, 0.1, 880, 0.5, 0.1); this.tone(d, t + 0.15, 0.1, 880, 0.5, 0.1); break;
+      case 'crystal': for (let i = 0; i < 12; i++) this.tone(d, t + i * 0.09, 0.4, midiHz(79 + [0, 4, 7, 11, 12, 16, 19, 23, 24, 19, 16, 12][i]), 'sine', 0.07); break;
+    }
+  },
+};
+document.getElementById('mute').addEventListener('click', e => {
+  Audio8.unlock(); Audio8.setMuted(!Audio8.muted); e.currentTarget.textContent = Audio8.muted ? '♪ OFF' : '♪ ON'; e.currentTarget.blur(); Store.set('nemuri-mute', Audio8.muted ? '1' : '');
+});
+
+// ===================== ART (procedural pixel art, 16px tiles) =====================
+const T = 16;
+function px(x, c, X, Y, W = 1, H = 1) { x.fillStyle = c; x.fillRect(X, Y, W, H); }
+function pick2(r, a) { return a[Math.floor(r() * a.length)]; }
+function speckle(x, r, cols, n, w = 16, h = 16) { for (let i = 0; i < n; i++) px(x, pick2(r, cols), Math.floor(r() * w), Math.floor(r() * h)); }
+
+// ---- colour ramps (borrowed from Crystal Echo): coloured outlines + directional shading ----
+function rgb2hsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let h = 0, s = 0; const l = (mx + mn) / 2; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; } return [h, s, l]; }
+function hsl2rgb(h, s, l) { if (!s) return [l * 255, l * 255, l * 255]; const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; const f = t => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }; return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255]; }
+function ramp(r, g, b, dl, toward, amt) {
+  let [h, s, l] = rgb2hsl(r, g, b); l = clamp(l + dl, 0, 1);
+  let dh = toward - h; if (dh > 0.5) dh -= 1; if (dh < -0.5) dh += 1; h = (h + dh * amt + 1) % 1; s = clamp(s + (dl < 0 ? 0.08 : -0.04), 0, 1);
+  return hsl2rgb(h, s, l);
+}
+function stylize(c, opt = {}) {
+  const x = c.getContext('2d'); const w = c.width, h = c.height; const d = x.getImageData(0, 0, w, h); const p = d.data;
+  const src = new Uint8ClampedArray(p);
+  const A = (i, j) => (i < 0 || j < 0 || i >= w || j >= h) ? 0 : src[(j * w + i) * 4 + 3];
+  const isOut = (i, j) => { if (!A(i, j)) return false; const k = (j * w + i) * 4; return src[k] + src[k + 1] + src[k + 2] < 110; };
+  const edge = (i, j) => !A(i, j) || isOut(i, j);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const k = (j * w + i) * 4; if (!src[k + 3]) continue;
+    if (isOut(i, j)) {
+      let n = 0, R = 0, G2 = 0, B = 0;
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + di, jj = j + dj; if (A(ii, jj) && !isOut(ii, jj)) { const q = (jj * w + ii) * 4; R += src[q]; G2 += src[q + 1]; B += src[q + 2]; n++; } }
+      if (n) { const [r2, g2, b2] = ramp(R / n, G2 / n, B / n, -0.36, 0.72, 0.35); const m = j > h * 0.55 ? 0.65 : 0.5; p[k] = r2 * (1 - m) + 20 * m; p[k + 1] = g2 * (1 - m) + 14 * m; p[k + 2] = b2 * (1 - m) + 30 * m; }
+      continue;
+    }
+    let dl = 0;
+    if (opt.grad) dl += (0.5 - j / h) * 0.14 + (0.5 - i / w) * 0.06;
+    if (edge(i + 1, j) || edge(i, j + 1)) dl -= 0.1; else if (edge(i - 1, j) || edge(i, j - 1)) dl += 0.07;
+    if (!dl) continue;
+    const [r2, g2, b2] = ramp(src[k], src[k + 1], src[k + 2], dl, dl < 0 ? 0.68 : 0.12, 0.12);
+    p[k] = r2; p[k + 1] = g2; p[k + 2] = b2;
+  }
+  x.putImageData(d, 0, 0); return c;
+}
+function E(w, h, fn, outline) { const c = mkCanvas(w, h); const x = c.getContext('2d'); fn(x, w, h); return stylize(pixelize(c, outline), { grad: true }); }
+function ell(x, cx, cy, rx, ry, col) { x.fillStyle = col; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.fill(); }
+function poly(x, pts, col) { x.fillStyle = col; x.beginPath(); x.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) x.lineTo(pts[i], pts[i + 1]); x.closePath(); x.fill(); }
+function rect(x, a, b, w, h, col) { x.fillStyle = col; x.fillRect(a, b, w, h); }
+
+// ---------- tiles: three dream themes ----------
+const THEMES = [
+  { // 1-3F ゆうぐれの森: pastel grass, rose paths, soft teal hedges
+    void: '#191230', floor: ['#a3d39a', '#97c98f', '#acd9a0', '#9ccf93'], flowers: ['#ffd6ec', '#fff3b8', '#d8e0ff'],
+    path: ['#e6c9b4', '#dcbca6', '#efd6c2'], leaf: ['#2e5a56', '#3f7a6a', '#56987c', '#7cbc92'], trunk: ['#4a3452', '#5e4466'], sky: '#3a2a5a' },
+  { // 4-6F 月あかりの森: blue grass, lilac paths, navy trees
+    void: '#0d0c24', floor: ['#7fa9bd', '#76a0b6', '#88b2c4', '#7ba5ba'], flowers: ['#e8f0ff', '#c8d8ff', '#fff6d0'],
+    path: ['#aaa2cc', '#a09ac2', '#b4acd6'], leaf: ['#1e2a58', '#2c3c74', '#3e5492', '#5a74b2'], trunk: ['#241a40', '#30244e'], sky: '#1a1840' },
+  { // 7-10F 夢のいちばん奥: violet ground, pink paths, deep plum thickets
+    void: '#09050f', floor: ['#9a7cb8', '#9174ae', '#a486c0', '#9678b2'], flowers: ['#ffc8f0', '#f8e0ff', '#c8a8ff'],
+    path: ['#c69ccc', '#bc92c2', '#d0a8d6'], leaf: ['#2c1a44', '#3e265c', '#56367a', '#74509a'], trunk: ['#1a0e26', '#261634'], sky: '#140a22' },
+];
+const TILES = []; // TILES[theme] = { floor:[4], path:[4], wall:[3], face:[3], stairs }
+function drawFloor(x, r, th) {
+  px(x, th.floor[0], 0, 0, 16, 16); speckle(x, r, th.floor, 46);
+  for (let i = 0; i < 3; i++) { const a = Math.floor(r() * 14) + 1, b = Math.floor(r() * 12) + 3; px(x, th.floor[1], a - 1, b + 1, 3, 1); px(x, th.floor[2], a, b, 1, 1); }
+  if (r() < 0.45) { const a = Math.floor(r() * 12) + 2, b = Math.floor(r() * 12) + 2, c = pick2(r, th.flowers); px(x, c, a, b); px(x, c, a - 1, b + 1); px(x, c, a + 1, b + 1); px(x, c, a, b + 2); px(x, '#ffffff', a, b + 1); }
+}
+function drawPath(x, r, th) {
+  px(x, th.path[0], 0, 0, 16, 16); speckle(x, r, th.path, 40);
+  for (let i = 0; i < 2; i++) { const a = Math.floor(r() * 13), b = Math.floor(r() * 13); px(x, th.path[1], a, b + 1, 3, 1); px(x, th.path[2], a, b, 3, 1); }
+}
+// hedge seen from above (wall top) and with its front edge showing (when floor is below)
+function drawWall(x, r, th, face) {
+  px(x, th.leaf[0], 0, 0, 16, 16);
+  const blob = (cx, cy, rr, col) => { for (let yy = -rr; yy <= rr; yy++) for (let xx = -rr; xx <= rr; xx++) if (xx * xx + yy * yy <= rr * rr + rr * 0.6) { const X = Math.round(cx + xx), Y = Math.round(cy + yy); if (X >= 0 && X < 16 && Y >= 0 && Y < 16) px(x, col, X, Y); } };
+  const n = 5;
+  for (let i = 0; i < n; i++) { const cx = 2 + r() * 12, cy = 2 + r() * (face ? 7 : 12), rr = 3 + Math.floor(r() * 2); blob(cx, cy, rr, th.leaf[1]); blob(cx - 0.6, cy - 0.8, rr - 1, th.leaf[2]); if (r() < 0.6) blob(cx - 1.2, cy - 1.4, 1, th.leaf[3]); }
+  if (face) {
+    px(x, th.trunk[1], 0, 11, 16, 5); px(x, th.trunk[0], 0, 15, 16, 1);
+    for (let i = 0; i < 16; i += 4) { const o = Math.floor(r() * 2); px(x, th.trunk[0], i + o, 11, 1, 4); }
+    for (let i = 0; i < 16; i++) if (r() < 0.6) px(x, th.leaf[1], i, 10 + (r() < 0.5 ? 1 : 0));
+  }
+  if (r() < 0.3) { const a = 2 + Math.floor(r() * 12), b = 2 + Math.floor(r() * 7); px(x, pick2(r, th.flowers), a, b); }
+}
+function drawStairs(x, th) {
+  // a staircase sinking into a soft glow
+  px(x, '#1a1030', 1, 1, 14, 14);
+  for (let i = 0; i < 4; i++) { const y = 2 + i * 3, w = 12 - i * 2; px(x, '#e8dcf6', 2 + i, y, w, 1); px(x, '#a898c8', 2 + i, y + 1, w, 1); px(x, '#5a4a7a', 2 + i, y + 2, w, 1); }
+  px(x, '#f6eaff', 1, 1, 14, 1); px(x, '#f6eaff', 1, 1, 1, 14); px(x, '#3a2a5a', 14, 1, 1, 14); px(x, '#3a2a5a', 1, 14, 14, 1);
+}
+function buildTiles() {
+  THEMES.forEach((th, i) => {
+    const mk = (fn, seed) => { const c = mkCanvas(16, 16); fn(c.getContext('2d'), mulberry(seed)); return c; };
+    TILES[i] = {
+      floor: [0, 1, 2, 3].map(v => mk((x, r) => drawFloor(x, r, th), 100 + i * 31 + v * 7)),
+      path: [0, 1, 2, 3].map(v => mk((x, r) => drawPath(x, r, th), 300 + i * 31 + v * 7)),
+      wall: [0, 1, 2].map(v => mk((x, r) => drawWall(x, r, th, false), 500 + i * 31 + v * 7)),
+      face: [0, 1, 2].map(v => mk((x, r) => drawWall(x, r, th, true), 700 + i * 31 + v * 7)),
+      stairs: mk(x => drawStairs(x, th), 1),
+    };
+  });
+}
+
+// ---------- the hero: Haru in pajamas and a nightcap (16x16 templates) ----------
+const HARU_PAL = { H: '#6a4632', S: '#f6d2b0', E: '#1a1a2a', C: '#93c4f2', A: '#f6e27a', P: '#7aaee6', B: '#f2a2c4', N: '#3a4a9a', W: '#ffffff' };
+const HARU_HEAD = {
+  down: ['.....OOOOOO.OO..', '....ONNNNNNOWWO.', '...ONNNNNNNNOWO.', '...OWWWWWWWWOO..', '...OHHHHHHHHO...', '...OHSSSSSSHO...', '...OSSESSESSO...', '...OSSESSESSO...', '....OOSSSSOO....'],
+  up: ['.....OOOOOO.OO..', '....ONNNNNNOWWO.', '...ONNNNNNNNOWO.', '...OWWWWWWWWOO..', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OHHHHHHHHO...', '...OSHHHHHHSO...', '....OOHHHHOO....'],
+  left: ['.....OOOOOO.....', '....ONNNNNNOOO..', '...ONNNNNNNNNWO.', '...OWWWWWWWWOWO.', '...OHHHHHHHHOO..', '...OSSSHHHHHO...', '...OSESSHHHHO...', '..OSSSSSSHHO....', '...OOSSSSOO.....'],
+};
+const HARU_BODY = {
+  down: ['...OCCCCCCCCO...', '..OSOCCACCCOSO..', '..OSOCCACCCOSO..', '...OOCCCCCCOO...'],
+  up: ['...OCCCCCCCCO...', '..OSOCCCCCCOSO..', '..OSOCCCCCCOSO..', '...OOCCCCCCOO...'],
+  left: ['....OCCCCCCO....', '....OCSCACCO....', '....OCSCCCCO....', '....OCCCCCCO....'],
+};
+const LEGS = {
+  A: ['....OPPOOPPO....', '....OPPOOPPO....', '....OBBOOBBO....'],
+  B: ['....OPPOOPPO....', '....OBBOOPPO....', '....OOO.OBBO....'],
+  C: ['....OPPOOPPO....', '....OPPOOBBO....', '....OBBO.OOO....'],
+  SA: ['.....OPPPPO.....', '.....OPPPPO.....', '.....OBBBBO.....'],
+  SB: ['....OPPOOPPO....', '...OPPO..OPPO...', '...OBBO..OBBO...'],
+};
+function renderChar(pal, rows, flip) {
+  const c = mkCanvas(16, 16), x = c.getContext('2d');
+  for (let y = 0; y < 16; y++) for (let i = 0; i < 16; i++) {
+    const ch = rows[y][i]; if (ch === '.') continue;
+    let col = ch === 'O' ? '#1a1020' : pal[ch];
+    if (ch === 'E') col = '#283058';
+    px(x, col, flip ? 15 - i : i, y);
+  }
+  return stylize(c);
+}
+const HERO = {}; // dir -> [frames]
+function buildHero() {
+  const body = d => HARU_HEAD[d].concat(HARU_BODY[d]);
+  HERO.down = ['A', 'B', 'A', 'C'].map(l => renderChar(HARU_PAL, body('down').concat(LEGS[l]), false));
+  HERO.up = ['A', 'C', 'A', 'B'].map(l => renderChar(HARU_PAL, body('up').concat(LEGS[l]), false));
+  HERO.left = ['SA', 'SB', 'SA', 'SB'].map(l => renderChar(HARU_PAL, body('left').concat(LEGS[l]), false));
+  HERO.right = ['SA', 'SB', 'SA', 'SB'].map(l => renderChar(HARU_PAL, body('left').concat(LEGS[l]), true));
+}
+// facing for an 8-way direction: diagonals use their horizontal part, like the old games
+function faceOf(dx, dy) { return dx < 0 ? 'left' : dx > 0 ? 'right' : dy < 0 ? 'up' : 'down'; }
+
+// ---------- 悪夢 (monsters): 2 idle frames each, drawn facing left ----------
+const MON_DRAW = {
+  moya(x, a) { // a sleepy lilac smog
+    const b = a ? 1 : 0;
+    ell(x, 8, 10 - b, 6, 4.5, '#b6a8d8'); ell(x, 5, 8 - b, 3.5, 3, '#c8bce6'); ell(x, 11, 8 - b, 3.5, 3.2, '#c4b6e2'); ell(x, 8, 6 - b, 3.5, 3, '#d6ccf0');
+    rect(x, 4, 13, 2, 2, '#9c8ec4'); rect(x, 10, 13 - b, 2, 2, '#9c8ec4');
+    rect(x, 5, 9 - b, 2, 1, '#2a1c40'); rect(x, 9, 9 - b, 2, 1, '#2a1c40'); rect(x, 7, 11 - b, 2, 1, '#6a5a90');
+  },
+  neko(x, a) { // a shadow cat with lamp eyes
+    const b = a ? 1 : 0;
+    poly(x, [12, 14, 15, 9 - b, 15, 6 - b, 13, 9, 12, 12], '#241a34');
+    ell(x, 9, 11, 5, 3.5, '#2e2240'); ell(x, 5, 7, 3.6, 3.4, '#2e2240');
+    poly(x, [2, 5, 2, 1, 5, 4], '#2e2240'); poly(x, [8, 5, 8, 1, 5, 4], '#2e2240');
+    rect(x, 4, 13, 2, 2, '#241a34'); rect(x, 11, 13, 2, 2, '#241a34');
+    rect(x, 3, 6, 2, 2, '#ffe060'); rect(x, 6, 6, 2, 2, '#ffe060'); rect(x, 3, 7, 1, 1, '#2a1c00'); rect(x, 6, 7, 1, 1, '#2a1c00');
+  },
+  moufu(x, a) { // a patchwork blanket ghost
+    const b = a ? 1 : 0;
+    x.fillStyle = '#e4ecff'; x.beginPath(); x.moveTo(2, 15); x.quadraticCurveTo(1, 3 - b, 8, 2 - b); x.quadraticCurveTo(15, 3 - b, 14, 15);
+    for (let i = 0; i < 4; i++) x.lineTo(14 - i * 3 - 1.5, 13 + (i % 2) * 2 - b); x.closePath(); x.fill();
+    rect(x, 9, 7 - b, 4, 4, '#9ab4f0'); rect(x, 3, 10 - b, 4, 3, '#f0b0c8'); rect(x, 10, 12 - b, 3, 2, '#b8e0a8');
+    rect(x, 4, 5 - b, 2, 3, '#2a2448'); rect(x, 8, 5 - b, 2, 3, '#2a2448');
+  },
+  wani(x, a) { // a crocodile that ticks
+    const b = a ? 1 : 0;
+    ell(x, 9, 10, 6, 3.5, '#4e9a52'); poly(x, [1, 8 - b, 6, 6, 6, 12, 1, 11], '#5aae5c'); poly(x, [14, 9, 16, 12, 13, 12], '#3e7e44');
+    rect(x, 2, 10 - b, 4, 1, '#fff'); rect(x, 4, 6, 2, 2, '#ffffff'); rect(x, 4, 6, 1, 1, '#1a1a1a');
+    ell(x, 9, 10, 2.5, 2.5, '#fff6d8'); rect(x, 9, 8, 1, 2, '#3a2a1a'); rect(x, 9, 10, 2, 1, '#3a2a1a');
+    rect(x, 5, 13, 2, 2, '#3e7e44'); rect(x, 12, 13, 2, 2, '#3e7e44');
+  },
+  kumo(x, a) { // a thundercloud
+    const b = a ? 1 : 0;
+    ell(x, 8, 6 - b, 6.5, 3.5, '#5a5c78'); ell(x, 5, 5 - b, 3.5, 3, '#6c6e8c'); ell(x, 11, 4 - b, 3.5, 3.2, '#6c6e8c');
+    rect(x, 5, 6 - b, 2, 1, '#ffe86a'); rect(x, 9, 6 - b, 2, 1, '#ffe86a');
+    poly(x, [8, 9, 5, 13, 7, 13, 6, 16, 10, 11, 8, 11, 9, 9], a ? '#fff2a0' : '#ffd84a');
+  },
+  piero(x, a) { // a skull clown
+    const b = a ? 1 : 0;
+    poly(x, [8, 0 - b, 4, 6 - b, 12, 6 - b], '#e04a7a'); ell(x, 8, 0.5 - b, 1.5, 1.5, '#ffe060');
+    ell(x, 8, 8 - b, 4.5, 3.8, '#f2eee4'); rect(x, 5, 7 - b, 2, 2, '#1a1020'); rect(x, 9, 7 - b, 2, 2, '#1a1020'); rect(x, 7, 9 - b, 2, 2, '#e83040'); rect(x, 6, 11 - b, 4, 1, '#1a1020');
+    poly(x, [3, 12, 13, 12, 12, 16, 4, 16], '#6a3aa8'); rect(x, 7, 12, 2, 4, '#ffe060'); ell(x, 3, 13, 1.6, 1.6, '#f2eee4'); ell(x, 13, 13, 1.6, 1.6, '#f2eee4');
+  },
+};
+const MON_IMG = {}; // id -> { left:[2], right:[2], hit:[2] }
+function buildMonsters() {
+  for (const k in MON_DRAW) {
+    const left = [0, 1].map(a => E(16, 16, x => MON_DRAW[k](x, a)));
+    const right = left.map(c => { const m = mkCanvas(16, 16), x = m.getContext('2d'); x.translate(16, 0); x.scale(-1, 1); x.drawImage(c, 0, 0); return m; });
+    MON_IMG[k] = { left, right, hitL: left.map(c => silhouette(c)), hitR: right.map(c => silhouette(c)) };
+  }
+}
+
+// ---------- items on the floor ----------
+const ITEM_DRAW = {
+  candy(x) { poly(x, [2, 5, 5, 8, 2, 11], '#ff9ac8'); poly(x, [14, 5, 11, 8, 14, 11], '#ff9ac8'); ell(x, 8, 8, 3.6, 3.2, '#ffd0e6'); rect(x, 6, 7, 2, 1, '#fff'); rect(x, 8, 9, 2, 1, '#ff7ab0'); },
+  bigcandy(x) { poly(x, [1, 3, 5, 8, 1, 13], '#ffb84a'); poly(x, [15, 3, 11, 8, 15, 13], '#ffb84a'); ell(x, 8, 8, 4.6, 4.2, '#ffe08a'); rect(x, 5, 6, 3, 1, '#fff'); rect(x, 7, 10, 4, 1, '#f09a2a'); },
+  heal(x) { ell(x, 8, 7, 4, 4, '#8ae0c8'); rect(x, 7, 10, 2, 5, '#f6f0e6'); rect(x, 6, 5, 2, 2, '#ffffff'); rect(x, 9, 8, 2, 1, '#4ab89a'); },
+  bigheal(x) { ell(x, 8, 7, 5, 4.5, '#ffd0f0'); ell(x, 6, 6, 2.5, 2, '#fff4fc'); ell(x, 10, 8, 2.5, 2, '#f8b0e0'); rect(x, 7, 11, 2, 4, '#f6f0e6'); },
+  star(x) { poly(x, [8, 2, 10, 6, 14, 7, 11, 10, 12, 14, 8, 12, 4, 14, 5, 10, 2, 7, 6, 6], '#ffe46a'); rect(x, 7, 6, 2, 2, '#fffbe0'); },
+};
+const ITEM_IMG = {};
+function buildItems() { for (const k in ITEM_DRAW) ITEM_IMG[k] = E(16, 16, ITEM_DRAW[k]); }
+
+// ===================== DATA =====================
+const HERO_NAME = 'ハル', SISTER = 'ノア';
+const DUNGEON = { name: 'おもちゃの森', floors: 10 };
+// floors share a look in bands of three or four: dusk, moonlight, the deep dream
+const THEME_OF = f => f <= 3 ? 0 : f <= 6 ? 1 : 2;
+const MUSIC_OF = f => ['dream1', 'dream2', 'dream3'][THEME_OF(f)];
+
+// 悪夢: the things Noa was afraid of. atk/def are flat numbers, exp is given on defeat.
+// speed 2 = two actions per turn. sleepHit = chance that a hit puts Haru to sleep. bolt = ranged attack in a straight line.
+const MONSTERS = {
+  moya: { name: 'もやもや', hp: 6, atk: 2, def: 0, exp: 2, floors: [1, 4], weight: 10 },
+  neko: { name: 'まっくろネコ', hp: 9, atk: 3, def: 1, exp: 4, floors: [2, 6], weight: 8 },
+  moufu: { name: 'おばけ毛布', hp: 12, atk: 4, def: 1, exp: 8, floors: [3, 8], weight: 7, sleepHit: 0.1 },
+  wani: { name: 'チクタクワニ', hp: 14, atk: 4, def: 2, exp: 12, floors: [6, 10], weight: 5, speed: 2 },
+  kumo: { name: 'カミナリぐも', hp: 16, atk: 4, def: 2, exp: 13, floors: [6, 10], weight: 5, bolt: { chance: 0.4, range: 8, dmg: [5, 8] } },
+  piero: { name: 'ガイコツピエロ', hp: 26, atk: 8, def: 4, exp: 22, floors: [8, 10], weight: 4 },
+};
+function monstersFor(floor) { return Object.keys(MONSTERS).filter(k => floor >= MONSTERS[k].floors[0] && floor <= MONSTERS[k].floors[1]); }
+function pickMonster(floor) {
+  const ks = monstersFor(floor); let tot = 0; for (const k of ks) tot += MONSTERS[k].weight;
+  let r = rnd() * tot; for (const k of ks) { r -= MONSTERS[k].weight; if (r < 0) return k; } return ks[0];
+}
+
+// items for the first stage: food for the dozing gauge, healing candy and star shards (money)
+const ITEMS = {
+  candy: { name: 'ゆめの菓子', kind: 'food', mado: 50, desc: 'まどろみ度が 50 回復する。' },
+  bigcandy: { name: '大きなゆめの菓子', kind: 'food', mado: 100, desc: 'まどろみ度が 100 回復する。満タンなら 最大まどろみ度が 少し上がる。' },
+  heal: { name: 'いやしのキャンディ', kind: 'heal', hp: 25, desc: 'HPが 25 回復する。HPが満タンなら 最大HPが 1 上がる。' },
+  bigheal: { name: 'ふわふわキャンディ', kind: 'heal', hp: 100, desc: 'HPが 100 回復する。HPが満タンなら 最大HPが 2 上がる。' },
+  star: { name: 'ほしのかけら', kind: 'money', desc: '夢の中の お金。' },
+};
+const ITEM_DROPS = [['candy', 26], ['heal', 30], ['star', 26], ['bigcandy', 8], ['bigheal', 6]];
+function pickItem() { let tot = 0; for (const [, w] of ITEM_DROPS) tot += w; let r = rnd() * tot; for (const [k, w] of ITEM_DROPS) { r -= w; if (r < 0) return k; } return 'candy'; }
+const BAG_MAX = 20;
+
+// experience needed for each level (index = level)
+const EXP_TABLE = [0, 0, 10, 30, 60, 100, 160, 240, 350, 500, 700, 950, 1250, 1600, 2000, 2500, 3100, 3800, 4600, 5500, 6500];
+const MADO_MAX = 100;
+
+const INTRO = [
+  `妹の${SISTER}が 目をさまさなくなって 七日がすぎた。`,
+  'おばあちゃんが のこした「夢わたりの枕」。',
+  'これを つかえば ねむっている人の 夢に 入れるという。',
+  `${HERO_NAME}「まってろ、${SISTER}。むかえに いくから」`,
+];
+
+// ===================== DUNGEON (floor generation, field of view, path distances) =====================
+// The floor is cut into 3x3 sections like the original games: most sections hold a room, the rest only a
+// corridor junction, and a random spanning tree (plus a few extra links) joins neighbouring sections.
+const MW = 59, MH = 35, SEC_W = 19, SEC_H = 11;
+const T_WALL = 0, T_ROOM = 1, T_PATH = 2;
+const DIRS8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+
+function genFloor(floor) {
+  const t = new Uint8Array(MW * MH), room = new Int8Array(MW * MH).fill(-1);
+  const at = (x, y) => y * MW + x;
+  const rooms = [], cells = [];
+  const big = floor >= 3 && rnd() < 0.08;
+  if (big) {
+    // 大部屋: one room fills the floor
+    const r = { id: 0, x: 3, y: 3, w: MW - 6, h: MH - 6, doors: [] }; rooms.push(r);
+    for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) { t[at(x, y)] = T_ROOM; room[at(x, y)] = 0; }
+  } else {
+    // pick which of the 9 sections are corridor-only junctions (at most 3, always at least 5 rooms)
+    const dummy = new Set(); const nd = ri(0, 3);
+    while (dummy.size < nd) dummy.add(ri(0, 8));
+    for (let i = 0; i < 9; i++) {
+      const cx = i % 3, cy = Math.floor(i / 3), sx = 1 + cx * SEC_W, sy = 1 + cy * SEC_H;
+      if (dummy.has(i)) { const x = ri(sx + 3, sx + SEC_W - 4), y = ri(sy + 3, sy + SEC_H - 4); cells.push({ cx, cy, room: null, x, y }); t[at(x, y)] = T_PATH; continue; }
+      // at least two wall tiles between a room and its section edge so corridors never brush another room
+      const w = ri(4, SEC_W - 6), h = ri(3, SEC_H - 6);
+      const x = ri(sx + 2, sx + SEC_W - w - 2), y = ri(sy + 2, sy + SEC_H - h - 2);
+      const r = { id: rooms.length, x, y, w, h, doors: [] }; rooms.push(r);
+      for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) { t[at(xx, yy)] = T_ROOM; room[at(xx, yy)] = r.id; }
+      cells.push({ cx, cy, room: r });
+    }
+    // spanning tree over the 3x3 grid, then a couple of extra links for loops
+    const linked = new Set(), key = (a, b) => a < b ? a + ',' + b : b + ',' + a;
+    const nb = i => { const out = [], cx = i % 3, cy = Math.floor(i / 3); if (cx > 0) out.push(i - 1); if (cx < 2) out.push(i + 1); if (cy > 0) out.push(i - 3); if (cy < 2) out.push(i + 3); return out; };
+    const seen = new Set([ri(0, 8)]);
+    while (seen.size < 9) {
+      const from = [...seen].filter(i => nb(i).some(j => !seen.has(j))); const a = from[ri(0, from.length - 1)];
+      const opts = nb(a).filter(j => !seen.has(j)); const b = opts[ri(0, opts.length - 1)];
+      seen.add(b); linked.add(key(a, b));
+    }
+    for (let k = ri(1, 3); k > 0; k--) { const a = ri(0, 8), o = nb(a), b = o[ri(0, o.length - 1)]; linked.add(key(a, b)); }
+    for (const k of linked) { const [a, b] = k.split(',').map(Number); carve(cells[a], cells[b]); }
+  }
+  function exitOf(c, side) {
+    // a door on the given side of the room (or the junction point itself)
+    if (!c.room) return [c.x, c.y];
+    const r = c.room;
+    if (side === 'E') return [r.x + r.w, ri(r.y, r.y + r.h - 1)];
+    if (side === 'W') return [r.x - 1, ri(r.y, r.y + r.h - 1)];
+    if (side === 'S') return [ri(r.x, r.x + r.w - 1), r.y + r.h];
+    return [ri(r.x, r.x + r.w - 1), r.y - 1];
+  }
+  function line(x0, y0, x1, y1) {
+    const dx = Math.sign(x1 - x0), dy = Math.sign(y1 - y0); let x = x0, y = y0;
+    for (; ;) { if (t[at(x, y)] === T_WALL) t[at(x, y)] = T_PATH; if (x === x1 && y === y1) break; x += dx; y += dy; }
+  }
+  function carve(A, B) {
+    if (A.cx > B.cx || A.cy > B.cy) [A, B] = [B, A];
+    if (A.cy === B.cy) { // left to right: bend at a column strictly between the two doors
+      const [ax, ay] = exitOf(A, 'E'), [bx, by] = exitOf(B, 'W'); const mx = ri(ax + 1, bx - 1);
+      line(ax, ay, mx, ay); line(mx, ay, mx, by); line(mx, by, bx, by);
+      if (A.room) A.room.doors.push([ax, ay]); if (B.room) B.room.doors.push([bx, by]);
+    } else { // top to bottom
+      const [ax, ay] = exitOf(A, 'S'), [bx, by] = exitOf(B, 'N'); const my = ri(ay + 1, by - 1);
+      line(ax, ay, ax, my); line(ax, my, bx, my); line(bx, my, bx, by);
+      if (A.room) A.room.doors.push([ax, ay]); if (B.room) B.room.doors.push([bx, by]);
+    }
+  }
+  // doorways count as part of their room for sight (standing in the entrance shows the room)
+  const area = new Int8Array(room);
+  for (const r of rooms) for (const [x, y] of r.doors) area[at(x, y)] = r.id;
+  const F = { floor, t, room, area, rooms, big, seen: new Uint8Array(MW * MH), vis: new Uint8Array(MW * MH), stairs: null };
+  return F;
+}
+
+const inMap = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH;
+function tileAt(F, x, y) { return inMap(x, y) ? F.t[y * MW + x] : T_WALL; }
+function passable(F, x, y) { return tileAt(F, x, y) !== T_WALL; }
+// diagonal steps may not cut a wall corner (same rule for moving and for attacking)
+function canStep(F, x, y, dx, dy) {
+  if (!passable(F, x + dx, y + dy)) return false;
+  if (dx && dy && (!passable(F, x + dx, y) || !passable(F, x, y + dy))) return false;
+  return true;
+}
+function areaAt(F, x, y) { return inMap(x, y) ? F.area[y * MW + x] : -1; }
+// a random free floor tile inside a room (optionally avoiding one room)
+function randomRoomTile(F, ok, avoidRoom = -1) {
+  for (let tries = 0; tries < 400; tries++) {
+    const cand = F.rooms.filter(r => r.id !== avoidRoom || F.rooms.length === 1);
+    const r = cand[ri(0, cand.length - 1)]; const x = ri(r.x, r.x + r.w - 1), y = ri(r.y, r.y + r.h - 1);
+    if (!ok || ok(x, y)) return [x, y];
+  }
+  return null;
+}
+
+// what the player can see: the whole room (and its walls) when inside one, otherwise only the 8 tiles around
+function updateFov(F, px, py) {
+  F.vis.fill(0);
+  const mark = (x, y) => { if (inMap(x, y)) { F.vis[y * MW + x] = 1; F.seen[y * MW + x] = 1; } };
+  const a = areaAt(F, px, py);
+  if (a >= 0) { const r = F.rooms[a]; for (let y = r.y - 1; y <= r.y + r.h; y++) for (let x = r.x - 1; x <= r.x + r.w; x++) mark(x, y); }
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) mark(px + dx, py + dy);
+}
+function visible(F, x, y) { return inMap(x, y) && F.vis[y * MW + x] === 1; }
+
+// breadth-first step distances to (gx, gy) over walkable tiles, honouring the corner rule
+function distField(F, gx, gy) {
+  const D = new Int16Array(MW * MH).fill(-1); const q = [gy * MW + gx]; D[q[0]] = 0;
+  for (let h = 0; h < q.length; h++) {
+    const i = q[h], x = i % MW, y = (i - x) / MW;
+    for (const [dx, dy] of DIRS8) {
+      const nx = x + dx, ny = y + dy, j = ny * MW + nx;
+      if (!inMap(nx, ny) || D[j] >= 0 || !canStep(F, x, y, dx, dy)) continue;
+      D[j] = D[i] + 1; q.push(j);
+    }
+  }
+  return D;
+}
+
+// ===================== GAME (state, turns, combat, monsters) =====================
+const G = {
+  frame: 0, scene: null, F: null, p: null, mons: [], dead: [], items: [], bag: [], stars: 0, turn: 0,
+  log: [], logT: 0, busy: null, wait: 0, fx: [], menu: [], prompt: null, fade: 0, shake: 0, card: 0,
+  dirHold: 0, stopUntilRelease: false, bHeld: 0, bTurned: false, cause: '', best: 0, showMap: true,
+};
+const cheb = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+function msg(s, col) { G.log.push({ s, col }); if (G.log.length > 3) G.log.shift(); G.logT = 210; }
+function popup(e, text, col) { G.fx.push({ x: e.x * T + 8, y: e.y * T, text: String(text), col, t: 0 }); }
+const monAt = (x, y) => G.mons.find(m => m.x === x && m.y === y && m.hp > 0);
+const itemAt = (x, y) => G.items.find(i => i.x === x && i.y === y);
+const occupied = (x, y) => !!monAt(x, y) || (G.p.x === x && G.p.y === y);
+const settled = e => e.rx === e.x * T && e.ry === e.y * T;
+const itemName = it => it.k === 'star' ? `ほしのかけら ${it.n}こ` : ITEMS[it.k].name;
+
+function playerAtk() { const L = G.p.lv; return 3 + L + Math.floor(L / 3); }
+function playerDef() { return Math.floor(G.p.lv / 2); }
+function dmgCalc(atk, def) { return Math.max(1, Math.round(atk * (0.875 + rnd() * 0.25)) - def); }
+
+// ---------- new game / floors ----------
+function newGame() {
+  G.p = { x: 0, y: 0, rx: 0, ry: 0, dir: [0, 1], hp: 15, mhp: 15, lv: 1, exp: 0, mado: MADO_MAX, mmado: MADO_MAX, madoT: 0, regen: 0, sleep: 0, lunge: 0, hit: 0, walk: 0 };
+  G.bag = [{ k: 'candy' }, { k: 'heal' }]; G.stars = 0; G.turn = 0; G.log = []; G.cause = ''; G.menu = []; G.prompt = null; G.busy = null; G.wait = 0;
+}
+function enterFloor(n) {
+  const F = genFloor(n); G.F = F; G.mons = []; G.dead = []; G.items = []; G.fx = [];
+  const p = G.p;
+  const start = randomRoomTile(F); p.x = start[0]; p.y = start[1]; p.rx = p.x * T; p.ry = p.y * T; p.dir = [0, 1];
+  const startRoom = F.room[p.y * MW + p.x];
+  const st = randomRoomTile(F, (x, y) => !(x === p.x && y === p.y), startRoom); F.stairs = { x: st[0], y: st[1] };
+  const nm = ri(3, 5) + Math.floor(n / 3);
+  for (let i = 0; i < nm; i++) spawnMonster(true, startRoom);
+  const ni = ri(4, 7);
+  for (let i = 0; i < ni; i++) { const t = randomRoomTile(F, (x, y) => !itemAt(x, y) && !(x === F.stairs.x && y === F.stairs.y)); if (t) dropItem(pickItem(), t[0], t[1]); }
+  updateFov(F, p.x, p.y);
+  G.best = Math.max(G.best, n); G.card = 110; G.stopUntilRelease = true;
+  Audio8.play(MUSIC_OF(n));
+}
+function dropItem(k, x, y) { const it = { k, x, y }; if (k === 'star') it.n = ri(5, 15) + G.F.floor * 3; G.items.push(it); return it; }
+function spawnMonster(initial, avoidRoom = -1) {
+  const F = G.F, p = G.p;
+  const t = randomRoomTile(F, (x, y) => !occupied(x, y) && !visible(F, x, y) && Math.max(Math.abs(x - p.x), Math.abs(y - p.y)) > 4, initial ? avoidRoom : -1);
+  if (!t) return null;
+  const k = pickMonster(F.floor), D = MONSTERS[k];
+  const m = { k, x: t[0], y: t[1], rx: t[0] * T, ry: t[1] * T, hp: D.hp, mhp: D.hp, dir: [-1, 0], asleep: initial && rnd() < 0.35, track: 0, goal: null, hit: 0, lunge: 0, seed: Math.floor(rnd() * 99) };
+  G.mons.push(m); return m;
+}
+
+// ---------- the busy runner: actions are generators that yield frame waits ----------
+function runBusy() {
+  if (G.wait > 0) { G.wait--; return; }
+  for (let guard = 0; guard < 60 && G.busy; guard++) {
+    const r = G.busy.next();
+    if (r.done) { G.busy = null; break; }
+    if (r.value) { G.wait = r.value - 1; break; }
+  }
+}
+function* waitSettled() { let n = 0; while (!settled(G.p) && n++ < 30) yield 1; }
+
+// ---------- player actions ----------
+function* actMove(dx, dy) {
+  const p = G.p, F = G.F; p.dir = [dx, dy];
+  const tx = p.x + dx, ty = p.y + dy;
+  if (monAt(tx, ty) && canStep(F, p.x, p.y, dx, dy)) { yield* actAttack(); return; }
+  if (!canStep(F, p.x, p.y, dx, dy) || monAt(tx, ty)) return; // bumping a wall costs no turn
+  p.x = tx; p.y = ty; p.walk++;
+  updateFov(F, p.x, p.y);
+  pickUpHere(true);
+  yield* endTurn();
+  if (p.hp <= 0) return;
+  yield* waitSettled();
+  if (F.stairs && p.x === F.stairs.x && p.y === F.stairs.y) askStairs();
+}
+function* actAttack() {
+  const p = G.p, F = G.F, [dx, dy] = p.dir;
+  p.lunge = 10; Audio8.sfx('slash');
+  yield 4;
+  const m = monAt(p.x + dx, p.y + dy);
+  if (m && canStep(F, p.x, p.y, dx, dy)) {
+    m.asleep = false; m.track = 10; m.goal = [p.x, p.y];
+    if (rnd() < 0.95) {
+      const d = dmgCalc(playerAtk(), MONSTERS[m.k].def); m.hp -= d; m.hit = 10; popup(m, d, '#ffffff'); Audio8.sfx('hit');
+      msg(`${MONSTERS[m.k].name}に ${d}の ダメージ!`);
+      if (m.hp <= 0) { yield 8; yield* killMon(m); }
+    } else { Audio8.sfx('miss'); msg(`${MONSTERS[m.k].name}に かわされた!`); }
+  }
+  yield 8;
+  yield* endTurn();
+}
+function* actWait() { pickUpHere(false); yield* endTurn(); yield 2; }
+function* actSleep() {
+  const p = G.p; p.sleep--;
+  yield 14;
+  if (p.sleep <= 0) msg(`${HERO_NAME}は 目を さました。`);
+  yield* endTurn();
+}
+function* killMon(m) {
+  const D = MONSTERS[m.k];
+  m.dying = 1; G.dead.push(m); G.mons = G.mons.filter(x => x !== m); Audio8.sfx('shatter');
+  msg(`${D.name}を やっつけた! けいけんち ${D.exp}`);
+  if (rnd() < 0.1 && !itemAt(m.x, m.y) && !(G.F.stairs.x === m.x && G.F.stairs.y === m.y)) dropItem(pickItem(), m.x, m.y);
+  yield* gainExp(D.exp);
+}
+function* gainExp(n) {
+  const p = G.p; p.exp += n;
+  while (p.lv < EXP_TABLE.length - 1 && p.exp >= EXP_TABLE[p.lv + 1]) {
+    p.lv++; const up = ri(4, 6); p.mhp += up; p.hp += up;
+    Audio8.sfx('levelup'); msg(`${HERO_NAME}の レベルが ${p.lv}に あがった!`, UI.gold);
+    yield 30;
+  }
+}
+// use / drop from the bag
+function* actUse(i) {
+  const p = G.p, it = G.bag[i], D = ITEMS[it.k];
+  G.bag.splice(i, 1);
+  if (D.kind === 'food') {
+    Audio8.sfx('eat');
+    const full = p.mado >= p.mmado;
+    if (full && D.mado >= 100) { p.mmado += 5; p.mado = p.mmado; msg(`${D.name}を たべた。さいだいまどろみ度が 5 あがった!`); }
+    else { p.mado = Math.min(p.mmado, p.mado + D.mado); msg(`${D.name}を たべた。夢が ふかくなった。`); }
+  } else if (D.kind === 'heal') {
+    Audio8.sfx('heal');
+    if (p.hp >= p.mhp) { const up = D.hp >= 100 ? 2 : 1; p.mhp += up; p.hp = p.mhp; msg(`${D.name}を なめた。さいだいHPが ${up} あがった!`); }
+    else { const h = Math.min(D.hp, p.mhp - p.hp); p.hp += h; popup(p, h, UI.hp); msg(`${D.name}を なめた。HPが ${h} かいふくした。`); }
+  }
+  yield 16;
+  yield* endTurn();
+}
+function* actDrop(i) {
+  const p = G.p, it = G.bag[i];
+  if (itemAt(p.x, p.y) || (G.F.stairs.x === p.x && G.F.stairs.y === p.y)) { msg('ここには おけない。'); return; }
+  G.bag.splice(i, 1); it.x = p.x; it.y = p.y; G.items.push(it); msg(`${itemName(it)}を 足元に おいた。`);
+  yield 6; yield* endTurn();
+}
+function pickUpHere(onStep) {
+  const p = G.p, it = itemAt(p.x, p.y); if (!it) return;
+  if (it.k === 'star') { G.stars += it.n; G.items.splice(G.items.indexOf(it), 1); Audio8.sfx('pickup'); msg(`ほしのかけらを ${it.n}こ ひろった。`); return; }
+  if (G.bag.length >= BAG_MAX) { msg(onStep ? `${itemName(it)}の 上に のった。(もちものが いっぱい)` : 'もちものが いっぱいで ひろえない。'); return; }
+  G.items.splice(G.items.indexOf(it), 1); G.bag.push({ k: it.k }); Audio8.sfx('pickup'); msg(`${itemName(it)}を ひろった。`);
+}
+function askStairs() {
+  G.prompt = { text: '階段が ある。おりますか?', opts: ['おりる', 'やめる'], sel: 0, fn: i => { if (i === 0) G.busy = descend(); } };
+}
+function* descend() {
+  Audio8.sfx('stairs');
+  for (let i = 1; i <= 20; i++) { G.fade = i / 20; yield 1; }
+  const n = G.F.floor + 1;
+  if (n > DUNGEON.floors) { G.fade = 1; Clear.start(); return; }
+  msg(`${n}階に おりた。`); enterFloor(n);
+  for (let i = 19; i >= 0; i--) { G.fade = i / 20; yield 1; }
+}
+
+// ---------- end of turn: hunger, regeneration, monsters ----------
+function* endTurn() {
+  const p = G.p, F = G.F; G.turn++;
+  // まどろみ度: one point every 10 turns; at zero Haru starts waking up and loses HP
+  if (++p.madoT >= 10) {
+    p.madoT = 0;
+    if (p.mado > 0) {
+      p.mado--;
+      if (p.mado === 20) { msg('まどろみが うすれてきた…', UI.warn); Audio8.sfx('warn'); }
+      if (p.mado === 10) { msg('目が さめかけている! なにか たべないと…', UI.warn); Audio8.sfx('warn'); }
+      if (p.mado === 0) { msg('まどろみが つきた! 夢から おいだされそうだ!', UI.red); Audio8.sfx('warn'); }
+    }
+  }
+  if (p.mado <= 0) {
+    p.hp -= 1; p.regen = 0;
+    if (p.hp <= 0) { G.cause = 'まどろみが つきて 目が さめてしまった'; yield* die(); return; }
+  } else if (p.hp < p.mhp) {
+    p.regen += p.mhp / 140 + 0.02;
+    while (p.regen >= 1 && p.hp < p.mhp) { p.hp++; p.regen--; }
+  } else p.regen = 0;
+  // monsters act; distance fields are shared within this turn
+  G.df = {};
+  const before = new Set(G.mons.filter(m => visible(F, m.x, m.y)));
+  for (const m of [...G.mons]) {
+    const n = MONSTERS[m.k].speed || 1;
+    for (let i = 0; i < n && m.hp > 0; i++) {
+      yield* monAct(m);
+      if (p.hp <= 0) { yield* die(); return; }
+    }
+  }
+  if (G.mons.length < 10 && rnd() < 1 / 40) spawnMonster(false);
+  updateFov(F, p.x, p.y);
+  // stop a held walk when something new comes into sight
+  if (G.mons.some(m => visible(F, m.x, m.y) && !before.has(m))) G.stopUntilRelease = true;
+}
+function field(x, y) { const k = x + ',' + y; return G.df[k] || (G.df[k] = distField(G.F, x, y)); }
+function canSee(m) {
+  const p = G.p, F = G.F; if (cheb(m, p) <= 1) return true;
+  const a = areaAt(F, m.x, m.y); return a >= 0 && a === areaAt(F, p.x, p.y);
+}
+function* monAct(m) {
+  const p = G.p, F = G.F, D = MONSTERS[m.k];
+  if (m.asleep) {
+    const d = cheb(m, p);
+    if ((d <= 1 && rnd() < 0.5) || (canSee(m) && rnd() < 0.08)) m.asleep = false;
+    return;
+  }
+  const sees = canSee(m);
+  if (sees) { m.track = 10; m.goal = [p.x, p.y]; }
+  else if (m.track > 0) { m.track--; if (cheb(m, p) <= 7) m.goal = [p.x, p.y]; }
+  const dx = Math.sign(p.x - m.x), dy = Math.sign(p.y - m.y);
+  if (cheb(m, p) === 1 && canStep(F, m.x, m.y, dx, dy)) { yield* monAttack(m, dx, dy); return; }
+  if (D.bolt && sees && inLine(m, p, D.bolt.range) && rnd() < D.bolt.chance) { yield* monBolt(m, dx, dy); return; }
+  // walk toward the goal: the player while chasing, otherwise a random spot in some room
+  if (!m.goal || (m.goal[0] === m.x && m.goal[1] === m.y)) {
+    const myRoom = areaAt(F, m.x, m.y); const t = randomRoomTile(F, null, myRoom); m.goal = t; m.track = 0;
+  }
+  const Dg = field(m.goal[0], m.goal[1]); const cur = Dg[m.y * MW + m.x];
+  let best = null, bestD = cur < 0 ? 9999 : cur, ties = [];
+  for (const [ddx, ddy] of DIRS8) {
+    const nx = m.x + ddx, ny = m.y + ddy; if (!canStep(F, m.x, m.y, ddx, ddy) || occupied(nx, ny)) continue;
+    const v = Dg[ny * MW + nx]; if (v < 0) continue;
+    if (v < bestD) { bestD = v; ties = [[ddx, ddy]]; } else if (v === bestD && ties.length) ties.push([ddx, ddy]);
+  }
+  if (ties.length) best = ties[Math.floor(rnd() * ties.length)];
+  else if (rnd() < 0.3) { // blocked: sidestep to an equally close tile now and then
+    const side = DIRS8.filter(([a, b]) => canStep(F, m.x, m.y, a, b) && !occupied(m.x + a, m.y + b) && Dg[(m.y + b) * MW + m.x + a] === cur);
+    if (side.length) best = side[Math.floor(rnd() * side.length)];
+  }
+  if (best) { m.x += best[0]; m.y += best[1]; m.dir = best; }
+  else if (!sees && m.track <= 0) m.goal = null;
+}
+function inLine(m, p, range) {
+  const dx = p.x - m.x, dy = p.y - m.y;
+  if (!(dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) || cheb(m, p) > range) return false;
+  const sx = Math.sign(dx), sy = Math.sign(dy);
+  for (let x = m.x + sx, y = m.y + sy; !(x === p.x && y === p.y); x += sx, y += sy) if (!passable(G.F, x, y) || monAt(x, y)) return false;
+  return true;
+}
+function* monAttack(m, dx, dy) {
+  const p = G.p, D = MONSTERS[m.k];
+  m.dir = [dx, dy]; m.lunge = 10;
+  yield 5;
+  if (rnd() < 0.9) {
+    const d = dmgCalc(D.atk, playerDef()); p.hp -= d; p.hit = 10; G.shake = 6; popup(p, d, UI.red); Audio8.sfx('hit');
+    msg(`${D.name}の こうげき! ${d}の ダメージを うけた。`);
+    if (p.hp <= 0) { p.hp = 0; G.cause = `${D.name}に やられた`; }
+    else if (D.sleepHit && !p.sleep && rnd() < D.sleepHit) { p.sleep = ri(2, 4); Audio8.sfx('sleep'); msg(`${HERO_NAME}は ねむってしまった…`, UI.label); }
+  } else { Audio8.sfx('miss'); msg(`${D.name}の こうげき! ひらりと かわした。`); }
+  yield 12;
+}
+function* monBolt(m, dx, dy) {
+  const p = G.p, D = MONSTERS[m.k];
+  m.dir = [dx, dy]; m.lunge = 6;
+  yield 4;
+  G.bolt = { x0: m.x, y0: m.y, x1: p.x, y1: p.y, t: 14 }; G.flash = 6; Audio8.sfx('bolt');
+  const d = ri(D.bolt.dmg[0], D.bolt.dmg[1]); p.hp -= d; p.hit = 10; G.shake = 8; popup(p, d, UI.red);
+  msg(`${D.name}は カミナリを おとした! ${d}の ダメージ!`);
+  if (p.hp <= 0) { p.hp = 0; G.cause = `${D.name}の カミナリに やられた`; }
+  yield 16;
+}
+function* die() {
+  const p = G.p; p.hp = 0;
+  Audio8.stop(); Audio8.sfx('ko');
+  msg(`${HERO_NAME}は たおれた…`, UI.red);
+  yield 60;
+  for (let i = 1; i <= 30; i++) { G.fade = i / 30; yield 1; }
+  GameOver.start();
+}
+
+// ===================== UI (scenes, map drawing, HUD, menus) =====================
+function inMenu() { return G.scene !== Dungeon || G.menu.length > 0 || !!G.prompt; }
+
+// ---------- generic list windows ----------
+// m = { x, y, w, rows:[{label, col, fn}], sel, top, vis, title, draw? }
+function pushMenu(m) { m.sel = m.sel || 0; m.top = 0; m.vis = m.vis || 10; G.menu.push(m); Audio8.sfx('ok'); }
+function closeMenus() { G.menu = []; }
+function menuUpdate() {
+  const m = G.menu[G.menu.length - 1];
+  if (Input.pressed.b || Input.pressed.menu) { G.menu.pop(); Audio8.sfx('cancel'); return; }
+  if (!m.rows || !m.rows.length) { if (Input.pressed.a) { G.menu.pop(); Audio8.sfx('cancel'); } return; }
+  const n = m.rows.length;
+  if (Input.rep('up')) { m.sel = (m.sel + n - 1) % n; Audio8.sfx('cursor'); }
+  if (Input.rep('down')) { m.sel = (m.sel + 1) % n; Audio8.sfx('cursor'); }
+  if (m.sel < m.top) m.top = m.sel; if (m.sel >= m.top + m.vis) m.top = m.sel - m.vis + 1;
+  if (Input.pressed.a) { const r = m.rows[m.sel]; if (r.disabled) Audio8.sfx('error'); else r.fn(); }
+}
+function drawMenu(m, active) {
+  if (m.draw) return m.draw(m);
+  const rows = m.rows, nv = Math.min(m.vis, rows.length), lh = 12;
+  const h = nv * lh + 10 + (m.title ? 12 : 0);
+  win(m.x, m.y, m.w, h);
+  let y = m.y + 6;
+  if (m.title) { text(m.title, m.x + 8, y, UI.label, 8); y += 12; }
+  for (let i = m.top; i < m.top + nv; i++) {
+    const r = rows[i], yy = y + (i - m.top) * lh;
+    text(r.label, m.x + 16, yy, r.disabled ? UI.dim : r.col || UI.ink, 8);
+    if (r.right) text(r.right, m.x + m.w - 8, yy, UI.muted, 8, 'right');
+    if (i === m.sel && active) cursor(m.x + 5, yy + 1);
+    const idx = i; Touch.add(m.x, yy - 1, m.w, lh, () => { if (G.menu[G.menu.length - 1] === m) { m.sel = idx; Input.tapA(); } });
+  }
+  if (m.top > 0) text('▲', m.x + m.w - 12, m.y + 2, UI.muted, 7);
+  if (m.top + nv < rows.length) text('▼', m.x + m.w - 12, m.y + h - 10, UI.muted, 7);
+  if (m.info && active) { const s = m.info(m.sel); if (s) { win(8, 176, 240, 40); wrapText(s, 16, 184, 224, UI.ink); } }
+}
+function wrapText(s, x, y, w, col, size = 8, lh = 11) {
+  let line = '', yy = y;
+  for (const ch of s) { if (textW(line + ch, size) > w) { text(line, x, yy, col, size); line = ''; yy += lh; } line += ch; }
+  if (line) text(line, x, yy, col, size);
+}
+function openMainMenu() {
+  pushMenu({ x: 8, y: 22, w: 92, rows: [
+    { label: '道具', fn: openBag },
+    { label: '足元', fn: openFoot },
+    { label: 'ステータス', fn: openStatus },
+    { label: 'マップ表示', right: G.showMap ? 'ON' : 'OFF', fn() { G.showMap = !G.showMap; this.right = G.showMap ? 'ON' : 'OFF'; Audio8.sfx('ok'); } },
+  ] });
+}
+function openBag() {
+  if (!G.bag.length) { closeMenus(); msg('なにも もっていない。'); Audio8.sfx('error'); return; }
+  pushMenu({ x: 104, y: 22, w: 144, vis: 10, title: `もちもの ${G.bag.length}/${BAG_MAX}`,
+    rows: G.bag.map((it, i) => ({ label: itemName(it), fn: () => openItem(i) })), info: i => ITEMS[G.bag[i].k].desc });
+}
+function openItem(i) {
+  const it = G.bag[i], D = ITEMS[it.k];
+  const use = D.kind === 'food' ? 'たべる' : D.kind === 'heal' ? 'なめる' : 'つかう';
+  const go = gen => { closeMenus(); G.busy = gen; };
+  pushMenu({ x: 150, y: 60, w: 76, rows: [
+    { label: use, fn: () => go(actUse(i)) },
+    { label: 'おく', fn: () => go(actDrop(i)) },
+    { label: 'せつめい', fn: () => pushMenu({ draw: () => { win(8, 150, 240, 66); text(D.name, 16, 158, UI.gold, 8); wrapText(D.desc, 16, 172, 224, UI.ink); } }) },
+  ] });
+}
+function openFoot() {
+  const p = G.p, it = itemAt(p.x, p.y), stairs = G.F.stairs.x === p.x && G.F.stairs.y === p.y;
+  if (!it && !stairs) { closeMenus(); msg('足元には なにもない。'); return; }
+  const rows = [];
+  if (it) rows.push({ label: `${itemName(it)}を ひろう`, fn: () => { closeMenus(); G.busy = (function* () { const n = G.bag.length; pickUpHere(false); if (G.bag.length !== n || !itemAt(p.x, p.y)) { yield 6; yield* endTurn(); } })(); } });
+  if (stairs) rows.push({ label: '階段を おりる', fn: () => { closeMenus(); G.busy = descend(); } });
+  pushMenu({ x: 104, y: 22, w: 144, rows });
+}
+function openStatus() {
+  const p = G.p;
+  pushMenu({ draw: () => {
+    win(104, 22, 144, 108); let y = 30;
+    const row = (a, b) => { text(a, 114, y, UI.label, 8); text(b, 238, y, UI.ink, 8, 'right'); y += 12; };
+    text(HERO_NAME, 114, y, UI.gold, 9); y += 14;
+    row('レベル', String(p.lv)); row('HP', `${p.hp} / ${p.mhp}`); row('まどろみ度', `${p.mado} / ${p.mmado}`);
+    row('こうげき', String(playerAtk())); row('ぼうぎょ', String(playerDef()));
+    row('つぎのレベルまで', p.lv < EXP_TABLE.length - 1 ? String(EXP_TABLE[p.lv + 1] - p.exp) : '-');
+  } });
+}
+
+// ---------- the dungeon scene ----------
+const MOTES = Array.from({ length: 26 }, () => ({ x: Math.random() * SW, y: Math.random() * SH, v: 0.08 + Math.random() * 0.18, ph: Math.random() * 6.28 }));
+const Dungeon = {
+  update() {
+    animate();
+    if (G.busy) { runBusy(); return; }
+    if (G.prompt) { promptUpdate(); return; }
+    if (G.menu.length) { menuUpdate(); return; }
+    const p = G.p; if (p.hp <= 0) return;
+    if (p.sleep > 0) { G.busy = actSleep(); return; }
+    if (!settled(p)) return;
+    if (Input.pressed.menu) { openMainMenu(); return; }
+    const v = Input.vec();
+    if (!v) { G.stopUntilRelease = false; G.dirHold = 0; } else G.dirHold++;
+    // B: tap = step in place, hold + direction = turn without moving, long hold = keep resting
+    if (Input.down.b) {
+      G.bHeld++;
+      if (v) { p.dir = v; G.bTurned = true; }
+      else if (G.bHeld > 24 && G.bHeld % 3 === 0 && !G.bTurned) G.busy = actWait();
+      return;
+    }
+    if (G.bHeld) { const tap = !G.bTurned && G.bHeld <= 24; G.bHeld = 0; G.bTurned = false; if (tap) { G.busy = actWait(); return; } }
+    if (Input.pressed.a) { G.busy = actAttack(); return; }
+    // wait a few frames so two keys pressed together become a diagonal
+    if (v && !G.stopUntilRelease && G.dirHold >= 3) G.busy = actMove(v[0], v[1]);
+  },
+  draw() { drawDungeon(); },
+};
+function promptUpdate() {
+  const P = G.prompt;
+  if (Input.rep('up') || Input.rep('down')) { P.sel = 1 - P.sel; Audio8.sfx('cursor'); }
+  if (Input.pressed.a) { G.prompt = null; Audio8.sfx('ok'); P.fn(P.sel); G.stopUntilRelease = true; }
+  else if (Input.pressed.b || Input.pressed.menu) { G.prompt = null; Audio8.sfx('cancel'); G.stopUntilRelease = true; }
+}
+function animate() {
+  const step = e => {
+    const tx = e.x * T, ty = e.y * T, d = Math.max(Math.abs(tx - e.rx), Math.abs(ty - e.ry));
+    const sp = d > T ? d / 4 : 3; // a monster that moved twice catches up quickly
+    e.rx += clamp(tx - e.rx, -sp, sp); e.ry += clamp(ty - e.ry, -sp, sp);
+    if (e.lunge > 0) e.lunge--; if (e.hit > 0) e.hit--;
+  };
+  step(G.p); for (const m of G.mons) step(m);
+  for (const m of G.dead) m.dying++;
+  G.dead = G.dead.filter(m => m.dying < 24);
+  for (const f of G.fx) f.t++;
+  G.fx = G.fx.filter(f => f.t < 44);
+  if (G.logT > 0 && !G.menu.length) G.logT--;
+  if (G.card > 0) G.card--;
+  if (G.bolt && --G.bolt.t <= 0) G.bolt = null;
+}
+function lungeOff(e) { if (!e.lunge) return [0, 0]; const k = Math.sin(Math.PI * (10 - e.lunge) / 10) * 5; return [e.dir[0] * k, e.dir[1] * k]; }
+
+function drawDungeon() {
+  const F = G.F, p = G.p, th = THEMES[THEME_OF(F.floor)], TL = TILES[THEME_OF(F.floor)];
+  ctx.fillStyle = th.void; ctx.fillRect(0, 0, SW, SH);
+  let cx = Math.round(p.rx + 8 - SW / 2), cy = Math.round(p.ry + 8 - SH / 2 - 4);
+  if (G.shake > 0) { cx += Math.round((Math.random() - 0.5) * 4); cy += Math.round((Math.random() - 0.5) * 3); }
+  ctx.save(); ctx.translate(-cx, -cy);
+  const x0 = Math.floor(cx / T) - 1, y0 = Math.floor(cy / T) - 1, x1 = x0 + SW / T + 2, y1 = y0 + SH / T + 2;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (!inMap(x, y)) continue; const i = y * MW + x; if (!F.seen[i]) continue;
+    const t = F.t[i], h = (x * 7 + y * 13 + (x * y) % 5) & 3, X = x * T, Y = y * T;
+    if (t === T_WALL) ctx.drawImage(passable(F, x, y + 1) ? TL.face[h % 3] : TL.wall[h % 3], X, Y);
+    else {
+      ctx.drawImage(t === T_ROOM ? TL.floor[h] : TL.path[h], X, Y);
+      if (!passable(F, x, y - 1)) { ctx.fillStyle = 'rgba(10,6,30,.28)'; ctx.fillRect(X, Y, T, 4); ctx.fillStyle = 'rgba(10,6,30,.14)'; ctx.fillRect(X, Y + 4, T, 2); }
+    }
+  }
+  if (F.seen[F.stairs.y * MW + F.stairs.x]) {
+    ctx.drawImage(TL.stairs, F.stairs.x * T, F.stairs.y * T);
+    const g = 0.18 + Math.sin(G.frame / 20) * 0.08; ctx.fillStyle = `rgba(240,220,255,${g})`; ctx.fillRect(F.stairs.x * T + 2, F.stairs.y * T + 2, 12, 12);
+  }
+  for (const it of G.items) if (F.seen[it.y * MW + it.x]) ctx.drawImage(ITEM_IMG[it.k], it.x * T, it.y * T + (visible(F, it.x, it.y) ? Math.round(Math.sin(G.frame / 16 + it.x) * 0.6) : 0));
+  // remembered-but-unseen tiles are dimmed
+  ctx.fillStyle = th.void; ctx.globalAlpha = 0.55;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inMap(x, y) && F.seen[y * MW + x] && !F.vis[y * MW + x]) ctx.fillRect(x * T, y * T, T, T);
+  ctx.globalAlpha = 1;
+  // actors, back to front
+  const actors = G.mons.filter(m => visible(F, m.x, m.y)).map(m => ({ m, y: m.ry }));
+  actors.push({ p, y: p.ry });
+  actors.sort((a, b) => a.y - b.y);
+  for (const a of actors) a.m ? drawMon(a.m) : drawHero();
+  for (const m of G.dead) drawMon(m);
+  if (G.bolt) drawBolt(G.bolt);
+  for (const f of G.fx) {
+    const k = f.t / 44, y = f.y - 4 - Math.min(10, f.t * 0.8);
+    ctx.globalAlpha = k > 0.75 ? (1 - k) * 4 : 1; text(f.text, f.x, y, f.col, 9, 'center'); ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  // dark corridors: only a small circle of light around Haru
+  if (areaAt(F, p.x, p.y) < 0) {
+    const sx = p.rx + 8 - cx, sy = p.ry + 8 - cy;
+    const g = ctx.createRadialGradient(sx, sy, 14, sx, sy, 44); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(5,3,14,.55)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH);
+  }
+  drawMotes(th);
+  const vg = ctx.createRadialGradient(SW / 2, SH / 2, 90, SW / 2, SH / 2, 180); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(8,4,20,.5)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, SW, SH);
+  if (G.showMap) drawMinimap();
+  drawHud();
+  if (!G.menu.length) drawLog();
+  if (G.card > 0) drawCard();
+  G.menu.forEach((m, i) => drawMenu(m, i === G.menu.length - 1));
+  if (G.prompt) drawPrompt();
+}
+function drawHero() {
+  const p = G.p, f = faceOf(p.dir[0], p.dir[1]);
+  const moving = !settled(p), fr = moving ? (p.walk % 2 ? 1 : 3) : 0;
+  const [ox, oy] = lungeOff(p);
+  ctx.fillStyle = 'rgba(10,6,30,.3)'; ctx.beginPath(); ctx.ellipse(p.rx + 8, p.ry + 14.5, 5, 1.8, 0, 0, Math.PI * 2); ctx.fill();
+  const img = HERO[f][fr];
+  if (p.hit > 0 && p.hit % 4 < 2) ctx.globalAlpha = 0.4;
+  ctx.drawImage(img, Math.round(p.rx + ox), Math.round(p.ry + oy - 2));
+  ctx.globalAlpha = 1;
+  if (p.lunge > 0) { // a quick swing of the wooden sword
+    const a = Math.atan2(p.dir[1], p.dir[0]), k = (10 - p.lunge) / 10;
+    ctx.strokeStyle = `rgba(255,240,220,${0.9 - k * 0.8})`; ctx.lineWidth = 1.4; ctx.beginPath();
+    ctx.arc(p.rx + 8, p.ry + 8, 11, a - 1.1 + k * 0.4, a + 0.6 + k * 0.4); ctx.stroke();
+  }
+  if (p.sleep > 0) { const b = (G.frame / 3) % 30; ctx.globalAlpha = 1 - b / 30; text('z', p.rx + 12 + b * 0.2, p.ry - 2 - b * 0.4, '#d8e0ff', 7); text('Z', p.rx + 6, p.ry - 8 - (b * 0.2), '#d8e0ff', 8); ctx.globalAlpha = 1; }
+}
+function drawMon(m) {
+  const I = MON_IMG[m.k], right = m.dir[0] > 0, fr = Math.floor((G.frame + m.seed * 7) / (m.asleep ? 40 : 18)) % 2;
+  const [ox, oy] = lungeOff(m);
+  const X = Math.round(m.rx + ox), Y = Math.round(m.ry + oy - 2);
+  ctx.fillStyle = 'rgba(10,6,30,.3)'; ctx.beginPath(); ctx.ellipse(m.rx + 8, m.ry + 14.5, 5, 1.8, 0, 0, Math.PI * 2); ctx.fill();
+  if (m.dying) {
+    const k = m.dying / 24; ctx.globalAlpha = 1 - k; ctx.drawImage((right ? I.hitR : I.hitL)[0], X, Y - k * 6); ctx.globalAlpha = 1;
+    for (let i = 0; i < 5; i++) { const a = i * 1.26 + m.seed, r = k * 14; ctx.fillStyle = `rgba(255,230,250,${1 - k})`; ctx.fillRect(m.rx + 8 + Math.cos(a) * r, m.ry + 6 + Math.sin(a) * r - k * 8, 1.5, 1.5); }
+    return;
+  }
+  ctx.drawImage((m.hit > 0 && m.hit % 4 < 2 ? (right ? I.hitR : I.hitL) : (right ? I.right : I.left))[fr], X, Y);
+  if (m.asleep) { const b = (G.frame / 4 + m.seed) % 24; ctx.globalAlpha = 1 - b / 24; text('z', m.rx + 11, m.ry - 3 - b * 0.3, '#d8e0ff', 6); ctx.globalAlpha = 1; }
+}
+function drawBolt(b) {
+  const x0 = b.x0 * T + 8, y0 = b.y0 * T + 4, x1 = b.x1 * T + 8, y1 = b.y1 * T + 8;
+  ctx.strokeStyle = b.t % 4 < 2 ? '#fff6b0' : '#ffd84a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, y0);
+  for (let i = 1; i < 6; i++) { const k = i / 6; ctx.lineTo(x0 + (x1 - x0) * k + (Math.random() - 0.5) * 6, y0 + (y1 - y0) * k + (Math.random() - 0.5) * 6); }
+  ctx.lineTo(x1, y1); ctx.stroke();
+}
+function drawMotes(th) {
+  for (const m of MOTES) {
+    m.y -= m.v; m.x += Math.sin(G.frame / 60 + m.ph) * 0.12; if (m.y < -4) { m.y = SH + 4; m.x = Math.random() * SW; }
+    const a = 0.25 + 0.25 * Math.sin(G.frame / 25 + m.ph);
+    ctx.fillStyle = `rgba(255,236,255,${a})`; ctx.fillRect(m.x, m.y, 1, 1);
+  }
+}
+function drawMinimap() {
+  // a compact map in the top-right corner (2px per tile) on a faint backing
+  const F = G.F, s = 2, w = MW * s, h = MH * s, ox = SW - w - 4, oy = 22;
+  ctx.fillStyle = 'rgba(8,4,22,.38)'; roundRect(ox - 2, oy - 2, w + 4, h + 4, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(190,210,255,.42)';
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { const i = y * MW + x; if (F.seen[i] && F.t[i] !== T_WALL) ctx.fillRect(ox + x * s, oy + y * s, s, s); }
+  if (F.seen[F.stairs.y * MW + F.stairs.x]) { ctx.fillStyle = '#ffffff'; ctx.fillRect(ox + F.stairs.x * s - 1, oy + F.stairs.y * s - 1, s + 2, s + 2); ctx.fillStyle = '#4a3a7a'; ctx.fillRect(ox + F.stairs.x * s, oy + F.stairs.y * s, s, s); }
+  ctx.fillStyle = '#7ae6ff';
+  for (const it of G.items) if (F.seen[it.y * MW + it.x]) ctx.fillRect(ox + it.x * s, oy + it.y * s, s, s);
+  ctx.fillStyle = '#ff6e82';
+  for (const m of G.mons) if (visible(F, m.x, m.y)) ctx.fillRect(ox + m.x * s, oy + m.y * s, s, s);
+  if (G.frame % 40 < 28) { ctx.fillStyle = '#fff6a8'; ctx.fillRect(ox + G.p.x * s - 0.5, oy + G.p.y * s - 0.5, s + 1, s + 1); }
+}
+function drawHud() {
+  const p = G.p, F = G.F;
+  const g = ctx.createLinearGradient(0, 0, 0, 22); g.addColorStop(0, 'rgba(8,4,20,.75)'); g.addColorStop(1, 'rgba(8,4,20,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, SW, 22);
+  text(`${F.floor}F`, 6, 3, UI.gold, 10, 'left', 't');
+  text(`Lv${p.lv}`, 30, 4, UI.ink, 8);
+  const low = p.hp <= p.mhp / 4;
+  text(`HP ${p.hp}/${p.mhp}`, 58, 4, low ? UI.red : UI.ink, 8);
+  bar(58, 14, 54, 2.5, p.hp / p.mhp, low ? UI.red : UI.hp);
+  const mc = p.mado <= 10 ? UI.red : p.mado <= 20 ? UI.warn : UI.ink;
+  text(`まどろみ ${p.mado}`, 124, 4, mc, 8);
+  bar(124, 14, 50, 2.5, p.mado / p.mmado, p.mado <= 20 ? UI.warn : '#c8a8ff');
+  text(`✦${G.stars}`, 250, 4, UI.gold, 8, 'right');
+}
+function drawLog() {
+  if (G.logT <= 0 || !G.log.length) { if (G.logT <= 0) G.log = []; return; }
+  const a = Math.min(1, G.logT / 20), n = G.log.length, h = n * 12 + 10;
+  ctx.save(); ctx.globalAlpha = a; win(4, SH - h - 4, SW - 8, h, 0.92);
+  G.log.forEach((l, i) => text(l.s, 14, SH - h + 2 + i * 12, l.col || UI.ink, 8));
+  ctx.restore();
+}
+function drawCard() {
+  const t = G.card, a = t > 90 ? (110 - t) / 20 : t < 20 ? t / 20 : 1;
+  ctx.save(); ctx.globalAlpha = a;
+  const g = ctx.createLinearGradient(0, 0, SW, 0); g.addColorStop(0, 'rgba(10,6,30,0)'); g.addColorStop(0.5, 'rgba(10,6,30,.7)'); g.addColorStop(1, 'rgba(10,6,30,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 92, SW, 34);
+  text(`${DUNGEON.name}  ${G.F.floor}F`, SW / 2, 100, '#f6eaff', 14, 'center', 't');
+  ctx.restore();
+}
+function drawPrompt() {
+  const P = G.prompt, w = 150, x = (SW - w) / 2, y = 120;
+  win(x, y, w, 52); text(P.text, x + 10, y + 7, UI.ink, 8);
+  P.opts.forEach((o, i) => {
+    const yy = y + 22 + i * 12; text(o, x + 26, yy, UI.ink, 8); if (i === P.sel) cursor(x + 14, yy + 1);
+    Touch.add(x, yy - 1, w, 12, () => { P.sel = i; Input.tapA(); });
+  });
+}
+
+// ---------- title / intro / game over / clear ----------
+const STARS = Array.from({ length: 70 }, () => ({ x: Math.random() * SW, y: Math.random() * 150, s: Math.random() < 0.15 ? 2 : 1, ph: Math.random() * 6.28 }));
+function drawNight(top = '#140c2e', bot = '#3e2a64', moon = true) {
+  const g = ctx.createLinearGradient(0, 0, 0, SH); g.addColorStop(0, top); g.addColorStop(1, bot); ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH);
+  for (const s of STARS) { ctx.fillStyle = `rgba(255,245,255,${0.35 + 0.35 * Math.sin(G.frame / 30 + s.ph)})`; ctx.fillRect(s.x, s.y, s.s, s.s); }
+  if (moon) {
+  const mg = ctx.createRadialGradient(196, 52, 8, 196, 52, 46); mg.addColorStop(0, 'rgba(255,240,220,.5)'); mg.addColorStop(1, 'rgba(255,240,220,0)');
+  ctx.fillStyle = mg; ctx.fillRect(140, 0, 116, 110);
+  ctx.fillStyle = '#fff4e0'; ctx.beginPath(); ctx.arc(196, 52, 14, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = top; ctx.beginPath(); ctx.arc(202, 48, 12, 0, Math.PI * 2); ctx.fill();
+  }
+  // rolling hills of a toy forest
+  ctx.fillStyle = '#1e1640'; ctx.beginPath(); ctx.moveTo(0, SH);
+  for (let x = 0; x <= SW; x += 8) ctx.lineTo(x, 168 + Math.sin(x / 30) * 8 + Math.sin(x / 11) * 3);
+  ctx.lineTo(SW, SH); ctx.fill();
+  ctx.fillStyle = '#140e2e'; ctx.beginPath(); ctx.moveTo(0, SH);
+  for (let x = 0; x <= SW; x += 8) ctx.lineTo(x, 190 + Math.sin(x / 22 + 2) * 6);
+  ctx.lineTo(SW, SH); ctx.fill();
+}
+const Title = {
+  start() { G.scene = Title; G.fade = 1; G.fadeIn = true; G.menu = []; G.prompt = null; Audio8.play('title'); },
+  update() { if (Input.pressed.a && G.fade < 0.3) { Audio8.sfx('ok'); Intro.start(); } },
+  draw() {
+    drawNight();
+    text('ねむりの迷宮', SW / 2, 62, '#f8ecff', 24, 'center', 't');
+    text('— NEMURI NO MEIKYU —', SW / 2, 94, UI.label, 7, 'center');
+    if (G.best) text(`いちばん深く もぐった階 ${G.best}F`, SW / 2, 118, UI.muted, 8, 'center');
+    if (G.frame % 60 < 42) text(TOUCH ? 'タップで はじめる' : 'Z / Enter で はじめる', SW / 2, 140, UI.gold, 9, 'center');
+    Touch.add(0, 0, SW, SH, () => Input.tapA());
+  },
+};
+const Intro = {
+  start() { G.scene = Intro; this.i = 0; this.t = 0; G.fade = 1; G.fadeIn = true; },
+  update() {
+    this.t++;
+    if ((Input.pressed.a || this.t > 200) && this.t > 20) {
+      this.i++; this.t = 0; Audio8.sfx('cursor');
+      if (this.i >= INTRO.length) {
+        newGame(); G.scene = Dungeon; enterFloor(1); G.fade = 1; G.fadeIn = true;
+        msg(`ここは ${SISTER}の夢の中… ${DUNGEON.name}だ。`);
+      }
+    }
+  },
+  draw() {
+    ctx.fillStyle = '#07050f'; ctx.fillRect(0, 0, SW, SH);
+    for (let k = 0; k <= Math.min(this.i, INTRO.length - 1); k++) {
+      const a = k < this.i ? 0.55 : Math.min(1, this.t / 30);
+      ctx.globalAlpha = a; text(INTRO[k], SW / 2, 64 + k * 24, '#ecdcff', 9, 'center', 't'); ctx.globalAlpha = 1;
+    }
+    if (this.t > 30 && G.frame % 60 < 40) text('▼', SW / 2, 186, UI.gold, 8, 'center');
+  },
+};
+const GameOver = {
+  start() { G.scene = GameOver; G.fade = 1; G.fadeIn = true; G.menu = []; G.prompt = null; this.t = 0; Audio8.play('gameover'); },
+  update() { this.t++; if (this.t > 60 && Input.pressed.a) { Audio8.sfx('ok'); Title.start(); } },
+  draw() {
+    drawNight('#0a0618', '#24163e', false);
+    text('夢から おいだされた…', SW / 2, 58, '#f2e4ff', 16, 'center', 't');
+    text(G.cause || '', SW / 2, 90, UI.muted, 8, 'center');
+    text(`${DUNGEON.name} ${G.F.floor}F   Lv${G.p.lv}   ${G.turn}ターン`, SW / 2, 108, UI.ink, 8, 'center');
+    text('もちものは 夢に とけて きえてしまった。', SW / 2, 126, UI.label, 8, 'center');
+    if (this.t > 60 && G.frame % 60 < 42) text('タイトルへ もどる', SW / 2, 150, UI.gold, 9, 'center');
+    Touch.add(0, 0, SW, SH, () => Input.tapA());
+  },
+};
+const Clear = {
+  start() { G.scene = Clear; G.fade = 1; G.fadeIn = true; G.menu = []; G.prompt = null; this.t = 0; Audio8.play('clear'); },
+  update() { this.t++; if (this.t > 90 && Input.pressed.a) { Audio8.sfx('ok'); Title.start(); } },
+  draw() {
+    drawNight('#2a1c50', '#a07ab8', false);
+    text(`${DUNGEON.name}を ぬけた!`, SW / 2, 52, '#fff6e8', 16, 'center', 't');
+    text(`遠くで ${SISTER}の 笑い声が きこえた気がした。`, SW / 2, 86, '#f8ecff', 9, 'center', 't');
+    text(`Lv${G.p.lv}   ${G.turn}ターン   ✦${G.stars}`, SW / 2, 110, UI.ink, 8, 'center');
+    text('— つづく —', SW / 2, 132, UI.gold, 9, 'center', 't');
+    if (this.t > 90 && G.frame % 60 < 42) text('タイトルへ もどる', SW / 2, 156, UI.ink, 8, 'center');
+    Touch.add(0, 0, SW, SH, () => Input.tapA());
+  },
+};
+
+// ===================== MAIN LOOP =====================
+function step() {
+  Input.update(); G.frame++;
+  G.scene.update();
+  if (G.fadeIn) { G.fade = Math.max(0, G.fade - 0.05); if (!G.fade) G.fadeIn = false; }
+  if (G.flash > 0) G.flash--;
+  if (G.shake > 0) G.shake--;
+}
+function render() {
+  Touch.rects.length = 0;
+  resetT();
+  G.scene.draw(); resetT(); drawSwipe();
+  if (G.flash > 0) { ctx.fillStyle = `rgba(255,250,210,${Math.min(0.6, G.flash / 10)})`; ctx.fillRect(0, 0, SW, SH); }
+  if (G.fade > 0) { ctx.fillStyle = `rgba(4,2,10,${G.fade})`; ctx.fillRect(0, 0, SW, SH); }
+}
+let last = 0, acc = 0, booted = false;
+function loop(ts) {
+  requestAnimationFrame(loop);
+  if (window.__manual) return;
+  if (!last) last = ts; acc += Math.min(100, ts - last); last = ts;
+  let n = 0; while (acc >= 1000 / 60 && n < 4) { step(); acc -= 1000 / 60; n++; }
+  if (n) render();
+}
+function boot() {
+  if (booted) return; booted = true;
+  buildTiles(); buildHero(); buildMonsters(); buildItems();
+  const b = Number(Store.get('nemuri-best')); if (b) G.best = b;
+  if (Store.get('nemuri-mute') === '1') { Audio8.muted = true; const el = document.getElementById('mute'); if (el) el.textContent = '♪ OFF'; }
+  fit(); Title.start();
+  requestAnimationFrame(loop);
+}
+// remember the deepest floor reached
+setInterval(() => { if (G.best) Store.set('nemuri-best', String(G.best)); }, 2000);
+// debug / test hooks
+window.__nm = { G, step, render, newGame, enterFloor, setSeed, Input, Dungeon, Title, Intro, GameOver, Clear, MONSTERS, ITEMS, MW, MH,
+  canStep, passable, areaAt, distField, spawnMonster, dropItem, settled, inMenu };
+const fontReady = (document.fonts && document.fonts.load) ? Promise.race([
+  Promise.all([document.fonts.load('500 24px "Zen Kaku Gothic New"', GLYPHS), document.fonts.load('700 24px "Shippori Mincho B1"', GLYPHS)]),
+  new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
+fontReady.catch(() => { }).then(boot);
+
+</script>

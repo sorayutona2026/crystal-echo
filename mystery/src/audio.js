@@ -1,0 +1,213 @@
+// ===================== AUDIO (WebAudio chiptune) =====================
+const NOTE_IDX = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
+function noteMidi(n) { const m = /^([A-G][#b]?)(-?\d)$/.exec(n); if (!m) return null; return 12 * (+m[2] + 1) + NOTE_IDX[m[1]]; }
+function midiHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+function chordNotes(name, oct = 3) {
+  const m = /^([A-G][#b]?)(.*)$/.exec(name); const root = 12 * (oct + 1) + NOTE_IDX[m[1]]; const q = m[2];
+  const iv = q === 'm' ? [0, 3, 7] : q === 'dim' ? [0, 3, 6] : q === '7' ? [0, 4, 7, 10] : q === 'm7' ? [0, 3, 7, 10] : q === 'maj7' ? [0, 4, 7, 11] : q === 'sus4' ? [0, 5, 7] : [0, 4, 7];
+  return iv.map(i => root + i);
+}
+
+const TRACKS = {
+  // music box lullaby
+  title: { pad: 1, bpm: 76, chords: 'C Am F G C Am Dm G F G Em Am Dm G C C', bass: 'long', arp: 'up', mel:
+    'E5 - G5 - C6 - B5 - A5 - - - E5 - - - F5 - A5 - C6 - B5 - G5 - - - - - - - E5 - G5 - C6 - D6 - E6 - - - C6 - A5 - F5 - A5 - G5 - F5 - E5 - D5 - - - - - - - A5 - - - C6 - B5 - G5 - - - D5 - E5 - G5 - B5 - - - A5 - - - E5 - - - F5 - A5 - D6 - C6 - B5 - - - G5 - - - C6 - - - - - - - - - - - . .' },
+  // おもちゃの森 (1-3F): a light skipping tune
+  dream1: { pad: 1, harm: 1, bpm: 112, chords: 'F Dm Bb C F Dm Gm C Bb C Am Dm Gm C F F', bass: 'walk', arp: null, drums: 'soft', mel:
+    'C5 - F5 - A5 - G5 F5 E5 - G5 - C5 - - - D5 - F5 - Bb5 - A5 G5 A5 - - - - - . . C5 - F5 - A5 - C6 - Bb5 - A5 - G5 - F5 - G5 - Bb5 - A5 - G5 - E5 - - - . . D5 - F5 - Bb5 - D6 - C6 - - - A5 - F5 - E5 - G5 - C6 - Bb5 - A5 - G5 - A5 - C6 - F6 - - - E6 - D6 - C6 - Bb5 - A5 - G5 - F5 - - - - - . .' },
+  // 月あかりの森 (4-6F)
+  dream2: { pad: 1, bpm: 92, chords: 'Am Em F C Dm Am Bm E Am Em F C Dm E Am Am', bass: 'long', arp: 'down', mel:
+    'E5 - - - A5 - B5 - C6 - B5 - A5 - E5 - F5 - - - E5 - D5 - C5 - - - - - . . D5 - F5 - A5 - - - G5 - E5 - C5 - - - D5 - F#5 - B5 - - - G#5 - - - - - . . E5 - A5 - C6 - - - B5 - G5 - E5 - - - F5 - A5 - C6 - - - E6 - - - D6 - C6 - B5 - A5 - G#5 - B5 - E6 - - - A5 - - - - - - - . .' },
+  // 森のいちばん奥 (7-10F)
+  dream3: { pad: 1, harm: 1, bpm: 100, chords: 'Dm Bb C A Dm Bb Gm A Bb C Dm Dm Gm Bb A A', bass: 'root', arp: 'up', drums: 'soft', mel:
+    'A4 - D5 - F5 - E5 - D5 - - - A5 - - - G5 - F5 - E5 - C5 - C#5 - - - E5 - . . D5 - F5 - A5 - D6 - C6 - Bb5 - A5 - G5 - Bb5 - - - A5 - - - - - . . F5 - G5 - A5 - C6 - Bb5 - - - G5 - - - A5 - F5 - D5 - - - - - . . Bb5 - A5 - G5 - Bb5 - A5 - - - E5 - - - C#5 - E5 - A5 - - - - - . .' },
+  // 夢から追い出された
+  gameover: { pad: 1, bpm: 70, chords: 'Am Dm E Am', bass: 'long', arp: 'down', mel:
+    'E5 - - - D5 - C5 - F5 - - - E5 - D5 - B4 - - - G#4 - B4 - A4 - - - - - - -' },
+  // 森をぬけた
+  clear: { bpm: 132, chords: 'C C F G Em Am Dm G C C', bass: 'root', arp: 'up', loopFrom: 16, mel:
+    'G4 C5 E5 G5 - - E5 G5 C6 - - - - - . . A5 - G5 - F5 - C5 - D5 - G5 - - - B4 - E5 - G5 - B5 - G5 - A5 - - - E5 - . . F5 - E5 - D5 - A4 - B4 - D5 - G5 - F5 - E5 - - - G5 - - - C5 - - - - - . .' },
+  levelup: { bpm: 150, chords: 'C F G C', bass: 'root', arp: 'up', once: true, mel: 'C5 E5 G5 C6 - - G5 C6 E6 - - - - - - -' },
+};
+
+const Audio8 = {
+  ac: null, master: null, mus: null, sfxG: null, muted: false, want: null, cur: null, timer: null, waves: {},
+  unlock() {
+    if (!this.ac) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      try { this.ac = new AC(); } catch (e) { return; }
+      const ac = this.ac;
+      this.master = ac.createGain(); this.master.gain.value = this.muted ? 0 : 0.7; this.master.connect(ac.destination);
+      this.mus = ac.createGain(); this.mus.gain.value = 0.55; this.mus.connect(this.master);
+      // room reverb (generated impulse) + tempo-synced echo on the lead
+      try {
+        const rl = Math.floor(ac.sampleRate * 2.4), ir = ac.createBuffer(2, rl, ac.sampleRate);
+        for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < rl; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / rl, 3.2); }
+        this.rev = ac.createConvolver(); this.rev.buffer = ir; this.revSend = ac.createGain(); this.revSend.gain.value = 0.32;
+        this.mus.connect(this.revSend); this.revSend.connect(this.rev); this.rev.connect(this.master);
+      } catch (e) { }
+      this.lead = ac.createGain(); this.lead.gain.value = 1; this.lead.connect(this.mus);
+      this.dly = ac.createDelay(1.5); this.dly.delayTime.value = 0.3; this.fb = ac.createGain(); this.fb.gain.value = 0.28; this.dlyOut = ac.createGain(); this.dlyOut.gain.value = 0.32;
+      this.lead.connect(this.dly); this.dly.connect(this.fb); this.fb.connect(this.dly); this.dly.connect(this.dlyOut); this.dlyOut.connect(this.mus);
+      this.sfxG = ac.createGain(); this.sfxG.gain.value = 0.8; this.sfxG.connect(this.master);
+      // stereo spread: arpeggio and harmony sit left/right of the centred lead
+      const panner = v => { if (!ac.createStereoPanner) return this.mus; const p = ac.createStereoPanner(); p.pan.value = v; p.connect(this.mus); return p; };
+      this.panL = panner(-0.4); this.panR = panner(0.4);
+      for (const duty of [0.125, 0.25, 0.5]) this.waves[duty] = this.pulse(duty);
+      const len = ac.sampleRate; const b = ac.createBuffer(1, len, ac.sampleRate); const d = b.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; this.noise = b;
+      if (this.want) { const w = this.want; this.cur = null; this.play(w); }
+    }
+    if (this.ac.state === 'suspended') this.ac.resume();
+  },
+  pulse(duty) {
+    const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+    for (let k = 1; k < n; k++) im[k] = (2 / (k * Math.PI)) * Math.sin(Math.PI * k * duty) * 1, re[k] = 0;
+    // use cosine form for duty-cycle pulse
+    for (let k = 1; k < n; k++) { re[k] = (2 / (k * Math.PI)) * Math.sin(2 * Math.PI * k * duty); im[k] = (2 / (k * Math.PI)) * (1 - Math.cos(2 * Math.PI * k * duty)); }
+    return this.ac.createPeriodicWave(re, im);
+  },
+  setMuted(m) { this.muted = m; if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.7, this.ac.currentTime, 0.02); },
+  tone(dest, t, dur, hz, wave, vol, opts = {}) {
+    const ac = this.ac; const o = ac.createOscillator(); const g = ac.createGain();
+    if (typeof wave === 'number') o.setPeriodicWave(this.waves[wave]); else o.type = wave;
+    o.frequency.setValueAtTime(hz, t);
+    if (opts.slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, opts.slide), t + dur);
+    if (opts.vib) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = 5.5; lg.gain.value = hz * 0.012; l.connect(lg); lg.connect(o.frequency); l.start(t + Math.min(0.15, dur / 2)); l.stop(t + dur + 0.05); }
+    const a = opts.a ?? 0.008, r = opts.r ?? Math.min(0.08, dur * 0.4);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + a);
+    g.gain.setValueAtTime(vol * (opts.sus ?? 0.8), t + Math.max(a, dur - r)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.02);
+  },
+  noiseHit(dest, t, dur, vol, freq = 3000, type = 'highpass') {
+    const ac = this.ac; const s = ac.createBufferSource(); s.buffer = this.noise;
+    const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+    const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+  },
+  build(tr) {
+    const evs = []; const chords = tr.chords.split(' '); const cl = 8;
+    const mel = tr.mel.split(/\s+/).filter(Boolean);
+    const len = Math.max(mel.length, chords.length * cl);
+    // melody
+    for (let i = 0; i < mel.length; i++) {
+      const m = noteMidi(mel[i]); if (m == null) continue;
+      let d = 1; while (mel[i + d] === '-') d++;
+      evs.push({ t: i, d: d * 0.92, m, ch: 'mel' });
+    }
+    chords.forEach((c, ci) => {
+      const t0 = ci * cl; const tones = chordNotes(c, 3); const root = tones[0] - 12;
+      if (tr.bass === 'long') evs.push({ t: t0, d: cl * 0.95, m: root, ch: 'bass' });
+      if (tr.bass === 'root') for (let b = 0; b < cl; b += 2) evs.push({ t: t0 + b, d: 1.6, m: b % 4 === 2 ? root + 7 : root, ch: 'bass' });
+      if (tr.bass === 'walk') { const w = [0, 7, 12, 7]; for (let b = 0; b < 4; b++) evs.push({ t: t0 + b * 2, d: 1.7, m: root + w[b], ch: 'bass' }); }
+      if (tr.bass === 'octave') for (let b = 0; b < cl; b++) evs.push({ t: t0 + b, d: 0.7, m: root + (b % 2 ? 12 : 0), ch: 'bass' });
+      if (tr.arp) { const at = tones.map(x => x + 12); const seq = tr.arp === 'down' ? [...at].reverse() : at; for (let b = 0; b < cl; b++) evs.push({ t: t0 + b, d: 0.9, m: seq[b % seq.length] + (b >= seq.length && b % 2 ? 12 : 0), ch: 'arp' }); }
+      if (tr.pad) tones.forEach((tn, k) => evs.push({ t: t0, d: cl, m: tn + 12, ch: 'pad' }));
+      const fill = tr.drums && tr.drums !== 'soft' && ci % 4 === 3;
+      if (tr.drums === 'rock' && ci % 4 === 0) evs.push({ t: t0, ch: 'crash' });
+      if (fill) [6, 6.5, 7, 7.5].forEach((b, k) => evs.push({ t: t0 + b, ch: 'tom', m: 3 - k }));
+      if (tr.drums) for (let b = 0; b < (fill ? 6 : cl); b++) {
+        if (tr.drums === 'march') { if (b % 4 === 0) evs.push({ t: t0 + b, ch: 'kick' }); if (b % 4 === 2) evs.push({ t: t0 + b, ch: 'snare' }); evs.push({ t: t0 + b, ch: 'hat' }); }
+        if (tr.drums === 'rock') { if (b === 0 || b === 3 || b === 5) evs.push({ t: t0 + b, ch: 'kick' }); if (b === 2 || b === 6) evs.push({ t: t0 + b, ch: 'snare' }); evs.push({ t: t0 + b, ch: 'hat' }); }
+        if (tr.drums === 'soft') { if (b % 2 === 1) evs.push({ t: t0 + b, ch: 'hat', soft: 1 }); }
+      }
+    });
+    // harmony: the nearest chord tone a third or more below each melody note
+    if (tr.harm) for (const e of evs.filter(e => e.ch === 'mel')) {
+      const ch = chords[Math.min(chords.length - 1, Math.floor(e.t / cl))]; if (!ch) continue;
+      const tones = chordNotes(ch, 0).map(n => n % 12); let h = e.m - 3;
+      while (h > e.m - 10 && !tones.includes(((h % 12) + 12) % 12)) h--;
+      if (h > e.m - 10) evs.push({ t: e.t, d: e.d, m: h, ch: 'harm' });
+    }
+    evs.sort((a, b) => a.t - b.t);
+    return { evs, len, loopFrom: tr.loopFrom || 0, once: !!tr.once, step: 60 / tr.bpm / 2 };
+  },
+  playEv(e, t, step) {
+    const m = this.mus;
+    switch (e.ch) {
+      case 'mel': { const L = this.lead || m; const dur = e.d * step; this.tone(L, t, dur, midiHz(e.m), 0.25, 0.12, { vib: dur > 0.3 }); this.tone(L, t, dur, midiHz(e.m) * 1.0046, 0.5, 0.05, { vib: dur > 0.3 }); break; }
+      case 'harm': { const dur = e.d * step; this.tone(this.panR || m, t, dur, midiHz(e.m), 0.5, 0.04, { vib: dur > 0.3 }); break; }
+      case 'pad': { const a = Math.min(0.6, e.d * step * 0.4); this.tone(this.panL || m, t, e.d * step, midiHz(e.m) * 0.997, 'triangle', 0.026, { a, r: 0.5, sus: 1 }); this.tone(this.panR || m, t, e.d * step, midiHz(e.m) * 1.003, 'triangle', 0.026, { a, r: 0.5, sus: 1 }); break; }
+      case 'bass': this.tone(m, t, e.d * step, midiHz(e.m), 'triangle', 0.32); this.tone(m, t, Math.min(0.12, e.d * step), midiHz(e.m) * 2, 0.5, 0.03); break;
+      case 'arp': this.tone(e.t % 2 < 1 ? (this.panL || m) : (this.panR || m), t, e.d * step, midiHz(e.m), 0.125, 0.045); break;
+      case 'kick': this.tone(m, t, 0.12, 150, 'sine', 0.5, { slide: 40, r: 0.1 }); this.noiseHit(m, t, 0.012, 0.18, 2500); break;
+      case 'snare': this.noiseHit(m, t, 0.12, 0.22, 1800); this.tone(m, t, 0.06, 190, 'triangle', 0.12, { slide: 140 }); break;
+      case 'tom': this.tone(m, t, 0.16, 110 + e.m * 40, 'sine', 0.35, { slide: 60 + e.m * 20, r: 0.12 }); break;
+      case 'crash': this.noiseHit(this.panR || m, t, 1.1, 0.09, 5000); this.noiseHit(this.panL || m, t, 0.9, 0.07, 6500); break;
+      case 'hat': this.noiseHit(m, t, 0.03, e.soft ? 0.04 : 0.07, 7000); break;
+    }
+  },
+  play(name, after) {
+    this.want = name; this.after = after || null;
+    if (!this.ac || this.muted && false) return;
+    if (this.cur === name) return;
+    this.stop(); this.cur = name; if (!name) return;
+    const S = this.build(TRACKS[name]); const ac = this.ac;
+    if (this.dly) this.dly.delayTime.setValueAtTime(Math.min(1.4, S.step * 3), ac.currentTime);
+    let idx = 0, base = 0; const t0 = ac.currentTime + 0.08;
+    const tick = () => {
+      const until = ac.currentTime - t0 + 0.35;
+      let guard = 0;
+      while (guard++ < 400) {
+        const e = S.evs[idx]; if (!e) break;
+        const at = (base + e.t) * S.step; if (at > until) break;
+        if (at >= ac.currentTime - t0 - 0.02) this.playEv(e, t0 + at, S.step);
+        idx++;
+        if (idx >= S.evs.length) {
+          if (S.once) { clearInterval(this.timer); this.timer = null; if (this.after) { const nx = this.after, wait = ((base + S.len) * S.step - (ac.currentTime - t0)) * 1000 + 200; this.after = null; setTimeout(() => { if (this.cur === name) { this.cur = null; this.play(nx); } }, Math.max(0, wait)); } return; }
+          base += S.len - S.loopFrom; idx = S.evs.findIndex(x => x.t >= S.loopFrom); if (idx < 0) idx = 0;
+        }
+      }
+    };
+    this.timer = setInterval(tick, 50); tick();
+    // fade in
+    this.mus.gain.cancelScheduledValues(ac.currentTime); this.mus.gain.setValueAtTime(0.0001, ac.currentTime); this.mus.gain.linearRampToValueAtTime(0.55, ac.currentTime + 0.15);
+  },
+  stop() { if (this.timer) clearInterval(this.timer); this.timer = null; this.cur = null; if (this.ac) { const g = this.mus.gain; g.cancelScheduledValues(this.ac.currentTime); g.setValueAtTime(g.value, this.ac.currentTime); g.linearRampToValueAtTime(0.0001, this.ac.currentTime + 0.06); } },
+  sfx(name) {
+    if (!this.ac || this.ac.state !== 'running') return;
+    const t = this.ac.currentTime + 0.005, d = this.sfxG;
+    switch (name) {
+      case 'cursor': this.tone(d, t, 0.04, 1320, 0.5, 0.12); break;
+      case 'ok': this.tone(d, t, 0.05, 990, 0.5, 0.14); this.tone(d, t + 0.05, 0.07, 1480, 0.5, 0.14); break;
+      case 'cancel': this.tone(d, t, 0.07, 660, 0.5, 0.12, { slide: 330 }); break;
+      case 'error': this.tone(d, t, 0.12, 180, 0.5, 0.15); break;
+      case 'hit': this.noiseHit(d, t, 0.12, 0.5, 900, 'lowpass'); this.tone(d, t, 0.08, 220, 'square', 0.12, { slide: 60 }); break;
+      case 'crit': this.noiseHit(d, t, 0.22, 0.7, 600, 'lowpass'); this.tone(d, t, 0.18, 330, 'square', 0.18, { slide: 50 }); break;
+      case 'slash': this.noiseHit(d, t, 0.1, 0.35, 4000); break;
+      case 'fire': this.noiseHit(d, t, 0.5, 0.5, 700, 'lowpass'); this.tone(d, t, 0.4, 200, 'sawtooth', 0.08, { slide: 80 }); break;
+      case 'ice': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.05, 0.1, 1800 + i * 300, 0.125, 0.08); break;
+      case 'bolt': this.noiseHit(d, t, 0.35, 0.6, 2500); this.tone(d, t, 0.3, 90, 'square', 0.15, { slide: 40 }); break;
+      case 'heal': for (let i = 0; i < 5; i++) this.tone(d, t + i * 0.07, 0.14, midiHz(72 + [0, 4, 7, 12, 16][i]), 0.25, 0.09); break;
+      case 'holy': for (let i = 0; i < 8; i++) this.tone(d, t + i * 0.05, 0.3, midiHz(84 + [0, 7, 12, 4, 16, 7, 19, 12][i]), 'sine', 0.08); break;
+      case 'dark': this.tone(d, t, 0.6, 110, 'sawtooth', 0.12, { slide: 40 }); this.noiseHit(d, t, 0.6, 0.3, 400, 'lowpass'); break;
+      case 'meteor': for (let i = 0; i < 4; i++) { this.noiseHit(d, t + i * 0.15, 0.3, 0.6, 500, 'lowpass'); this.tone(d, t + i * 0.15, 0.25, 160, 'square', 0.1, { slide: 40 }); } break;
+      case 'encounter': for (let i = 0; i < 8; i++) this.tone(d, t + i * 0.035, 0.05, 400 + i * 160, 0.5, 0.1); this.noiseHit(d, t + 0.28, 0.4, 0.3, 1500); break;
+      case 'chest': this.tone(d, t, 0.08, 784, 0.5, 0.12); this.tone(d, t + 0.09, 0.08, 988, 0.5, 0.12); this.tone(d, t + 0.18, 0.2, 1175, 0.5, 0.12); break;
+      case 'levelup': [0, 4, 7, 12, 7, 12, 16].forEach((n, i) => this.tone(d, t + i * 0.08, 0.12, midiHz(72 + n), 0.25, 0.12)); break;
+      case 'ko': this.tone(d, t, 0.5, 440, 0.5, 0.14, { slide: 70 }); break;
+      case 'escape': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.04, 0.05, 900 - i * 100, 0.5, 0.1); break;
+      case 'steal': this.tone(d, t, 0.05, 1500, 0.125, 0.1); this.tone(d, t + 0.06, 0.08, 2000, 0.125, 0.1); break;
+      case 'save': [0, 7, 12, 19].forEach((n, i) => this.tone(d, t + i * 0.09, 0.2, midiHz(76 + n), 'sine', 0.1)); break;
+      case 'door': this.noiseHit(d, t, 0.15, 0.3, 500, 'lowpass'); break;
+      case 'buy': this.tone(d, t, 0.05, 1568, 0.5, 0.1); this.tone(d, t + 0.06, 0.1, 2093, 0.5, 0.1); break;
+      case 'boss': this.tone(d, t, 0.8, 55, 'sawtooth', 0.2, { slide: 45 }); this.noiseHit(d, t, 0.9, 0.4, 300, 'lowpass'); break;
+      case 'whoosh': this.noiseHit(d, t, 0.16, 0.25, 1200, 'bandpass'); this.noiseHit(d, t + 0.05, 0.12, 0.15, 2600, 'bandpass'); break;
+      case 'charge': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.035, 0.08, 500 + i * 140, 'sine', 0.05); break;
+      case 'wind': this.noiseHit(d, t, 0.7, 0.35, 900, 'bandpass'); this.noiseHit(d, t + 0.2, 0.6, 0.25, 1600, 'bandpass'); this.tone(d, t, 0.6, 300, 'sine', 0.04, { slide: 900 }); break;
+      case 'shatter': for (let i = 0; i < 10; i++) this.tone(d, t + i * 0.025, 0.09, 2400 - i * 120 + (i % 3) * 300, 0.125, 0.06); this.noiseHit(d, t, 0.5, 0.35, 3500); break;
+      case 'buff': [0, 5, 9, 12, 17].forEach((n, i) => this.tone(d, t + i * 0.05, 0.16, midiHz(76 + n), 'triangle', 0.08)); break;
+      case 'sparkle': [0, 7, 12, 19, 24].forEach((n, i) => this.tone(d, t + i * 0.045, 0.12, midiHz(84 + n), 'sine', 0.06)); break;
+      case 'stairs': for (let i = 0; i < 6; i++) this.tone(d, t + i * 0.07, 0.12, midiHz(84 - i * 3), 0.25, 0.08); break;
+      case 'eat': for (let i = 0; i < 3; i++) this.noiseHit(d, t + i * 0.09, 0.05, 0.3, 1400, 'bandpass'); this.tone(d, t + 0.3, 0.15, 880, 'sine', 0.08, { slide: 1320 }); break;
+      case 'pickup': this.tone(d, t, 0.06, 1175, 0.5, 0.1); this.tone(d, t + 0.06, 0.1, 1568, 0.5, 0.1); break;
+      case 'miss': this.noiseHit(d, t, 0.12, 0.2, 2200, 'bandpass'); break;
+      case 'sleep': [0, -3, -7].forEach((n, i) => this.tone(d, t + i * 0.18, 0.3, midiHz(76 + n), 'sine', 0.08)); break;
+      case 'warn': this.tone(d, t, 0.1, 880, 0.5, 0.1); this.tone(d, t + 0.15, 0.1, 880, 0.5, 0.1); break;
+      case 'crystal': for (let i = 0; i < 12; i++) this.tone(d, t + i * 0.09, 0.4, midiHz(79 + [0, 4, 7, 11, 12, 16, 19, 23, 24, 19, 16, 12][i]), 'sine', 0.07); break;
+    }
+  },
+};
+document.getElementById('mute').addEventListener('click', e => {
+  Audio8.unlock(); Audio8.setMuted(!Audio8.muted); e.currentTarget.textContent = Audio8.muted ? '♪ OFF' : '♪ ON'; e.currentTarget.blur(); Store.set('nemuri-mute', Audio8.muted ? '1' : '');
+});
