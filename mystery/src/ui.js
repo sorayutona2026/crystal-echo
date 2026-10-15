@@ -49,16 +49,24 @@ function openMainMenu() {
 function openBag() {
   if (!G.bag.length) { closeMenus(); msg('なにも もっていない。'); Audio8.sfx('error'); return; }
   pushMenu({ x: 104, y: 22, w: 144, vis: 10, title: `もちもの ${G.bag.length}/${BAG_MAX}`,
-    rows: G.bag.map((it, i) => ({ label: itemName(it), fn: () => openItem(i) })), info: i => ITEMS[G.bag[i].k].desc });
+    rows: G.bag.map((it, i) => ({ label: itemName(it), fn: () => openItem(i) })), info: i => itemDesc(G.bag[i]) });
 }
 function openItem(i) {
   const it = G.bag[i], D = ITEMS[it.k];
-  const use = D.kind === 'food' ? 'たべる' : D.kind === 'heal' ? 'なめる' : 'つかう';
+  const use = D.cls === 'food' ? 'たべる' : D.cls === 'page' ? 'よむ' : 'なめる';
   const go = gen => { closeMenus(); G.busy = gen; };
+  // しきべつのページ: choose what to identify first (if there is anything unknown)
+  const read = () => {
+    if (D.kind !== 'ident') return go(actUse(i));
+    const targets = G.bag.filter((t, j) => j !== i && unknown(t.k));
+    if (!targets.length) return go(actIdentify(i, null));
+    pushMenu({ x: 104, y: 40, w: 144, vis: 8, title: 'どれを しらべる?', rows: targets.map(t => ({ label: dispName(t), fn: () => go(actIdentify(i, t)) })) });
+  };
   pushMenu({ x: 150, y: 60, w: 76, rows: [
-    { label: use, fn: () => go(actUse(i)) },
+    { label: use, fn: read },
+    { label: 'なげる', fn: () => go(actThrow(i)) },
     { label: 'おく', fn: () => go(actDrop(i)) },
-    { label: 'せつめい', fn: () => pushMenu({ draw: () => { win(8, 150, 240, 66); text(D.name, 16, 158, UI.gold, 8); wrapText(D.desc, 16, 172, 224, UI.ink); } }) },
+    { label: 'せつめい', fn: () => pushMenu({ draw: () => { win(8, 150, 240, 66); text(dispName(it), 16, 158, UI.gold, 8); wrapText(itemDesc(it), 16, 172, 224, UI.ink); } }) },
   ] });
 }
 function openFoot() {
@@ -72,11 +80,11 @@ function openFoot() {
 function openStatus() {
   const p = G.p;
   pushMenu({ draw: () => {
-    win(104, 22, 144, 108); let y = 30;
+    win(104, 22, 144, 120); let y = 30;
     const row = (a, b) => { text(a, 114, y, UI.label, 8); text(b, 238, y, UI.ink, 8, 'right'); y += 12; };
     text(HERO_NAME, 114, y, UI.gold, 9); y += 14;
     row('レベル', String(p.lv)); row('HP', `${p.hp} / ${p.mhp}`); row('まどろみ度', `${p.mado} / ${p.mmado}`);
-    row('こうげき', String(playerAtk())); row('ぼうぎょ', String(playerDef()));
+    row('ちから', `${p.str} / ${p.mstr}`); row('こうげき', String(playerAtk())); row('ぼうぎょ', String(playerDef()));
     row('つぎのレベルまで', p.lv < EXP_TABLE.length - 1 ? String(EXP_TABLE[p.lv + 1] - p.exp) : '-');
   } });
 }
@@ -130,6 +138,7 @@ function animate() {
   if (G.logT > 0 && !G.menu.length) G.logT--;
   if (G.card > 0) G.card--;
   if (G.bolt && --G.bolt.t <= 0) G.bolt = null;
+  if (G.beam && --G.beam.t <= 0) G.beam = null;
 }
 function lungeOff(e) { if (!e.lunge) return [0, 0]; const k = Math.sin(Math.PI * (10 - e.lunge) / 10) * 5; return [e.dir[0] * k, e.dir[1] * k]; }
 
@@ -153,7 +162,7 @@ function drawDungeon() {
     ctx.drawImage(TL.stairs, F.stairs.x * T, F.stairs.y * T);
     const g = 0.18 + Math.sin(G.frame / 20) * 0.08; ctx.fillStyle = `rgba(240,220,255,${g})`; ctx.fillRect(F.stairs.x * T + 2, F.stairs.y * T + 2, 12, 12);
   }
-  for (const it of G.items) if (F.seen[it.y * MW + it.x]) ctx.drawImage(ITEM_IMG[it.k], it.x * T, it.y * T + (visible(F, it.x, it.y) ? Math.round(Math.sin(G.frame / 16 + it.x) * 0.6) : 0));
+  for (const it of G.items) if (F.seen[it.y * MW + it.x]) ctx.drawImage(itemImg(it.k), it.x * T, it.y * T + (visible(F, it.x, it.y) ? Math.round(Math.sin(G.frame / 16 + it.x) * 0.6) : 0));
   // remembered-but-unseen tiles are dimmed
   ctx.fillStyle = th.void; ctx.globalAlpha = 0.55;
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inMap(x, y) && F.seen[y * MW + x] && !F.vis[y * MW + x]) ctx.fillRect(x * T, y * T, T, T);
@@ -165,6 +174,8 @@ function drawDungeon() {
   for (const a of actors) a.m ? drawMon(a.m) : drawHero();
   for (const m of G.dead) drawMon(m);
   if (G.bolt) drawBolt(G.bolt);
+  if (G.beam) { const b = G.beam, k = b.t / 18; ctx.strokeStyle = b.col; ctx.globalAlpha = Math.min(1, k * 2); ctx.lineWidth = 3 + Math.sin(G.frame) * 1; ctx.beginPath(); ctx.moveTo(b.x0 * T + 8, b.y0 * T + 8); ctx.lineTo(b.x1 * T + 8, b.y1 * T + 8); ctx.stroke(); ctx.strokeStyle = '#fff3c0'; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1; }
+  if (G.proj) ctx.drawImage(itemImg(G.proj.k), Math.round(G.proj.x), Math.round(G.proj.y - 4));
   for (const f of G.fx) {
     const k = f.t / 44, y = f.y - 4 - Math.min(10, f.t * 0.8);
     ctx.globalAlpha = k > 0.75 ? (1 - k) * 4 : 1; text(f.text, f.x, y, f.col, 9, 'center'); ctx.globalAlpha = 1;
@@ -203,7 +214,7 @@ function drawHero() {
   if (p.sleep > 0) { const b = (G.frame / 3) % 30; ctx.globalAlpha = 1 - b / 30; text('z', p.rx + 12 + b * 0.2, p.ry - 2 - b * 0.4, '#d8e0ff', 7); text('Z', p.rx + 6, p.ry - 8 - (b * 0.2), '#d8e0ff', 8); ctx.globalAlpha = 1; }
 }
 function drawMon(m) {
-  const I = MON_IMG[m.k], right = m.dir[0] > 0, fr = Math.floor((G.frame + m.seed * 7) / (m.asleep ? 40 : 18)) % 2;
+  const I = MON_IMG[m.k], right = m.dir[0] > 0, fr = Math.floor((G.frame + m.seed * 7) / (m.asleep || m.sleepT ? 40 : 18)) % 2;
   const [ox, oy] = lungeOff(m);
   const X = Math.round(m.rx + ox), Y = Math.round(m.ry + oy - 2);
   ctx.fillStyle = 'rgba(10,6,30,.3)'; ctx.beginPath(); ctx.ellipse(m.rx + 8, m.ry + 14.5, 5, 1.8, 0, 0, Math.PI * 2); ctx.fill();
@@ -213,7 +224,9 @@ function drawMon(m) {
     return;
   }
   ctx.drawImage((m.hit > 0 && m.hit % 4 < 2 ? (right ? I.hitR : I.hitL) : (right ? I.right : I.left))[fr], X, Y);
-  if (m.asleep) { const b = (G.frame / 4 + m.seed) % 24; ctx.globalAlpha = 1 - b / 24; text('z', m.rx + 11, m.ry - 3 - b * 0.3, '#d8e0ff', 6); ctx.globalAlpha = 1; }
+  if (m.conf > 0) text('?', m.rx + 8 + Math.sin(G.frame / 6) * 3, m.ry - 6, UI.warn, 7, 'center');
+  if (m.fastT > 0 && G.frame % 20 < 10) text('»', m.rx + 1, m.ry - 4, '#9ae6ff', 7);
+  if (m.asleep || m.sleepT > 0) { const b = (G.frame / 4 + m.seed) % 24; ctx.globalAlpha = 1 - b / 24; text('z', m.rx + 11, m.ry - 3 - b * 0.3, '#d8e0ff', 6); ctx.globalAlpha = 1; }
 }
 function drawBolt(b) {
   const x0 = b.x0 * T + 8, y0 = b.y0 * T + 4, x1 = b.x1 * T + 8, y1 = b.y1 * T + 8;
@@ -254,6 +267,9 @@ function drawHud() {
   text(`まどろみ ${p.mado}`, 124, 4, mc, 8);
   bar(124, 14, 50, 2.5, p.mado / p.mmado, p.mado <= 20 ? UI.warn : '#c8a8ff');
   text(`✦${G.stars}`, 250, 4, UI.gold, 8, 'right');
+  // conditions under the HUD
+  const tags = []; if (p.sleep > 0) tags.push(['ねむり', UI.label]); if (p.conf > 0) tags.push(['こんらん', UI.warn]); if (p.fastT > 0) tags.push(['はやあし', '#9ae6ff']); if (p.str < p.mstr) tags.push(['ちから↓', UI.red]);
+  let tx = 6; for (const [t, c] of tags) { text(t, tx, 19, c, 7); tx += textW(t, 7) + 6; }
 }
 function drawLog() {
   if (G.logT <= 0 || !G.log.length) { if (G.logT <= 0) G.log = []; return; }

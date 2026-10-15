@@ -33,7 +33,7 @@ function boot() {
 setInterval(() => { if (G.best) Store.set('nemuri-best', String(G.best)); }, 2000);
 // debug / test hooks
 window.__nm = { G, step, render, newGame, enterFloor, setSeed, Input, Dungeon, Title, Intro, GameOver, Clear, MONSTERS, ITEMS, MW, MH,
-  canStep, passable, areaAt, distField, spawnMonster, dropItem, settled, inMenu };
+  canStep, passable, areaAt, distField, spawnMonster, dropItem, settled, inMenu, dispName, updateFov };
 const fontReady = (document.fonts && document.fonts.load) ? Promise.race([
   Promise.all([document.fonts.load('500 24px "Zen Kaku Gothic New"', GLYPHS), document.fonts.load('700 24px "Shippori Mincho B1"', GLYPHS)]),
   new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();

@@ -21,16 +21,33 @@ function pickMonster(floor) {
   let r = rnd() * tot; for (const k of ks) { r -= MONSTERS[k].weight; if (r < 0) return k; } return ks[0];
 }
 
-// items for the first stage: food for the dozing gauge, healing candy and star shards (money)
+// items. cls: food (always known), candy / page (unknown until used: shown by a look shuffled every game), money
+// candy = 草, page = 巻物 of the original games. kind drives the effect.
 const ITEMS = {
-  candy: { name: 'ゆめの菓子', kind: 'food', mado: 50, desc: 'まどろみ度が 50 回復する。' },
-  bigcandy: { name: '大きなゆめの菓子', kind: 'food', mado: 100, desc: 'まどろみ度が 100 回復する。満タンなら 最大まどろみ度が 少し上がる。' },
-  heal: { name: 'いやしのキャンディ', kind: 'heal', hp: 25, desc: 'HPが 25 回復する。HPが満タンなら 最大HPが 1 上がる。' },
-  bigheal: { name: 'ふわふわキャンディ', kind: 'heal', hp: 100, desc: 'HPが 100 回復する。HPが満タンなら 最大HPが 2 上がる。' },
-  star: { name: 'ほしのかけら', kind: 'money', desc: '夢の中の お金。' },
+  candy: { name: 'ゆめの菓子', cls: 'food', kind: 'food', mado: 50, desc: 'まどろみ度が 50 回復する。' },
+  bigcandy: { name: '大きなゆめの菓子', cls: 'food', kind: 'food', mado: 100, desc: 'まどろみ度が 100 回復する。満タンなら 最大まどろみ度が 5 上がる。' },
+  heal: { name: 'いやしのキャンディ', cls: 'candy', kind: 'heal', hp: 25, known: true, color: '#8ae0c8', desc: 'HPが 25 回復する。HPが満タンなら 最大HPが 1 上がる。投げると 悪夢を 回復してしまう。' },
+  bigheal: { name: 'ふわふわキャンディ', cls: 'candy', kind: 'heal', hp: 100, desc: 'HPが 100 回復する。HPが満タンなら 最大HPが 2 上がる。' },
+  chikara: { name: 'ちからのキャンディ', cls: 'candy', kind: 'str', desc: 'ちからが 1 上がる(へっていたら もとにもどる)。' },
+  shiawase: { name: 'しあわせのキャンディ', cls: 'candy', kind: 'lvup', desc: 'レベルが 1 上がる。' },
+  konran: { name: 'こんらんキャンディ', cls: 'candy', kind: 'conf', desc: 'なめると しばらく こんらんする。投げて 当てると 悪夢が こんらんする。' },
+  nemuri: { name: 'ねむりキャンディ', cls: 'candy', kind: 'sleep', desc: 'なめると ねむってしまう。投げて 当てると 悪夢が ねむる。' },
+  honoo: { name: 'ほのおキャンディ', cls: 'candy', kind: 'fire', desc: 'なめると 前に ほのおを はく。投げて 当てても ほのおで ダメージ。' },
+  hayasa: { name: 'はやあしキャンディ', cls: 'candy', kind: 'fast', desc: 'しばらく 足が はやくなる(2回 うごける)。投げると 悪夢が はやくなる。' },
+  shiki: { name: 'しきべつのページ', cls: 'page', kind: 'ident', desc: 'もちものを ひとつ しらべて 名前が わかる。' },
+  akari: { name: 'あかりのページ', cls: 'page', kind: 'light', desc: 'この階の ちずと 落ちている物が ぜんぶ わかる。' },
+  bakusui: { name: 'こもりうたのページ', cls: 'page', kind: 'lull', desc: 'へやの中の 悪夢が みんな ねむる。' },
+  mamori: { name: 'まもりのページ', cls: 'page', kind: 'ward', desc: '床に おくと その上にいる間 悪夢に こうげきされない。読んでも 何もおこらない。' },
+  arashi: { name: 'おおあらしのページ', cls: 'page', kind: 'storm', desc: 'へやの中の 悪夢 ぜんぶに ダメージを あたえる。' },
+  star: { name: 'ほしのかけら', cls: 'money', kind: 'money', desc: '夢の中の お金。' },
 };
-const ITEM_DROPS = [['candy', 26], ['heal', 30], ['star', 26], ['bigcandy', 8], ['bigheal', 6]];
+// unknown names: candies by colour, pages by the picture on them
+const CANDY_LOOKS = [['あおい', '#7ab0ff'], ['きいろい', '#ffe066'], ['みどりの', '#8ae08a'], ['むらさきの', '#b88aff'], ['しろい', '#f4f0ea'], ['もも色の', '#ffb0c8'], ['オレンジの', '#ffaa55'], ['みずいろの', '#9ae6ff'], ['はいいろの', '#a8a4b4']];
+const PAGE_LOOKS = ['くまの', 'ふねの', 'おしろの', 'うさぎの', 'くじらの', 'きしゃの', 'ほしぞらの', 'もりの'];
+const ITEM_DROPS = [['candy', 18], ['bigcandy', 6], ['heal', 16], ['bigheal', 4], ['chikara', 4], ['shiawase', 2], ['konran', 5], ['nemuri', 5], ['honoo', 5], ['hayasa', 4],
+  ['shiki', 7], ['akari', 5], ['bakusui', 4], ['mamori', 3], ['arashi', 4], ['star', 18]];
 function pickItem() { let tot = 0; for (const [, w] of ITEM_DROPS) tot += w; let r = rnd() * tot; for (const [k, w] of ITEM_DROPS) { r -= w; if (r < 0) return k; } return 'candy'; }
+const STR_BASE = 8;
 const BAG_MAX = 20;
 
 // experience needed for each level (index = level)

@@ -11,15 +11,47 @@ const monAt = (x, y) => G.mons.find(m => m.x === x && m.y === y && m.hp > 0);
 const itemAt = (x, y) => G.items.find(i => i.x === x && i.y === y);
 const occupied = (x, y) => !!monAt(x, y) || (G.p.x === x && G.p.y === y);
 const settled = e => e.rx === e.x * T && e.ry === e.y * T;
-const itemName = it => it.k === 'star' ? `ほしのかけら ${it.n}こ` : ITEMS[it.k].name;
+// candies and pages go by their look (a colour, a picture) until identified
+const unknown = k => (ITEMS[k].cls === 'candy' || ITEMS[k].cls === 'page') && !G.known.has(k);
+function dispName(it) {
+  if (it.k === 'star') return `ほしのかけら ${it.n}こ`;
+  if (!unknown(it.k)) return ITEMS[it.k].name;
+  return ITEMS[it.k].cls === 'candy' ? `${G.looks[it.k].name}キャンディ` : `${G.looks[it.k]}えほんのページ`;
+}
+const itemName = dispName;
+function itemDesc(it) {
+  if (!unknown(it.k)) return ITEMS[it.k].desc;
+  return ITEMS[it.k].cls === 'candy' ? 'なめるか 投げるまで 何のキャンディか わからない。' : 'よむまで 何のページか わからない。';
+}
+function itemImg(k) {
+  const D = ITEMS[k];
+  if (D.cls === 'candy') return lollipop(D.color || G.looks[k].col);
+  if (D.cls === 'page') return ITEM_IMG.page;
+  return ITEM_IMG[k];
+}
+function identify(k) {
+  if (!unknown(k)) return false;
+  G.known.add(k); return true;
+}
+const isWard = it => it && it.k === 'mamori' && it.placed;
 
-function playerAtk() { const L = G.p.lv; return 3 + L + Math.floor(L / 3); }
+function playerAtk() { const L = G.p.lv; return 3 + L + Math.floor(L / 3) + (G.p.str - STR_BASE); }
 function playerDef() { return Math.floor(G.p.lv / 2); }
 function dmgCalc(atk, def) { return Math.max(1, Math.round(atk * (0.875 + rnd() * 0.25)) - def); }
 
 // ---------- new game / floors ----------
 function newGame() {
-  G.p = { x: 0, y: 0, rx: 0, ry: 0, dir: [0, 1], hp: 15, mhp: 15, lv: 1, exp: 0, mado: MADO_MAX, mmado: MADO_MAX, madoT: 0, regen: 0, sleep: 0, lunge: 0, hit: 0, walk: 0 };
+  G.p = { x: 0, y: 0, rx: 0, ry: 0, dir: [0, 1], hp: 15, mhp: 15, lv: 1, exp: 0, mado: MADO_MAX, mmado: MADO_MAX, madoT: 0, regen: 0, sleep: 0, lunge: 0, hit: 0, walk: 0,
+    str: STR_BASE, mstr: STR_BASE, conf: 0, fastT: 0 };
+  // shuffle the looks of unknown candies and pages for this game
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const cl = shuffle(CANDY_LOOKS), pl = shuffle(PAGE_LOOKS); G.looks = {}; G.known = new Set();
+  for (const k in ITEMS) {
+    const D = ITEMS[k];
+    if (D.known || (D.cls !== 'candy' && D.cls !== 'page')) { G.known.add(k); continue; }
+    G.looks[k] = D.cls === 'candy' ? (([name, col]) => ({ name, col }))(cl.pop()) : pl.pop();
+  }
+  G.fastPhase = false;
   G.bag = [{ k: 'candy' }, { k: 'heal' }]; G.stars = 0; G.turn = 0; G.log = []; G.cause = ''; G.menu = []; G.prompt = null; G.busy = null; G.wait = 0;
 }
 function enterFloor(n) {
@@ -59,10 +91,12 @@ function* waitSettled() { let n = 0; while (!settled(G.p) && n++ < 30) yield 1; 
 
 // ---------- player actions ----------
 function* actMove(dx, dy) {
-  const p = G.p, F = G.F; p.dir = [dx, dy];
+  const p = G.p, F = G.F;
+  if (p.conf > 0) [dx, dy] = DIRS8[ri(0, 7)];
+  p.dir = [dx, dy];
   const tx = p.x + dx, ty = p.y + dy;
   if (monAt(tx, ty) && canStep(F, p.x, p.y, dx, dy)) { yield* actAttack(); return; }
-  if (!canStep(F, p.x, p.y, dx, dy) || monAt(tx, ty)) return; // bumping a wall costs no turn
+  if (!canStep(F, p.x, p.y, dx, dy) || monAt(tx, ty)) { if (p.conf > 0) { yield 6; yield* endTurn(); } return; } // bumping a wall costs no turn (unless confused)
   p.x = tx; p.y = ty; p.walk++;
   updateFov(F, p.x, p.y);
   pickUpHere(true);
@@ -72,7 +106,9 @@ function* actMove(dx, dy) {
   if (F.stairs && p.x === F.stairs.x && p.y === F.stairs.y) askStairs();
 }
 function* actAttack() {
-  const p = G.p, F = G.F, [dx, dy] = p.dir;
+  const p = G.p, F = G.F;
+  if (p.conf > 0) p.dir = DIRS8[ri(0, 7)];
+  const [dx, dy] = p.dir;
   p.lunge = 10; Audio8.sfx('slash');
   yield 4;
   const m = monAt(p.x + dx, p.y + dy);
@@ -109,34 +145,136 @@ function* gainExp(n) {
     yield 30;
   }
 }
-// use / drop from the bag
+// ---------- items: use, identify, throw, drop, pick up ----------
+function* hurtMon(m, d, why) {
+  m.hp -= d; m.hit = 10; m.asleep = false; m.track = 10; popup(m, d, '#ffd0a0'); Audio8.sfx('hit');
+  msg(`${MONSTERS[m.k].name}に ${why}${d}の ダメージ!`);
+  if (m.hp <= 0) { yield 8; yield* killMon(m); }
+}
 function* actUse(i) {
-  const p = G.p, it = G.bag[i], D = ITEMS[it.k];
+  const p = G.p, F = G.F, it = G.bag[i], D = ITEMS[it.k], before = dispName(it);
   G.bag.splice(i, 1);
-  if (D.kind === 'food') {
-    Audio8.sfx('eat');
-    const full = p.mado >= p.mmado;
-    if (full && D.mado >= 100) { p.mmado += 5; p.mado = p.mmado; msg(`${D.name}を たべた。さいだいまどろみ度が 5 あがった!`); }
-    else { p.mado = Math.min(p.mmado, p.mado + D.mado); msg(`${D.name}を たべた。夢が ふかくなった。`); }
-  } else if (D.kind === 'heal') {
-    Audio8.sfx('heal');
-    if (p.hp >= p.mhp) { const up = D.hp >= 100 ? 2 : 1; p.mhp += up; p.hp = p.mhp; msg(`${D.name}を なめた。さいだいHPが ${up} あがった!`); }
-    else { const h = Math.min(D.hp, p.mhp - p.hp); p.hp += h; popup(p, h, UI.hp); msg(`${D.name}を なめた。HPが ${h} かいふくした。`); }
+  const verb = D.cls === 'food' ? 'たべた' : D.cls === 'page' ? 'よんだ' : 'なめた';
+  if (D.cls === 'food') Audio8.sfx('eat');
+  msg(`${before}を ${verb}。`);
+  yield 10;
+  identify(it.k);
+  switch (D.kind) {
+    case 'food': {
+      if (p.mado >= p.mmado && D.mado >= 100) { p.mmado += 5; p.mado = p.mmado; msg('さいだいまどろみ度が 5 あがった!'); }
+      else { p.mado = Math.min(p.mmado, p.mado + D.mado); msg('夢が ふかくなった。'); }
+      break;
+    }
+    case 'heal': {
+      Audio8.sfx('heal');
+      if (p.hp >= p.mhp) { const up = D.hp >= 100 ? 2 : 1; p.mhp += up; p.hp = p.mhp; msg(`さいだいHPが ${up} あがった!`); }
+      else { const h = Math.min(D.hp, p.mhp - p.hp); p.hp += h; popup(p, h, UI.hp); msg(`HPが ${h} かいふくした。`); }
+      break;
+    }
+    case 'str': Audio8.sfx('buff');
+      if (p.str < p.mstr) { p.str = p.mstr; msg('ちからが もとに もどった。'); } else { p.str++; p.mstr++; msg(`ちからが 1 あがった! (ちから ${p.str})`, UI.gold); }
+      break;
+    case 'lvup': if (p.lv < EXP_TABLE.length - 1) yield* gainExp(EXP_TABLE[p.lv + 1] - p.exp); else msg('なにも おこらなかった。'); break;
+    case 'conf': p.conf = 8; Audio8.sfx('error'); msg(`${HERO_NAME}は こんらんしてしまった!`, UI.warn); break;
+    case 'sleep': p.sleep = 4; Audio8.sfx('sleep'); msg(`${HERO_NAME}は ねむってしまった…`, UI.label); break;
+    case 'fast': p.fastT = 20; G.fastPhase = false; Audio8.sfx('buff'); msg('足が はやくなった!', UI.gold); break;
+    case 'fire': { // breathe fire straight ahead
+      const [dx, dy] = p.dir; let x = p.x, y = p.y, hit = null;
+      for (let n = 0; n < 10 && canStep(F, x, y, dx, dy); n++) { x += dx; y += dy; const m = monAt(x, y); if (m) { hit = m; break; } }
+      G.beam = { x0: p.x, y0: p.y, x1: x, y1: y, t: 18, col: '#ff9a4a' }; Audio8.sfx('fire'); p.lunge = 8;
+      yield 14;
+      if (hit) yield* hurtMon(hit, ri(18, 24), 'ほのおで '); else msg('ほのおは なにもない ところで きえた。');
+      break;
+    }
+    case 'light': {
+      for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (passable(F, x, y)) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (inMap(x + dx, y + dy)) F.seen[(y + dy) * MW + x + dx] = 1;
+      Audio8.sfx('sparkle'); G.flash = 8; msg('この階の ようすが わかった!');
+      break;
+    }
+    case 'lull': {
+      const ms = G.mons.filter(m => visible(F, m.x, m.y)); Audio8.sfx('sleep');
+      for (const m of ms) { m.sleepT = 8; m.conf = 0; }
+      msg(ms.length ? 'こもりうたが ながれて 悪夢たちは ねむってしまった。' : 'こもりうたが ながれた… でも だれも いなかった。');
+      break;
+    }
+    case 'storm': {
+      const ms = G.mons.filter(m => visible(F, m.x, m.y)); Audio8.sfx('wind'); G.shake = 12;
+      if (!ms.length) msg('おおあらしが ふきぬけた… でも だれも いなかった。');
+      for (const m of ms) { yield 6; yield* hurtMon(m, ri(15, 22), 'あらしで '); }
+      break;
+    }
+    case 'ward': msg('なにも おこらなかった… 床に おくと いいのかも しれない。'); break;
   }
   yield 16;
   yield* endTurn();
 }
+// しきべつのページ: read it and pick one unknown item from the bag
+function* actIdentify(pageIdx, target) {
+  const page = G.bag[pageIdx]; G.bag.splice(pageIdx, 1);
+  msg(`${dispName(page)}を よんだ。`); identify(page.k);
+  yield 10;
+  if (target && unknown(target.k)) { const before = dispName(target); identify(target.k); Audio8.sfx('sparkle'); msg(`${before}は ${dispName(target)}だった!`); }
+  else msg('しらべる ものが なかった。');
+  yield 16;
+  yield* endTurn();
+}
+// throw in the facing direction: flies up to 10 tiles, candies work on the monster they hit
+function* actThrow(i) {
+  const p = G.p, F = G.F, it = G.bag[i];
+  G.bag.splice(i, 1);
+  let [dx, dy] = p.dir; if (p.conf > 0) [dx, dy] = DIRS8[ri(0, 7)];
+  p.dir = [dx, dy]; p.lunge = 8; Audio8.sfx('whoosh'); msg(`${dispName(it)}を なげた。`);
+  let x = p.x, y = p.y, hit = null;
+  G.proj = { k: it.k, x: x * T, y: y * T };
+  for (let n = 0; n < 10 && canStep(F, x, y, dx, dy); n++) {
+    x += dx; y += dy;
+    for (let f = 0; f < 4; f++) { G.proj.x += dx * 4; G.proj.y += dy * 4; yield 1; }
+    const m = monAt(x, y); if (m) { hit = m; break; }
+  }
+  G.proj = null;
+  if (hit && rnd() < 0.92) yield* throwHit(it, hit);
+  else { if (hit) { msg(`${MONSTERS[hit.k].name}に よけられた。`); hit.asleep = false; } landItem(it, x, y); }
+  yield 8;
+  yield* endTurn();
+}
+function* throwHit(it, m) {
+  const D = ITEMS[it.k], before = dispName(it), mn = MONSTERS[m.k].name;
+  const known = () => { if (identify(it.k)) msg(`(${before}は ${D.name}だった)`); };
+  m.asleep = false; m.track = 10;
+  switch (D.kind) {
+    case 'heal': m.hp = Math.min(m.mhp, m.hp + D.hp); popup(m, D.hp, UI.hp); msg(`${mn}の HPが かいふくしてしまった。`); known(); break;
+    case 'conf': m.conf = 10; msg(`${mn}は こんらんした!`); known(); break;
+    case 'sleep': m.sleepT = 10; msg(`${mn}は ねむってしまった!`); known(); break;
+    case 'fast': m.fastT = 20; msg(`${mn}の 足が はやくなった!`); known(); break;
+    case 'fire': known(); Audio8.sfx('fire'); yield* hurtMon(m, ri(18, 24), 'ほのおで '); break;
+    default: yield* hurtMon(m, 1, ''); break; // anything else just bonks
+  }
+}
+// an item that misses or hits a wall lands on the nearest free floor tile
+function landItem(it, x, y) {
+  const F = G.F;
+  for (let r = 0; r <= 2; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const X = x + dx, Y = y + dy;
+    if (!passable(F, X, Y) || itemAt(X, Y) || (F.stairs.x === X && F.stairs.y === Y)) continue;
+    it.x = X; it.y = Y; if (it.k === 'mamori') it.placed = true; G.items.push(it); msg(`${dispName(it)}は 床に おちた。`); return;
+  }
+  msg(`${dispName(it)}は きえてしまった。`);
+}
 function* actDrop(i) {
   const p = G.p, it = G.bag[i];
   if (itemAt(p.x, p.y) || (G.F.stairs.x === p.x && G.F.stairs.y === p.y)) { msg('ここには おけない。'); return; }
-  G.bag.splice(i, 1); it.x = p.x; it.y = p.y; G.items.push(it); msg(`${itemName(it)}を 足元に おいた。`);
+  G.bag.splice(i, 1); it.x = p.x; it.y = p.y; G.items.push(it);
+  if (it.k === 'mamori') { it.placed = true; identify('mamori'); msg('まもりのページを 床に おいた。ページが ふわりと ひかった。', UI.gold); Audio8.sfx('holy'); }
+  else msg(`${dispName(it)}を 足元に おいた。`);
   yield 6; yield* endTurn();
 }
 function pickUpHere(onStep) {
   const p = G.p, it = itemAt(p.x, p.y); if (!it) return;
   if (it.k === 'star') { G.stars += it.n; G.items.splice(G.items.indexOf(it), 1); Audio8.sfx('pickup'); msg(`ほしのかけらを ${it.n}こ ひろった。`); return; }
-  if (G.bag.length >= BAG_MAX) { msg(onStep ? `${itemName(it)}の 上に のった。(もちものが いっぱい)` : 'もちものが いっぱいで ひろえない。'); return; }
-  G.items.splice(G.items.indexOf(it), 1); G.bag.push({ k: it.k }); Audio8.sfx('pickup'); msg(`${itemName(it)}を ひろった。`);
+  if (isWard(it)) { if (!onStep) msg('まもりのページは 床に はりついている。'); return; }
+  if (G.bag.length >= BAG_MAX) { msg(onStep ? `${dispName(it)}の 上に のった。(もちものが いっぱい)` : 'もちものが いっぱいで ひろえない。'); return; }
+  G.items.splice(G.items.indexOf(it), 1); G.bag.push({ k: it.k }); Audio8.sfx('pickup'); msg(`${dispName(it)}を ひろった。`);
 }
 function askStairs() {
   G.prompt = { text: '階段が ある。おりますか?', opts: ['おりる', 'やめる'], sel: 0, fn: i => { if (i === 0) G.busy = descend(); } };
@@ -170,11 +308,19 @@ function* endTurn() {
     p.regen += p.mhp / 140 + 0.02;
     while (p.regen >= 1 && p.hp < p.mhp) { p.hp++; p.regen--; }
   } else p.regen = 0;
+  if (p.conf > 0 && --p.conf === 0) msg('こんらんが なおった。');
+  // はやあし: every other action is free (the monsters do not move)
+  if (p.fastT > 0) {
+    if (--p.fastT === 0) msg('足が もとに もどった。');
+    G.fastPhase = !G.fastPhase;
+    if (G.fastPhase && p.fastT > 0) { updateFov(F, p.x, p.y); return; }
+  }
   // monsters act; distance fields are shared within this turn
   G.df = {};
   const before = new Set(G.mons.filter(m => visible(F, m.x, m.y)));
   for (const m of [...G.mons]) {
-    const n = MONSTERS[m.k].speed || 1;
+    const n = (MONSTERS[m.k].speed || 1) + (m.fastT > 0 ? 1 : 0);
+    if (m.fastT > 0) m.fastT--;
     for (let i = 0; i < n && m.hp > 0; i++) {
       yield* monAct(m);
       if (p.hp <= 0) { yield* die(); return; }
@@ -197,11 +343,19 @@ function* monAct(m) {
     if ((d <= 1 && rnd() < 0.5) || (canSee(m) && rnd() < 0.08)) m.asleep = false;
     return;
   }
-  const sees = canSee(m);
+  if (m.sleepT > 0) { m.sleepT--; return; }
+  if (m.conf > 0) { // stagger in a random direction (and hit whatever is there)
+    m.conf--; const [cx, cy] = DIRS8[ri(0, 7)]; m.dir = [cx, cy];
+    if (p.x === m.x + cx && p.y === m.y + cy && canStep(F, m.x, m.y, cx, cy) && !isWard(itemAt(p.x, p.y))) { yield* monAttack(m, cx, cy); return; }
+    if (canStep(F, m.x, m.y, cx, cy) && !occupied(m.x + cx, m.y + cy)) { m.x += cx; m.y += cy; }
+    return;
+  }
+  const ward = isWard(itemAt(p.x, p.y)); // standing on まもりのページ: nightmares will not attack
+  const sees = canSee(m) && !ward;
   if (sees) { m.track = 10; m.goal = [p.x, p.y]; }
-  else if (m.track > 0) { m.track--; if (cheb(m, p) <= 7) m.goal = [p.x, p.y]; }
+  else if (m.track > 0 && !ward) { m.track--; if (cheb(m, p) <= 7) m.goal = [p.x, p.y]; }
   const dx = Math.sign(p.x - m.x), dy = Math.sign(p.y - m.y);
-  if (cheb(m, p) === 1 && canStep(F, m.x, m.y, dx, dy)) { yield* monAttack(m, dx, dy); return; }
+  if (!ward && cheb(m, p) === 1 && canStep(F, m.x, m.y, dx, dy)) { yield* monAttack(m, dx, dy); return; }
   if (D.bolt && sees && inLine(m, p, D.bolt.range) && rnd() < D.bolt.chance) { yield* monBolt(m, dx, dy); return; }
   // walk toward the goal: the player while chasing, otherwise a random spot in some room
   if (!m.goal || (m.goal[0] === m.x && m.goal[1] === m.y)) {

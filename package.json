@@ -11,7 +11,7 @@
     "test:balance": "node test/balance.js",
     "test:ui": "node test/ui.js",
     "shots": "node test/gallery.js && node test/esheet.js && node test/fxshots.js",
-    "test:mystery": "cd mystery && python3 build.py && node test/smoke.js && node test/touch.js && node test/layout.js && node test/play.js"
+    "test:mystery": "cd mystery && python3 build.py && node test/smoke.js && node test/items.js && node test/touch.js && node test/layout.js && node test/play.js"
   },
   "devDependencies": {
     "playwright": "^1.56.0"

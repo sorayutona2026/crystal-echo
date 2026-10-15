@@ -190,9 +190,20 @@ function buildMonsters() {
 const ITEM_DRAW = {
   candy(x) { poly(x, [2, 5, 5, 8, 2, 11], '#ff9ac8'); poly(x, [14, 5, 11, 8, 14, 11], '#ff9ac8'); ell(x, 8, 8, 3.6, 3.2, '#ffd0e6'); rect(x, 6, 7, 2, 1, '#fff'); rect(x, 8, 9, 2, 1, '#ff7ab0'); },
   bigcandy(x) { poly(x, [1, 3, 5, 8, 1, 13], '#ffb84a'); poly(x, [15, 3, 11, 8, 15, 13], '#ffb84a'); ell(x, 8, 8, 4.6, 4.2, '#ffe08a'); rect(x, 5, 6, 3, 1, '#fff'); rect(x, 7, 10, 4, 1, '#f09a2a'); },
-  heal(x) { ell(x, 8, 7, 4, 4, '#8ae0c8'); rect(x, 7, 10, 2, 5, '#f6f0e6'); rect(x, 6, 5, 2, 2, '#ffffff'); rect(x, 9, 8, 2, 1, '#4ab89a'); },
-  bigheal(x) { ell(x, 8, 7, 5, 4.5, '#ffd0f0'); ell(x, 6, 6, 2.5, 2, '#fff4fc'); ell(x, 10, 8, 2.5, 2, '#f8b0e0'); rect(x, 7, 11, 2, 4, '#f6f0e6'); },
+  page(x) { // a torn picture-book page
+    poly(x, [3, 3, 12, 2, 13, 13, 4, 14], '#f6efe0'); poly(x, [3, 3, 6, 3, 5, 6], '#e2d6c0');
+    rect(x, 5, 5, 6, 4, '#b8d8f0'); ell(x, 8, 8, 2, 1.5, '#f0b0c8'); rect(x, 5, 10, 6, 1, '#a89a88'); rect(x, 5, 12, 4, 1, '#a89a88');
+  },
   star(x) { poly(x, [8, 2, 10, 6, 14, 7, 11, 10, 12, 14, 8, 12, 4, 14, 5, 10, 2, 7, 6, 6], '#ffe46a'); rect(x, 7, 6, 2, 2, '#fffbe0'); },
 };
 const ITEM_IMG = {};
 function buildItems() { for (const k in ITEM_DRAW) ITEM_IMG[k] = E(16, 16, ITEM_DRAW[k]); }
+// lollipops in any colour (candies are told apart by colour until identified)
+const LOLLI = {};
+function lollipop(col) {
+  if (!LOLLI[col]) {
+    const [r, g, b] = hex(col), lite = `rgb(${Math.min(255, r + 50)},${Math.min(255, g + 50)},${Math.min(255, b + 50)})`, dark = `rgb(${r * 0.7 | 0},${g * 0.7 | 0},${b * 0.7 | 0})`;
+    LOLLI[col] = E(16, 16, x => { ell(x, 8, 7, 4.2, 4, col); rect(x, 7, 10, 2, 5, '#f6f0e6'); ell(x, 6.5, 5.5, 1.4, 1.2, lite); rect(x, 9, 8, 2, 1, dark); rect(x, 5, 7, 1, 2, dark); });
+  }
+  return LOLLI[col];
+}
